@@ -381,7 +381,6 @@ class PPO(Base):
         self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> jax.Array:
-        """unbatched"""
         action, log_prob = self.explore_fn(
             self.nextkey(),
             self.state.policy_fn,
@@ -392,7 +391,6 @@ class PPO(Base):
         return action, log_prob
 
     def explore(self, observation: jax.Array) -> jax.Array:
-        """unbatched"""
         action, log_prob = self.explore_fn(
             self.nextkey(),
             self.state.policy_fn,
