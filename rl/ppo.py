@@ -1,11 +1,7 @@
-from dataclasses import dataclass
-from collections import namedtuple
-import functools
-from typing import Any, Callable
+from typing import Callable, TypeVar
 
 import chex
 import distrax as dx
-import flax
 from flax import struct
 import flax.linen as nn
 from flax.training import train_state
@@ -13,75 +9,74 @@ import gymnasium as gym
 from gymnasium import spaces
 import jax
 import jax.numpy as jnp
-import jax.random as jrd
 import ml_collections
 import numpy as np
 import optax
 
 from rl import Base, Params
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
-from rl.common import ensure_int, create_params
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
+from rl.modules import modules_factory, create_params
 from rl.timesteps import calculate_gaes_targets
+
+EnvpoolEnv = TypeVar("EnvpoolEnv")
 
 
 @chex.dataclass
 class ParamsPPO:
     params_policy: Params
     params_value: Params
+    params_encoder: Params
 
 
 class TrainStatePPO(train_state.TrainState):
     policy_fn: Callable = struct.field(pytree_node=False)
     value_fn: Callable = struct.field(pytree_node=False)
+    encoder_fn: Callable = struct.field(pytree_node=False)
 
 
 def create_modules(
-    observation_space: spaces.Space, action_space: spaces.Discrete
+    observation_space: spaces.Space,
+    action_space: spaces.Discrete,
+    shared_encoder: bool,
 ) -> tuple[nn.Module, nn.Module]:
-    if len(observation_space.shape) > 1:
-        raise NotImplementedError
-
-    class Policy(nn.Module):
-        num_outputs: int
-
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            dtype = jnp.float32
-            x = x.astype(dtype)
-            x = nn.Dense(features=64, name="dense1", dtype=dtype)(x)
-            x = nn.tanh(x)
-            x = nn.Dense(features=64, name="dense2", dtype=dtype)(x)
-            x = nn.tanh(x)
-            return nn.Dense(features=self.num_outputs)(x)
-
-    class Value(nn.Module):
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            dtype = jnp.float32
-            x = x.astype(dtype)
-            x = nn.Dense(features=64, name="dense1", dtype=dtype)(x)
-            x = nn.tanh(x)
-            x = nn.Dense(features=64, name="dense2", dtype=dtype)(x)
-            x = nn.tanh(x)
-            return nn.Dense(features=1)(x)
-
-    return Policy(action_space.n), Value()
+    modules = modules_factory(observation_space, action_space, shared_encoder)
+    return tuple(modules.values())
 
 
 def create_params_ppo(
-    key: jax.Array, policy: nn.Module, value: nn.Module, observation_space: spaces.Space
+    key: jax.Array,
+    policy: nn.Module,
+    value: nn.Module,
+    encoder: nn.Module,
+    observation_space: spaces.Space,
+    *,
+    shared_encoder: bool = False,
 ) -> ParamsPPO:
-    key1, key2 = jax.random.split(key, 2)
-    return ParamsPPO(
-        params_policy=create_params(key1, policy, observation_space),
-        params_value=create_params(key2, value, observation_space),
-    )
+    key1, key2, key3 = jax.random.split(key, 3)
+    if shared_encoder:
+        if len(observation_space.shape) == 3:
+            hidden_shape = (1, 512)
+        else:
+            hidden_shape = (1, 64)
+
+        return ParamsPPO(
+            params_policy=create_params(key1, policy, hidden_shape),
+            params_value=create_params(key2, value, hidden_shape),
+            params_encoder=create_params(key3, encoder, observation_space.shape),
+        )
+    else:
+        return ParamsPPO(
+            params_policy=create_params(key1, policy, observation_space.shape),
+            params_value=create_params(key2, value, observation_space.shape),
+            params_encoder=create_params(key3, encoder, observation_space.shape),
+        )
 
 
 def create_train_state(
     policy: nn.Module,
     value: nn.Module,
+    encoder: nn.Module,
     params_ppo: ParamsPPO,
     config: ml_collections.ConfigDict,
 ) -> TrainStatePPO:
@@ -93,12 +88,12 @@ def create_train_state(
             * config.num_epochs
             * num_batches
         )
-        learning_rate = optax.linear_schedule(config.learning_rate, 0.0, n_updates)
+        learning_rate = optax.linear_schedule(config.learning_rate, 0.0, n_updates, 0)
     else:
         learning_rate = config.learning_rate
 
     tx = optax.chain(
-        optax.adam(learning_rate), optax.clip_by_global_norm(config.max_grad_norm)
+        optax.clip_by_global_norm(config.max_grad_norm), optax.adam(learning_rate)
     )
 
     return TrainStatePPO.create(
@@ -107,21 +102,37 @@ def create_train_state(
         tx=tx,
         policy_fn=policy.apply,
         value_fn=value.apply,
+        encoder_fn=encoder.apply,
     )
 
 
 def get_logits_and_log_probs(
-    params: Params,
+    params_policy: Params,
+    params_encoder: Params,
     policy_fn: Callable,
+    encoder_fn: Callable,
     observations: jax.Array,
 ):
-    logits = policy_fn({"params": params}, observations)
+    hiddens = encoder_fn({"params": params_encoder}, observations)
+    logits = policy_fn({"params": params_policy}, hiddens)
     return logits, nn.log_softmax(logits)
+
+
+def compute_values(
+    params: ParamsPPO,
+    value_fn: Callable,
+    encoder_fn: Callable,
+    observations: jax.Array,
+):
+    hiddens = encoder_fn({"params": params.params_encoder}, observations)
+    return value_fn({"params": params.params_value}, hiddens)
 
 
 def loss_policy_fn(
     params_policy: Params,
+    params_encoder: Params,
     policy_fn: Callable,
+    encoder_fn: Callable,
     observations: jax.Array,
     actions: jax.Array,
     log_probs_old: jax.Array,
@@ -130,7 +141,7 @@ def loss_policy_fn(
     entropy_coef: float,
 ):
     logits, all_log_probs = get_logits_and_log_probs(
-        params_policy, policy_fn, observations
+        params_policy, params_encoder, policy_fn, encoder_fn, observations
     )
     log_probs = jnp.take_along_axis(all_log_probs, actions, axis=-1)
 
@@ -141,13 +152,16 @@ def loss_policy_fn(
 
 def loss_value_fn(
     params_value: Params,
+    params_encoder: Params,
     value_fn: Callable,
+    encoder_fn: Callable,
     observations: jax.Array,
     targets: jax.Array,
     values_old: jax.Array,
     clip_eps: jax.Array,
 ):
-    values = value_fn({"params": params_value}, observations)
+    hiddens = encoder_fn({"params": params_encoder}, observations)
+    values = value_fn({"params": params_value}, hiddens)
     return loss_value_clip(values, targets, values_old, clip_eps)
 
 
@@ -155,13 +169,8 @@ def loss_fn(
     params: ParamsPPO,
     policy_fn: Callable,
     value_fn: Callable,
+    encoder_fn: Callable,
     batch: tuple[jax.Array],
-    # observations: jax.Array,
-    # actions: jax.Array,
-    # log_probs_old: jax.Array,
-    # gaes: jax.Array,
-    # targets: jax.Array,
-    # values_old: jax.Array,
     clip_eps: float,
     entropy_coef: float,
     value_coef: float,
@@ -170,7 +179,9 @@ def loss_fn(
 
     loss_policy, info_policy = loss_policy_fn(
         params.params_policy,
+        params.params_encoder,
         policy_fn,
+        encoder_fn,
         observations,
         actions,
         log_probs_old,
@@ -180,7 +191,14 @@ def loss_fn(
     )
 
     loss_value, info_value = loss_value_fn(
-        params.params_value, value_fn, observations, targets, values_old, clip_eps
+        params.params_value,
+        params.params_encoder,
+        value_fn,
+        encoder_fn,
+        observations,
+        targets,
+        values_old,
+        clip_eps,
     )
 
     infos = info_value | info_policy
@@ -188,23 +206,32 @@ def loss_fn(
 
 
 def explore(
-    key: jax.Array, params: Params, policy_fn: Callable, observations: jax.Array
+    key: jax.Array,
+    policy_fn: Callable,
+    encoder_fn: Callable,
+    params: ParamsPPO,
+    observations: jax.Array,
 ) -> jax.Array:
-    logits = policy_fn({"params": params}, observations)
+    hiddens = encoder_fn({"params": params.params_encoder}, observations)
+    logits = policy_fn({"params": params.params_policy}, hiddens)
     return dx.Categorical(logits=logits).sample_and_log_prob(seed=key)
 
 
 def explore_unbatched(
-    key: jax.Array, params: Params, policy_fn: Callable, observation: jax.Array
+    key: jax.Array,
+    policy_fn: Callable,
+    encoder_fn: Callable,
+    params: ParamsPPO,
+    observation: jax.Array,
 ) -> jax.Array:
     observations = jnp.expand_dims(observation, axis=0)
-    actions, log_probs = explore(key, params, policy_fn, observations)
+    actions, log_probs = explore(key, policy_fn, encoder_fn, params, observations)
     return jnp.squeeze(actions, axis=0), jnp.squeeze(log_probs, axis=0)
 
 
 def process_experience(
     params: ParamsPPO,
-    value_fn: Callable,
+    train_state: TrainStatePPO,
     gamma: float,
     _lambda: float,
     normalize: bool,
@@ -213,10 +240,14 @@ def process_experience(
     from rl.buffer import array_of_name
 
     observations = array_of_name(sample, "observation")
-    values = jax.jit(value_fn)({"params": params.params_value}, observations)
+    values = jax.jit(compute_values, static_argnums=(1, 2))(
+        params, train_state.value_fn, train_state.encoder_fn, observations
+    )
 
     next_observations = array_of_name(sample, "next_observation")
-    next_values = jax.jit(value_fn)({"params": params.params_value}, next_observations)
+    next_values = jax.jit(compute_values, static_argnums=(1, 2))(
+        params, train_state.value_fn, train_state.encoder_fn, next_observations
+    )
 
     not_dones = 1.0 - array_of_name(sample, "done")[..., None]
     discounts = gamma * not_dones
@@ -228,6 +259,53 @@ def process_experience(
 
     actions = array_of_name(sample, "action")[..., None]
     log_probs = array_of_name(sample, "log_prob")[..., None]
+    return observations, actions, log_probs, gaes, targets, values
+
+
+def process_experience_vectorized(
+    params: ParamsPPO,
+    train_state: TrainStatePPO,
+    gamma: float,
+    _lambda: float,
+    normalize: bool,
+    sample: list[OnPolicyExp],
+):
+    from rl.buffer import array_of_name
+
+    observations = array_of_name(sample, "observation")  # T, E, size
+    values = jax.vmap(
+        jax.jit(compute_values, static_argnums=(1, 2)),
+        in_axes=(None, None, None, 1),
+        out_axes=1,
+    )(params, train_state.value_fn, train_state.encoder_fn, observations)
+
+    next_observations = array_of_name(sample, "next_observation")
+    next_values = jax.vmap(
+        jax.jit(compute_values, static_argnums=(1, 2)),
+        in_axes=(None, None, None, 1),
+        out_axes=1,
+    )(params, train_state.value_fn, train_state.encoder_fn, next_observations)
+
+    not_dones = 1.0 - array_of_name(sample, "done")[..., None]
+    discounts = gamma * not_dones
+
+    rewards = array_of_name(sample, "reward")[..., None]
+    gaes, targets = jax.vmap(
+        jax.jit(calculate_gaes_targets, static_argnums=(4, 5)),
+        in_axes=(1, 1, 1, 1, None, None),
+        out_axes=1,
+    )(values, next_values, discounts, rewards, _lambda, normalize)
+
+    actions = array_of_name(sample, "action")[..., None]
+    log_probs = array_of_name(sample, "log_prob")[..., None]
+
+    observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
+    actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
+    log_probs = jnp.reshape(log_probs, (-1, *log_probs.shape[2:]))
+    gaes = jnp.reshape(gaes, (-1, *gaes.shape[2:]))
+    targets = jnp.reshape(targets, (-1, *targets.shape[2:]))
+    values = jnp.reshape(values, (-1, *values.shape[2:]))
+
     return observations, actions, log_probs, gaes, targets, values
 
 
@@ -255,20 +333,15 @@ def update_step(
             state.params,
             policy_fn=state.policy_fn,
             value_fn=state.value_fn,
+            encoder_fn=state.encoder_fn,
             batch=batch,
-            # observations=observations,
-            # actions=actions,
-            # log_probs_old=log_probs_old,
-            # gaes=gaes,
-            # targets=targets,
-            # values_old=values_old,
             clip_eps=clip_eps,
             entropy_coef=entropy_coef,
             value_coef=value_coef,
         )
         loss += l
         state = state.apply_gradients(grads=grads)
-    return state, loss
+    return state, loss, info
 
 
 class PPO(Base):
@@ -279,40 +352,61 @@ class PPO(Base):
         config: ml_collections.ConfigDict,
         *,
         create_modules: Callable[..., tuple[nn.Module, nn.Module]] = create_modules,
-        create_params: Callable[..., ParamsPPO] = create_params_ppo
+        create_params: Callable[..., ParamsPPO] = create_params_ppo,
+        n_envs: int = 1,
     ):
         Base.__init__(self, seed)
         self.config = config
 
-        policy, value = create_modules(env.observation_space, env.action_space)
-        params = create_params(self.nextkey(), policy, value, env.observation_space)
-        self.state = create_train_state(policy, value, params, self.config)
+        policy, value, encoder = create_modules(
+            env.observation_space, env.action_space, config.shared_encoder
+        )
+        params = create_params(
+            self.nextkey(),
+            policy,
+            value,
+            encoder,
+            env.observation_space,
+            shared_encoder=config.shared_encoder,
+        )
+        self.state = create_train_state(policy, value, encoder, params, self.config)
+
+        self.explore_fn = explore if n_envs > 1 else explore_unbatched
+        self.explore_fn = jax.jit(self.explore_fn, static_argnums=(1, 2))
+
+        self.process_experience_fn = (
+            process_experience_vectorized if n_envs > 1 else process_experience
+        )
+
+        self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> jax.Array:
         """unbatched"""
-        action, log_prob = jax.jit(explore_unbatched, static_argnums=2)(
+        action, log_prob = self.explore_fn(
             self.nextkey(),
-            self.state.params.params_policy,
             self.state.policy_fn,
+            self.state.encoder_fn,
+            self.state.params,
             observation,
         )
-        return ensure_int(action), log_prob
+        return action, log_prob
 
     def explore(self, observation: jax.Array) -> jax.Array:
         """unbatched"""
-        action, log_prob = jax.jit(explore_unbatched, static_argnums=2)(
+        action, log_prob = self.explore_fn(
             self.nextkey(),
-            self.state.params.params_policy,
             self.state.policy_fn,
+            self.state.encoder_fn,
+            self.state.params,
             observation,
         )
-        return ensure_int(action), log_prob
+        return action, log_prob
 
     def update(self, buffer: OnPolicyBuffer):
         sample = buffer.sample()
-        experiences = process_experience(
+        experiences = self.process_experience_fn(
             self.state.params,
-            self.state.value_fn,
+            self.state,
             self.config.gamma,
             self.config._lambda,
             self.config.normalize,
@@ -321,7 +415,7 @@ class PPO(Base):
 
         loss = 0.0
         for epoch in range(self.config.num_epochs):
-            self.state, l = jax.jit(update_step, static_argnums=(3, 4, 5, 6))(
+            self.state, l, info = jax.jit(update_step, static_argnums=(3, 4, 5, 6))(
                 self.nextkey(),
                 self.state,
                 experiences,
@@ -333,17 +427,22 @@ class PPO(Base):
             loss += l
 
         loss /= self.config.num_epochs
+        return info
 
 
 def train(seed: int, ppo: PPO, env: gym.Env, n_env_steps: int):
+    assert ppo.n_envs == 1
+
     buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
 
     observation, info = env.reset(seed=seed + 1)
     episode_return = 0.0
 
+    update_info = {"kl_divergence": 0.0}
+
     for step in range(1, n_env_steps + 1):
-        action, log_prob = ppo.explore(observation)
-        next_observation, reward, done, trunc, info = env.step(action)
+        action, log_prob = ppo.explore(np.array(observation))
+        next_observation, reward, done, trunc, info = env.step(int(action))
         episode_return += reward
 
         buffer.add(
@@ -358,11 +457,55 @@ def train(seed: int, ppo: PPO, env: gym.Env, n_env_steps: int):
         )
 
         if done or trunc:
-            print(step, " > ", episode_return)
+            print(step, " > ", episode_return, " | ", update_info["kl_divergence"])
             episode_return = 0.0
             next_observation, info = env.reset()
 
         if len(buffer) >= ppo.config.max_buffer_size:
-            ppo.update(buffer)
+            update_info = ppo.update(buffer)
+
+        observation = next_observation
+
+
+def train_vectorized(seed: int, ppo: PPO, env: EnvpoolEnv, n_env_steps: int):
+    assert ppo.n_envs > 1
+
+    buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
+
+    observation, info = env.reset()
+    episode_return = np.zeros((observation.shape[0],))
+
+    update_info = {"kl_divergence": 0.0}
+
+    for step in range(1, n_env_steps + 1):
+        action, log_prob = ppo.explore(observation)
+        next_observation, reward, done, trunc, info = env.step(np.array(action))
+        episode_return += reward
+
+        buffer.add(
+            OnPolicyExp(
+                observation=observation,
+                action=action,
+                reward=reward,
+                done=done,
+                next_observation=next_observation,
+                log_prob=log_prob,
+            )
+        )
+
+        for i, (d, t) in enumerate(zip(done, trunc)):
+            if d or t:
+                if i == 0:
+                    print(
+                        step,
+                        " > ",
+                        episode_return[i],
+                        " | ",
+                        update_info["kl_divergence"],
+                    )
+                episode_return[i] = 0.0
+
+        if len(buffer) >= ppo.config.max_buffer_size:
+            update_info = ppo.update(buffer)
 
         observation = next_observation
