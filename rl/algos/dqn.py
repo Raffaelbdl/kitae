@@ -15,7 +15,8 @@ import optax
 
 from rl import Base, Params
 from rl.buffer import OffPolicyBuffer, OffPolicyExp
-from rl.common import ensure_int, create_params
+from rl.common import ensure_int
+from rl.modules import create_params
 
 NO_EXPLORATION = 0.0
 
