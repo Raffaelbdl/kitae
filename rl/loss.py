@@ -38,6 +38,7 @@ def loss_policy_ppo_discrete(
     kl_divergence = jax.lax.stop_gradient(jnp.mean((ratios - 1) - log_ratios))
     infos = {
         "loss_policy": loss_policy,
+        "logits": logits,
         "entropy": entropy,
         "kl_divergence": kl_divergence,
     }
@@ -75,3 +76,24 @@ def loss_value_clip(
     infos = {"loss_value": loss_value}
 
     return loss_value, infos
+
+
+def loss_shannon_jensen_divergence(
+    average_logits: jax.Array, average_entropy: jax.Array
+) -> float:
+    """Shannon Jensen Divergence loss function
+
+    Shannon Jensen Divergence loss is used to increase
+    the behaviour diversity of a population.
+
+    * Compute average_logits by averaging logits over the last axis
+    * Compute average_entropy by averaging entropies over the last axis
+
+    Args:
+        average_logits: An Array of shape (..., N_actions)
+        average_entropy: An Array of shape (..., N_actions)
+    Returns:
+        shannon_jensen_divergence_loss: A float
+    """
+    chex.assert_equal_rank([average_logits, average_entropy])
+    return -jnp.mean(dx.Categorical(logits=average_logits).entropy() - average_entropy)
