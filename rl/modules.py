@@ -30,7 +30,7 @@ def conv_layer(
 
 
 class VisionEncoder(nn.Module):
-    rearrange_pattern: str = "b c h w -> b h w c"  # torch to flax
+    rearrange_pattern: str
 
     @nn.compact
     def __call__(self, x: jax.Array):
@@ -96,7 +96,7 @@ class ValueOutput(nn.Module):
 def encoder_factory(
     observation_space: spaces.Space,
     *,
-    rearrange_pattern: str = "b c h w -> b h w c",
+    rearrange_pattern: str = "b h w c -> b h w c",
 ) -> Type[nn.Module]:
     if len(observation_space.shape) == 1:
         return VectorEncoder
@@ -111,7 +111,7 @@ def modules_factory(
     action_space: spaces.Space,
     shared_encoder: bool,
     *,
-    rearrange_pattern: str = "b c h w -> b h w c",
+    rearrange_pattern: str = "b h w c -> b h w c",
 ) -> dict[str, nn.Module]:
     encoder = encoder_factory(observation_space, rearrange_pattern=rearrange_pattern)
 

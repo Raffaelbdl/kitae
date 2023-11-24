@@ -156,7 +156,9 @@ def test_no_error_ppo_run_visual_vectorized():
         }
     )
 
-    model = ppo.PPO(0, env, config, n_envs=N_ENVS)
+    model = ppo.PPO(
+        0, env, config, n_envs=N_ENVS, rearrange_pattern="b c h w -> b h w c"
+    )
     ppo.train_vectorized(0, model, env, config.n_env_steps)
 
     assert True
@@ -187,7 +189,9 @@ def test_no_error_ppo_run_visual_vectorized_shared_encoder():
         }
     )
 
-    model = ppo.PPO(0, env, config, n_envs=N_ENVS)
+    model = ppo.PPO(
+        0, env, config, n_envs=N_ENVS, rearrange_pattern="b c h w -> b h w c"
+    )
     ppo.train_vectorized(0, model, env, config.n_env_steps)
 
     assert True
@@ -218,7 +222,9 @@ def test_no_error_ppo_run_vector_vectorized():
         }
     )
 
-    model = ppo.PPO(0, env, config, n_envs=N_ENVS)
+    model = ppo.PPO(
+        0, env, config, n_envs=N_ENVS, rearrange_pattern="b c h w -> b h w c"
+    )
     ppo.train_vectorized(0, model, env, config.n_env_steps)
 
     assert True
@@ -249,7 +255,9 @@ def test_no_error_ppo_run_vector_vectorized_shared_encoder():
         }
     )
 
-    model = ppo.PPO(0, env, config, n_envs=N_ENVS)
+    model = ppo.PPO(
+        0, env, config, n_envs=N_ENVS, rearrange_pattern="b c h w -> b h w c"
+    )
     ppo.train_vectorized(0, model, env, config.n_env_steps)
 
     assert True

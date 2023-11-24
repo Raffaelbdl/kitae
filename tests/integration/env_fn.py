@@ -1,17 +1,17 @@
 import envpool
 import gymnasium as gym
 from gymnasium.wrappers.atari_preprocessing import AtariPreprocessing
-from gymnasium.wrappers.frame_stack import FrameStack
+import supersuit as ss
 
 
-def create_atari():
+def create_atari() -> gym.Env:
     env = gym.make("ALE/Pong-v5", frameskip=1)
     env = AtariPreprocessing(env, grayscale_newaxis=False)
-    env = FrameStack(env, 4, False)
+    env = ss.frame_stack_v2(env, 4, -1)
     return env
 
 
-def create_cartpole():
+def create_cartpole() -> gym.Env:
     env = gym.make("CartPole-v1")
     return env
 
