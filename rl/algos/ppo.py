@@ -39,8 +39,15 @@ def create_modules(
     observation_space: spaces.Space,
     action_space: spaces.Discrete,
     shared_encoder: bool,
+    *,
+    rearrange_pattern: str,
 ) -> tuple[nn.Module, nn.Module]:
-    modules = modules_factory(observation_space, action_space, shared_encoder)
+    modules = modules_factory(
+        observation_space,
+        action_space,
+        shared_encoder,
+        rearrange_pattern=rearrange_pattern,
+    )
     return tuple(modules.values())
 
 
@@ -79,11 +86,14 @@ def create_train_state(
     encoder: nn.Module,
     params_ppo: ParamsPPO,
     config: ml_collections.ConfigDict,
+    *,
+    n_envs: int = 1,
 ) -> TrainStatePPO:
     num_batches = config.max_buffer_size // config.batch_size
     if config.learning_rate_annealing:
         n_updates = (
             config.n_env_steps
+            * n_envs
             // config.max_buffer_size
             * config.num_epochs
             * num_batches
@@ -353,23 +363,29 @@ class PPO(Base):
         *,
         create_modules: Callable[..., tuple[nn.Module, nn.Module]] = create_modules,
         create_params: Callable[..., ParamsPPO] = create_params_ppo,
+        rearrange_pattern: str = "b h w c -> b h w c",
         n_envs: int = 1,
     ):
         Base.__init__(self, seed)
         self.config = config
 
         policy, value, encoder = create_modules(
-            env.observation_space, env.action_space, config.shared_encoder
+            config.observation_space,
+            config.action_space,
+            config.shared_encoder,
+            rearrange_pattern=rearrange_pattern,
         )
         params = create_params(
             self.nextkey(),
             policy,
             value,
             encoder,
-            env.observation_space,
+            config.observation_space,
             shared_encoder=config.shared_encoder,
         )
-        self.state = create_train_state(policy, value, encoder, params, self.config)
+        self.state = create_train_state(
+            policy, value, encoder, params, self.config, n_envs=n_envs
+        )
 
         self.explore_fn = explore if n_envs > 1 else explore_unbatched
         self.explore_fn = jax.jit(self.explore_fn, static_argnums=(1, 2))
