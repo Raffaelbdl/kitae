@@ -220,7 +220,9 @@ class PPO(Base):
 
         self.n_envs = n_envs
 
-    def select_action(self, observation: dict[str, jax.Array]) -> dict[str, jax.Array]:
+    def select_action(
+        self, observation: dict[str, jax.Array]
+    ) -> tuple[dict[str, jax.Array], dict[str, jax.Array]]:
         # could use a jax tree_map
         action, log_prob = {}, {}
         for agent, obs in observation.items():

@@ -396,7 +396,7 @@ class PPO(Base):
 
         self.n_envs = n_envs
 
-    def select_action(self, observation: jax.Array) -> jax.Array:
+    def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         action, log_prob = self.explore_fn(
             self.nextkey(),
             self.state.policy_fn,
@@ -406,7 +406,7 @@ class PPO(Base):
         )
         return action, log_prob
 
-    def explore(self, observation: jax.Array) -> jax.Array:
+    def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         action, log_prob = self.explore_fn(
             self.nextkey(),
             self.state.policy_fn,
