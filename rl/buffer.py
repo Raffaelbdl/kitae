@@ -20,6 +20,21 @@ def array_of_name(experiences: list[Experience], name: str) -> np.ndarray:
     return np.array([e.__getattribute__(name) for e in experiences])
 
 
+def multi_agent_array_of_name(
+    experiences: list[Experience], name: str
+) -> dict[str, np.ndarray]:
+    ma_list_of_name = {
+        agent: [] for agent in experiences[0].__getattribute__(name).keys()
+    }
+
+    for e in experiences:
+        ma_value = e.__getattribute__(name)
+        for agent, value in ma_value.items():
+            ma_list_of_name[agent].append(value)
+
+    return {agent: np.array(ma_list_of_name[agent]) for agent in ma_list_of_name.keys()}
+
+
 class Buffer(ABC):
     def __init__(self, seed: int, max_buffer_size: int = 0) -> None:
         self.rng = np.random.default_rng(seed)
