@@ -2,6 +2,7 @@ import envpool
 import gymnasium as gym
 from gymnasium.wrappers.atari_preprocessing import AtariPreprocessing
 import supersuit as ss
+from rl.wrapper import EnvpoolCompatibility
 
 
 def create_atari() -> gym.Env:
@@ -18,9 +19,9 @@ def create_cartpole() -> gym.Env:
 
 def create_atari_envpool(n_envs: int):
     env = envpool.make("Pong-v5", env_type="gymnasium", num_envs=n_envs, seed=0)
-    return env
+    return EnvpoolCompatibility(env)
 
 
 def create_cartpole_envpool(n_envs: int):
     env = envpool.make("CartPole-v1", env_type="gymnasium", num_envs=n_envs, seed=0)
-    return env
+    return EnvpoolCompatibility(env)
