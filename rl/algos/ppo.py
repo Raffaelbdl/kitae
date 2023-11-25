@@ -1,7 +1,8 @@
-from typing import Callable, TypeVar
+from typing import Callable
 
 import chex
 import distrax as dx
+from envpool.python.api import EnvPool
 from flax import struct
 import flax.linen as nn
 from flax.training import train_state
@@ -13,13 +14,14 @@ import ml_collections
 import numpy as np
 import optax
 
-from rl import Base, Params
+from rl.base import Base, Params, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.modules import modules_factory, create_params
 from rl.timesteps import calculate_gaes_targets
 
-EnvpoolEnv = TypeVar("EnvpoolEnv")
+GymEnv = gym.Env
+EnvPoolEnv = EnvPool
 
 
 @chex.dataclass
@@ -443,83 +445,14 @@ class PPO(Base):
         loss /= self.config.num_epochs
         return info
 
+    def train(self, env: GymEnv | EnvPoolEnv, n_env_steps: int):
+        from rl.train import train
 
-def train(seed: int, ppo: PPO, env: gym.Env, n_env_steps: int):
-    assert ppo.n_envs == 1
-
-    buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
-
-    observation, info = env.reset(seed=seed + 1)
-    episode_return = 0.0
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_env_steps + 1):
-        action, log_prob = ppo.explore(np.array(observation))
-        next_observation, reward, done, trunc, info = env.step(int(action))
-        episode_return += reward
-
-        buffer.add(
-            OnPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-                log_prob=log_prob,
-            )
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
         )
-
-        if done or trunc:
-            print(step, " > ", episode_return, " | ", update_info["kl_divergence"])
-            episode_return = 0.0
-            next_observation, info = env.reset()
-
-        if len(buffer) >= ppo.config.max_buffer_size:
-            update_info = ppo.update(buffer)
-
-        observation = next_observation
-
-
-def train_vectorized(seed: int, ppo: PPO, env: EnvpoolEnv, n_env_steps: int):
-    assert ppo.n_envs > 1
-
-    buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
-
-    observation, info = env.reset()
-    episode_return = np.zeros((observation.shape[0],))
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_env_steps + 1):
-        action, log_prob = ppo.explore(observation)
-        next_observation, reward, done, trunc, info = env.step(np.array(action))
-        episode_return += reward
-
-        buffer.add(
-            OnPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-                log_prob=log_prob,
-            )
-        )
-
-        for i, (d, t) in enumerate(zip(done, trunc)):
-            if d or t:
-                if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        episode_return[i],
-                        " | ",
-                        update_info["kl_divergence"],
-                    )
-                episode_return[i] = 0.0
-
-        if len(buffer) >= ppo.config.max_buffer_size:
-            update_info = ppo.update(buffer)
-
-        observation = next_observation

@@ -9,12 +9,12 @@ import numpy as np
 import pettingzoo
 import vec_parallel_env
 
-from rl import Base
+from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.timesteps import calculate_gaes_targets
 
 ParallelEnv = pettingzoo.ParallelEnv
-SubProcParallelEnv = vec_parallel_env.SubProcVecParallelEnv
+SubProcVecParallelEnv = vec_parallel_env.SubProcVecParallelEnv
 
 from rl.algos.ppo import (
     ParamsPPO,
@@ -279,94 +279,14 @@ class PPO(Base):
         loss /= self.config.num_epochs
         return info
 
+    def train(self, env: ParallelEnv | SubProcVecParallelEnv, n_env_steps: int):
+        from rl.train import train
 
-def train(seed: int, ppo: PPO, env: gym.Env, n_env_steps: int):
-    assert ppo.n_envs == 1
-
-    buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
-
-    observation, info = env.reset(seed=seed + 1)
-    episode_return = 0.0
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_env_steps + 1):
-        action, log_prob = ppo.explore(observation)
-        next_observation, reward, done, trunc, info = env.step(
-            {agent: int(a) for agent, a in action.items()}
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.PARALLEL,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
         )
-        episode_return += sum(reward.values())
-
-        buffer.add(
-            OnPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-                log_prob=log_prob,
-            )
-        )
-
-        if any(done.values()) or any(trunc.values()):
-            print(step, " > ", episode_return, " | ", update_info["kl_divergence"])
-            episode_return = 0.0
-            next_observation, info = env.reset()
-
-        if len(buffer) >= ppo.config.max_buffer_size:
-            update_info = ppo.update(buffer)
-
-        observation = next_observation
-
-
-def train_vectorized(seed: int, ppo: PPO, env: SubProcParallelEnv, n_env_steps: int):
-    assert ppo.n_envs > 1
-
-    buffer = OnPolicyBuffer(seed, ppo.config.max_buffer_size)
-
-    observation, info = env.reset()
-    episode_return = np.zeros((np.array(list(observation.values())[0]).shape[0],))
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_env_steps + 1):
-        action, log_prob = ppo.explore(observation)
-        try:
-            next_observation, reward, done, trunc, info = env.step(action)
-        except:
-            print("action", action)
-            print("obs", observation)
-        episode_return += np.sum(np.array(list(reward.values())), axis=0)
-
-        buffer.add(
-            OnPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-                log_prob=log_prob,
-            )
-        )
-
-        check_d, check_t = np.stack(list(done.values()), axis=1), np.stack(
-            list(trunc.values()), axis=1
-        )
-        for i, (d, t) in enumerate(zip(check_d, check_t)):
-            if np.any(d) or np.any(t):
-                if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        episode_return[i],
-                        " | ",
-                        update_info["kl_divergence"],
-                    )
-                episode_return[i] = 0.0
-
-        if len(buffer) >= ppo.config.max_buffer_size:
-            update_info = ppo.update(buffer)
-
-        observation = next_observation
-
-    env.close()
