@@ -12,100 +12,21 @@ import vec_parallel_env
 
 from rl.base import Base
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
-from rl.loss import loss_shannon_jensen_divergence
 
 ParallelEnv = pettingzoo.ParallelEnv
 SubProcParallelEnv = vec_parallel_env.SubProcVecParallelEnv
 
 from rl.algos.ppo import (
     ParamsPPO,
-    TrainStatePPO,
     create_modules,
     create_params_ppo,
     create_train_state,
     explore,
     explore_unbatched,
-    loss_fn as loss_single_fn,
 )
 
 from rl.algos.ippo import process_experience, process_experience_vectorized
-
-
-def loss_fn(
-    params_population: list[ParamsPPO],
-    policy_fn: Callable,
-    value_fn: Callable,
-    encoder_fn: Callable,
-    batch: list[tuple[jax.Array]],
-    clip_eps: float,
-    entropy_coef: float,
-    value_coef: float,
-    jsd_coef: float,
-):
-    loss, infos = 0.0, {}
-    logits_pop = []
-    entropy_pop = []
-
-    for i in range(len(params_population)):
-        l, i = loss_single_fn(
-            params_population[i],
-            policy_fn,
-            value_fn,
-            encoder_fn,
-            batch[i],
-            clip_eps,
-            entropy_coef,
-            value_coef,
-        )
-        loss += l
-        logits_pop.append(i["logits"])
-        entropy_pop.append(i["entropy"])
-        infos |= i
-
-    logits_average = jnp.array(logits_pop).mean(axis=0)
-    entropy_average = jnp.array(entropy_pop).mean(axis=0)[..., None]
-
-    loss += jsd_coef * loss_shannon_jensen_divergence(logits_average, entropy_average)
-    return loss, infos
-
-
-def update_step(
-    key: jax.Array,
-    state: TrainStatePPO,
-    experiences: list[tuple],
-    clip_eps: float,
-    entropy_coef: float,
-    value_coef: float,
-    jsd_coef: float,
-    batch_size: int,
-):
-    num_elems = experiences[0][0].shape[0]
-    iterations = num_elems // batch_size
-    inds = jax.random.permutation(key, num_elems)[: iterations * batch_size]
-
-    experiences = jax.tree_util.tree_map(
-        lambda x: x[inds].reshape((iterations, batch_size) + x.shape[1:]),
-        experiences,
-    )
-
-    loss = 0.0
-    for i in range(iterations):
-        batch = [tuple(v[i] for v in e) for e in experiences]
-
-        (l, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            state.params,
-            policy_fn=state.policy_fn,
-            value_fn=state.value_fn,
-            encoder_fn=state.encoder_fn,
-            batch=batch,
-            clip_eps=clip_eps,
-            entropy_coef=entropy_coef,
-            value_coef=value_coef,
-            jsd_coef=jsd_coef,
-        )
-        loss += l
-        state = state.apply_gradients(grads=grads)
-    return state, loss, info
+from rl.populations.pop_ppo import update_step
 
 
 class PopulationPPO(Base):
