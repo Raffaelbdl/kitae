@@ -19,6 +19,7 @@ from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.modules import modules_factory, create_params
 from rl.timesteps import calculate_gaes_targets
+from rl.train import train
 
 GymEnv = gym.Env
 EnvPoolEnv = EnvPool
@@ -360,15 +361,15 @@ class PPO(Base):
     def __init__(
         self,
         seed: int,
-        env: gym.Env,
         config: ml_collections.ConfigDict,
         *,
         create_modules: Callable[..., tuple[nn.Module, nn.Module]] = create_modules,
         create_params: Callable[..., ParamsPPO] = create_params_ppo,
         rearrange_pattern: str = "b h w c -> b h w c",
         n_envs: int = 1,
+        run_name: str = None,
     ):
-        Base.__init__(self, seed)
+        Base.__init__(self, seed, run_name=run_name)
         self.config = config
 
         policy, value, encoder = create_modules(
@@ -399,14 +400,7 @@ class PPO(Base):
         self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        action, log_prob = self.explore_fn(
-            self.nextkey(),
-            self.state.policy_fn,
-            self.state.encoder_fn,
-            self.state.params,
-            observation,
-        )
-        return action, log_prob
+        return self.explore(observation)
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         action, log_prob = self.explore_fn(
@@ -446,7 +440,18 @@ class PPO(Base):
         return info
 
     def train(self, env: GymEnv | EnvPoolEnv, n_env_steps: int):
-        from rl.train import train
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            saver=self.saver,
+        )
+
+    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int):
+        step, self.state = self.saver.restore_latest_step(self.state)
 
         return train(
             int(np.asarray(self.nextkey())[0]),
@@ -455,4 +460,6 @@ class PPO(Base):
             n_env_steps,
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            start_step=step,
+            saver=self.saver,
         )

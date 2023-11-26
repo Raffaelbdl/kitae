@@ -10,6 +10,8 @@ from rl.buffer import OnPolicyBuffer, OnPolicyExp
 
 EnvLike = gym.Env | EnvPool | pettingzoo.ParallelEnv | SubProcVecParallelEnv
 
+from rl.save import Saver, SaverContext
+
 
 def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
     def single_one_process(action: jax.Array):
@@ -151,6 +153,9 @@ def train(
     n_env_steps: int,
     env_type: EnvType,
     env_procs: EnvProcs,
+    *,
+    start_step: int = 1,
+    saver: Saver = None,
 ):
     buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
 
@@ -161,33 +166,36 @@ def train(
         "kl_divergence": 0.0,
     }
 
-    for step in range(1, n_env_steps + 1):
-        action, log_prob = base.explore(observation)
-        next_observation, reward, done, trunc, info = env.step(
-            process_action(action, env_type, env_procs)
-        )
-        logs["episode_return"] += process_reward(reward, env_type, env_procs)
-
-        buffer.add(
-            OnPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-                log_prob=log_prob,
+    with SaverContext(saver, base.config.save_frequency) as s:
+        for step in range(start_step, n_env_steps + 1):
+            action, log_prob = base.explore(observation)
+            next_observation, reward, done, trunc, info = env.step(
+                process_action(action, env_type, env_procs)
             )
-        )
+            logs["episode_return"] += process_reward(reward, env_type, env_procs)
 
-        termination = process_termination(
-            step, env, done, trunc, logs, env_type, env_procs
-        )
-        if termination[0] is not None and termination[1] is not None:
-            next_observation, info = termination
+            buffer.add(
+                OnPolicyExp(
+                    observation=observation,
+                    action=action,
+                    reward=reward,
+                    done=done,
+                    next_observation=next_observation,
+                    log_prob=log_prob,
+                )
+            )
 
-        if len(buffer) >= base.config.max_buffer_size:
-            logs |= base.update(buffer)
+            termination = process_termination(
+                step, env, done, trunc, logs, env_type, env_procs
+            )
+            if termination[0] is not None and termination[1] is not None:
+                next_observation, info = termination
 
-        observation = next_observation
+            if len(buffer) >= base.config.max_buffer_size:
+                logs |= base.update(buffer)
+
+            s.update(step, base.state)
+
+            observation = next_observation
 
     env.close()
