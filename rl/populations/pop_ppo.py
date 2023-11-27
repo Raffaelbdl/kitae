@@ -1,6 +1,6 @@
-from typing import Callable, TypeVar
+from typing import Callable
 
-import chex
+from envpool.python.api import EnvPool
 from flax import linen as nn
 import gymnasium as gym
 import jax
@@ -8,11 +8,13 @@ from jax import numpy as jnp
 import ml_collections
 import numpy as np
 
-from rl.base import Base
-from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.base import Base, EnvType, EnvProcs
+from rl.buffer import OnPolicyBuffer
 from rl.loss import loss_shannon_jensen_divergence
+from rl.train import train_population
 
-EnvpoolEnv = TypeVar("EnvpoolEnv")
+GymEnv = gym.Env
+EnvPoolEnv = EnvPool
 
 from rl.algos.ppo import (
     ParamsPPO,
@@ -203,108 +205,30 @@ class PopulationPPO(Base):
         info["total_loss"] = loss
         return info
 
+    def train(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, use_wandb: bool):
+        return train_population(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            saver=self.saver,
+            use_wandb=use_wandb,
+        )
 
-def train(seed: int, population: PopulationPPO, envs: list[gym.Env], n_env_steps: int):
-    assert population.n_envs == 1
+    def resume(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, use_wandb: bool):
+        step, self.state = self.saver.restore_latest_step(self.state)
 
-    buffers = [
-        OnPolicyBuffer(seed + i, population.config.max_buffer_size)
-        for i in range(population.population_size)
-    ]
+        return train_population(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            start_step=step,
+            saver=self.saver,
+            use_wandb=use_wandb,
+        )
 
-    observations, infos = zip(*[envs[i].reset(seed=seed + i) for i in range(len(envs))])
-    episode_returns = np.zeros((len(observations),))
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_env_steps + 1):
-        actions, log_probs = population.explore(observations)
-
-        next_observations = []
-        for i, env in enumerate(envs):
-            next_observation, reward, done, trunc, info = env.step(int(actions[i]))
-            episode_returns[i] += reward
-
-            buffers[i].add(
-                OnPolicyExp(
-                    observation=observations[i],
-                    action=actions[i],
-                    reward=reward,
-                    done=done,
-                    next_observation=next_observation,
-                    log_prob=log_probs[i],
-                )
-            )
-
-            if done or trunc:
-                if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        episode_returns[i],
-                        " | ",
-                        update_info["kl_divergence"],
-                    )
-                episode_returns[i] = 0.0
-                next_observation, info = env.reset()
-
-            next_observations.append(next_observation)
-
-        if len(buffers[0]) >= population.config.max_buffer_size:
-            update_info |= population.update(buffers)
-
-        observations = next_observations
-
-
-def train_vectorized(
-    seed: int, population: PopulationPPO, envs: list[EnvpoolEnv], n_envs_steps: int
-):
-    assert population.n_envs > 1
-
-    buffers = [
-        OnPolicyBuffer(seed + i, population.config.max_buffer_size)
-        for i in range(population.population_size)
-    ]
-
-    observations, infos = zip(*[envs[i].reset() for i in range(len(envs))])
-    episode_returns = np.zeros((len(observations), observations[0].shape[0]))
-
-    update_info = {"kl_divergence": 0.0}
-
-    for step in range(1, n_envs_steps + 1):
-        actions, log_probs = population.explore(observations)
-
-        next_observations = []
-        for i, env in enumerate(envs):
-            next_observation, reward, done, trunc, info = env.step(np.array(actions[i]))
-            episode_returns[i] += reward
-
-            buffers[i].add(
-                OnPolicyExp(
-                    observation=observations[i],
-                    action=actions[i],
-                    reward=reward,
-                    done=done,
-                    next_observation=next_observation,
-                    log_prob=log_probs[i],
-                )
-            )
-
-            for k, (d, t) in enumerate(zip(done, trunc)):
-                if d or t:
-                    if i == 0 and k == 0:
-                        print(
-                            step,
-                            " > ",
-                            np.mean(episode_returns[i]),
-                            " | ",
-                            update_info["kl_divergence"],
-                        )
-                    episode_returns[i][k] = 0.0
-
-            next_observations.append(next_observation)
-
-        if len(buffers[0]) >= population.config.max_buffer_size:
-            update_info |= population.update(buffers)
-
-        observations = next_observations

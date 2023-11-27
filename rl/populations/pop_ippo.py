@@ -10,8 +10,9 @@ import numpy as np
 import pettingzoo
 import vec_parallel_env
 
-from rl.base import Base
+from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.train import train_population
 
 ParallelEnv = pettingzoo.ParallelEnv
 SubProcParallelEnv = vec_parallel_env.SubProcVecParallelEnv
@@ -128,7 +129,45 @@ class PopulationPPO(Base):
             loss += l
 
         loss /= self.config.num_epochs
+        info["total_loss"] = loss
         return info
+
+    def train(
+        self,
+        env: list[ParallelEnv | SubProcParallelEnv],
+        n_env_steps: int,
+        use_wandb: bool,
+    ):
+        return train_population(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.PARALLEL,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            saver=self.saver,
+            use_wandb=use_wandb,
+        )
+
+    def resume(
+        self,
+        env: list[ParallelEnv | SubProcParallelEnv],
+        n_env_steps: int,
+        use_wandb: bool,
+    ):
+        step, self.state = self.saver.restore_latest_step(self.state)
+
+        return train_population(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.PARALLEL,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            start_step=step,
+            saver=self.saver,
+            use_wandb=use_wandb,
+        )
 
 
 def train(

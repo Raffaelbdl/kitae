@@ -206,3 +206,154 @@ def train(
             observation = next_observation
 
     env.close()
+
+
+def process_termination_population(
+    step: int,
+    env: EnvLike,
+    done,
+    trunc,
+    logs: dict,
+    env_type: EnvType,
+    env_procs: EnvProcs,
+    agent_id: int,
+):
+    def single_one_process(env, done, trunc, logs):
+        if done or trunc:
+            print(
+                step,
+                " > ",
+                logs["episode_return"][agent_id],
+                " | ",
+                logs["kl_divergence"],
+            )
+            logs["episode_return"][agent_id] = 0.0
+            next_observation, info = env.reset()
+            return next_observation, info
+        return None, None
+
+    def single_many_process(env, done, trunc, logs):
+        for i, (d, t) in enumerate(zip(done, trunc)):
+            if d or t:
+                if i == 0:
+                    print(
+                        step,
+                        " > ",
+                        logs["episode_return"][agent_id][i],
+                        " | ",
+                        logs["kl_divergence"],
+                    )
+                logs["episode_return"][agent_id][i] = 0.0
+        return None, None
+
+    def parallel_one_process(env, done, trunc, logs):
+        if any(done.values()) or any(trunc.values()):
+            print(
+                step,
+                " > ",
+                logs["episode_return"][agent_id],
+                " | ",
+                logs["kl_divergence"],
+            )
+            logs["episode_return"][agent_id] = 0.0
+            next_observation, info = env.reset()
+            return next_observation, info
+        return None, None
+
+    def parallel_many_process(env, done, trunc, logs):
+        check_d, check_t = np.stack(list(done.values()), axis=1), np.stack(
+            list(trunc.values()), axis=1
+        )
+        for i, (d, t) in enumerate(zip(check_d, check_t)):
+            if np.any(d) or np.any(t):
+                if i == 0:
+                    print(
+                        step,
+                        " > ",
+                        logs["episode_return"][agent_id][i],
+                        " | ",
+                        logs["kl_divergence"],
+                    )
+                logs["episode_return"][agent_id][i] = 0.0
+        return None, None
+
+    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
+        return single_one_process(env, done, trunc, logs)
+    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
+        return single_many_process(env, done, trunc, logs)
+    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
+        return parallel_one_process(env, done, trunc, logs)
+    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
+        return parallel_many_process(env, done, trunc, logs)
+    else:
+        raise NotImplementedError
+
+
+def train_population(
+    seed: int,
+    base: Base,
+    envs: list[EnvLike],
+    n_env_steps: int,
+    env_type: EnvType,
+    env_procs: EnvProcs,
+    *,
+    start_step: int = 1,
+    saver: Saver = None,
+    use_wandb: bool = False,
+):
+    buffers = [
+        OnPolicyBuffer(seed + i, base.config.max_buffer_size) for i in range(len(envs))
+    ]
+
+    observations, infos = zip(*[envs[i].reset(seed=seed + i) for i in range(len(envs))])
+
+    logs = {
+        "episode_return": [
+            init_episode_return(obs, env_type, env_procs) for obs in observations
+        ],
+        "kl_divergence": 0.0,
+    }
+
+    with SaverContext(saver, base.config.save_frequency) as s:
+        for step in range(start_step, n_env_steps + 1):
+            logs["step"] = step
+
+            actions, log_probs = base.explore(observations)
+
+            next_observations = []
+            for i, env in enumerate(envs):
+                next_observation, reward, done, trunc, info = env.step(
+                    process_action(actions[i], env_type, env_procs)
+                )
+                logs["episode_return"][i] += process_reward(reward, env_type, env_procs)
+
+                buffers[i].add(
+                    OnPolicyExp(
+                        observation=observations[i],
+                        action=actions[i],
+                        reward=reward,
+                        done=done,
+                        next_observation=next_observation,
+                        log_prob=log_probs[i],
+                    )
+                )
+
+                termination = process_termination_population(
+                    step, env, done, trunc, logs, env_type, env_procs, i
+                )
+                if termination[0] is not None and termination[1] is not None:
+                    next_observation, info = termination
+
+                next_observations.append(next_observation)
+
+            if len(buffers[0]) >= base.config.max_buffer_size:
+                logs |= base.update(buffers)
+
+            if use_wandb:
+                wandb.log(logs)
+
+            s.update(step, base.state)
+
+            observations = next_observations
+
+        env.close()
