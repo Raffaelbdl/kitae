@@ -200,6 +200,7 @@ class PopulationPPO(Base):
             loss += l
 
         loss /= self.config.num_epochs
+        info["total_loss"] = loss
         return info
 
 

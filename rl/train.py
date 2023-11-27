@@ -4,6 +4,7 @@ import jax
 import numpy as np
 import pettingzoo
 from vec_parallel_env import SubProcVecParallelEnv
+import wandb
 
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
@@ -156,6 +157,7 @@ def train(
     *,
     start_step: int = 1,
     saver: Saver = None,
+    use_wandb: bool = False,
 ):
     buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
 
@@ -168,6 +170,8 @@ def train(
 
     with SaverContext(saver, base.config.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
+            logs["step"] = step
+
             action, log_prob = base.explore(observation)
             next_observation, reward, done, trunc, info = env.step(
                 process_action(action, env_type, env_procs)
@@ -193,6 +197,9 @@ def train(
 
             if len(buffer) >= base.config.max_buffer_size:
                 logs |= base.update(buffer)
+
+                if use_wandb:
+                    wandb.log(logs)
 
             s.update(step, base.state)
 
