@@ -38,8 +38,12 @@ class SaverContext(AbstractContextManager):
         self.cur_state = None
 
     def update(self, step: int, state: train_state.TrainState):
+        if self.save_frequency < 0:
+            return
+
         self.cur_step = step
         self.cur_state = state
+
         if step % self.save_frequency != 0:
             return
 
