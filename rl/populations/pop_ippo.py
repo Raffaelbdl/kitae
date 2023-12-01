@@ -84,22 +84,26 @@ class PopulationPPO(Base):
     def explore(
         self, observations: list[dict[str, jax.Array]]
     ) -> tuple[list[dict[str, jax.Array]], list[dict[str, jax.Array]]]:
-        actions, log_probs = [], []
-        for i, obs in enumerate(observations):
-            _actions, _log_probs = {}, {}
-            for agent, o in obs.items():
-                a, lp = self.explore_fn(
-                    self.nextkey(),
-                    self.state.policy_fn,
-                    self.state.encoder_fn,
-                    self.state.params[i],
-                    o,
-                )
-                _actions[agent] = a
-                _log_probs[agent] = lp
-            actions.append(_actions)
-            log_probs.append(_log_probs)
-        return actions, log_probs
+        def explore_population(
+            observations: list[dict[str, jax.Array]]
+        ) -> tuple[list[dict[str, jax.Array]], list[dict[str, jax.Array]]]:
+            actions, log_probs = [], []
+            for i, obs in enumerate(observations):
+                _actions, _log_probs = {}, {}
+                for agent, o in obs.items():
+                    a, lp = self.explore_fn(
+                        self.nextkey(),
+                        self.state.policy_fn,
+                        self.state.encoder_fn,
+                        self.state.params[i],
+                        o,
+                    )
+                    _actions[agent] = a
+                    _log_probs[agent] = lp
+                actions.append(_actions)
+                log_probs.append(_log_probs)
+
+        return jax.jit(explore_population)(observations)
 
     def update(self, buffers: list[OnPolicyBuffer]) -> None:
         experiences = [

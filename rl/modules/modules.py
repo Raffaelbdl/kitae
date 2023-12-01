@@ -1,15 +1,18 @@
 import functools
-from typing import Type
+from typing import Callable, Type
 
+import chex
 from einops import rearrange
 import flax
+from flax import struct
 from flax import linen as nn
+from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
 from jax import numpy as jnp
 import numpy as np
 
-from rl import Params
+from rl.base import Params
 
 
 def conv_layer(
@@ -113,6 +116,8 @@ def modules_factory(
     *,
     rearrange_pattern: str = "b h w c -> b h w c",
 ) -> dict[str, nn.Module]:
+    """Returns a dict of modules:
+    policy / value / encoder"""
     encoder = encoder_factory(observation_space, rearrange_pattern=rearrange_pattern)
 
     num_actions = (
@@ -152,9 +157,17 @@ def create_params(
     key: jax.Array,
     module: nn.Module,
     input_shape: tuple[int],
+    tabulate: bool,
 ) -> Params:
     dummy_inputs = jnp.ones((1,) + input_shape)
     variables = module.init(key, dummy_inputs)
+
+    if tabulate:
+        tabulate_fn = nn.tabulate(
+            module, key, compute_flops=True, compute_vjp_flops=True
+        )
+        print(tabulate_fn(dummy_inputs))
+
     if "params" in variables.keys():
         return variables["params"]
     return {}
