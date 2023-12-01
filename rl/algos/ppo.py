@@ -1,21 +1,15 @@
-import functools
 from typing import Callable
 
-import chex
 import distrax as dx
 from envpool.python.api import EnvPool
-from flax import struct
 import flax.linen as nn
-from flax.training import train_state
 import gymnasium as gym
-from gymnasium import spaces
 import jax
 import jax.numpy as jnp
 import ml_collections
 import numpy as np
-import optax
 
-from rl.base import Base, Params, EnvType, EnvProcs
+from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
@@ -194,7 +188,7 @@ class PPO(Base):
         rearrange_pattern: str = "b h w c -> b h w c",
         n_envs: int = 1,
         run_name: str = None,
-        tabulate: bool = False
+        tabulate: bool = False,
     ):
         Base.__init__(self, seed, run_name=run_name)
         self.config = config

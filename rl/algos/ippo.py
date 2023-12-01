@@ -1,7 +1,3 @@
-from typing import Callable
-
-import flax.linen as nn
-import gymnasium as gym
 import jax
 import jax.numpy as jnp
 import ml_collections
@@ -12,275 +8,195 @@ import vec_parallel_env
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.timesteps import calculate_gaes_targets
+from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
+from rl.train import train
 
 ParallelEnv = pettingzoo.ParallelEnv
 SubProcVecParallelEnv = vec_parallel_env.SubProcVecParallelEnv
 
+DictArray = dict[str, jax.Array]
+
 from rl.algos.ppo import (
-    ParamsPPO,
-    TrainStatePPO,
-    create_modules,
-    create_params_ppo,
-    create_train_state,
-    compute_values,
-    explore,
-    explore_unbatched,
-    update_step,
+    train_state_policy_value_factory,
+    explore_factory,
+    update_step_factory,
 )
 
 
-def process_experience(
-    params: ParamsPPO,
-    train_state: TrainStatePPO,
+def process_experience_factory(
+    train_state: TrainStatePolicyValue,
     gamma: float,
     _lambda: float,
-    normalize: bool,
-    sample: list[OnPolicyExp],
+    normalize: float,
+    vectorized: bool,
 ):
-    from rl.buffer import multi_agent_array_of_name
+    from rl.buffer import stack_experiences
 
-    # could use jax tree_map
-    observations = multi_agent_array_of_name(sample, "observation")
-    values = {
-        agent: jax.jit(compute_values, static_argnums=(1, 2))(
-            params, train_state.value_fn, train_state.encoder_fn, observations[agent]
+    def compute_values_gaes(
+        params: ParamsPolicyValue,
+        observations: jax.Array,
+        next_observations: jax.Array,
+        dones: jax.Array,
+        rewards: jax.Array,
+    ):
+        all_obs = jnp.concatenate([observations, next_observations[-1:]], axis=0)
+        all_hiddens = train_state.encoder_fn({"params": params.params_encoder}, all_obs)
+        all_values = train_state.value_fn({"params": params.params_value}, all_hiddens)
+
+        values = all_values[:-1]
+        next_values = all_values[1:]
+
+        not_dones = 1.0 - dones[..., None]
+        discounts = gamma * not_dones
+
+        rewards = rewards[..., None]
+        gaes, targets = calculate_gaes_targets(
+            values, next_values, discounts, rewards, _lambda, normalize
         )
-        for agent in observations.keys()
-    }
 
-    next_observations = multi_agent_array_of_name(sample, "next_observation")
-    next_values = {
-        agent: jax.jit(compute_values, static_argnums=(1, 2))(
-            params,
-            train_state.value_fn,
-            train_state.encoder_fn,
-            next_observations[agent],
-        )
-        for agent in next_observations.keys()
-    }
+        return gaes, targets, values
 
-    dones = multi_agent_array_of_name(sample, "done")
-    discounts = {
-        agent: gamma * (1.0 - dones[agent][..., None]) for agent in dones.keys()
-    }
+    gaes_fn = compute_values_gaes
+    if vectorized:
+        gaes_fn = jax.vmap(gaes_fn, in_axes=(None, 1, 1, 1, 1), out_axes=1)
 
-    rewards = multi_agent_array_of_name(sample, "reward")
-    rewards = {agent: rewards[agent][..., None] for agent in rewards.keys()}
-    gaes, targets = {}, {}
-    for agent in values.keys():
-        g, t = jax.jit(calculate_gaes_targets, static_argnums=(4, 5))(
-            values[agent],
-            next_values[agent],
-            discounts[agent],
-            rewards[agent],
-            _lambda,
-            normalize,
-        )
-        gaes[agent] = g
-        targets[agent] = t
+    @jax.jit
+    def fn(params: ParamsPolicyValue, sample: list[OnPolicyExp]):
+        stacked = stack_experiences(sample)
 
-    actions = multi_agent_array_of_name(sample, "action")
-    actions = {agent: actions[agent][..., None] for agent in actions.keys()}
-    log_probs = multi_agent_array_of_name(sample, "log_prob")
-    log_probs = {agent: log_probs[agent][..., None] for agent in log_probs.keys()}
+        observations = stacked.observation
+        gaes, targets, values = {}, {}, {}
+        for agent in observations.keys():
+            g, t, v = gaes_fn(
+                params,
+                observations[agent],
+                stacked.next_observation[agent],
+                stacked.done[agent],
+                stacked.reward[agent],
+            )
+            gaes[agent] = g
+            targets[agent] = t
+            values[agent] = v
 
-    # reshape everything into arrays
-    observations = jnp.concatenate(list(observations.values()), axis=0)
-    actions = jnp.concatenate(list(actions.values()), axis=0)
-    log_probs = jnp.concatenate(list(log_probs.values()), axis=0)
-    gaes = jnp.concatenate(list(gaes.values()), axis=0)
-    targets = jnp.concatenate(list(targets.values()), axis=0)
-    values = jnp.concatenate(list(values.values()), axis=0)
+        actions = jax.tree_map(lambda x: x[..., None], stacked.action)
+        log_probs = jax.tree_map(lambda x: x[..., None], stacked.log_prob)
 
-    return observations, actions, log_probs, gaes, targets, values
+        observations = jnp.concatenate(list(observations.values()), axis=0)
+        actions = jnp.concatenate(list(actions.values()), axis=0)
+        log_probs = jnp.concatenate(list(log_probs.values()), axis=0)
+        gaes = jnp.concatenate(list(gaes.values()), axis=0)
+        targets = jnp.concatenate(list(targets.values()), axis=0)
+        values = jnp.concatenate(list(values.values()), axis=0)
 
+        if vectorized:
+            observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
+            actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
+            log_probs = jnp.reshape(log_probs, (-1, *log_probs.shape[2:]))
+            gaes = jnp.reshape(gaes, (-1, *gaes.shape[2:]))
+            targets = jnp.reshape(targets, (-1, *targets.shape[2:]))
+            values = jnp.reshape(values, (-1, *values.shape[2:]))
 
-def process_experience_vectorized(
-    params: ParamsPPO,
-    train_state: TrainStatePPO,
-    gamma: float,
-    _lambda: float,
-    normalize: bool,
-    sample: list[OnPolicyExp],
-):
-    from rl.buffer import multi_agent_array_of_name
+        return observations, actions, log_probs, gaes, targets, values
 
-    # could use jax tree_map
-    observations = multi_agent_array_of_name(sample, "observation")
-    values = {
-        agent: jax.vmap(
-            jax.jit(compute_values, static_argnums=(1, 2)),
-            in_axes=(None, None, None, 1),
-            out_axes=1,
-        )(params, train_state.value_fn, train_state.encoder_fn, observations[agent])
-        for agent in observations.keys()
-    }
-
-    next_observations = multi_agent_array_of_name(sample, "next_observation")
-    next_values = {
-        agent: jax.vmap(
-            jax.jit(compute_values, static_argnums=(1, 2)),
-            in_axes=(None, None, None, 1),
-            out_axes=1,
-        )(
-            params,
-            train_state.value_fn,
-            train_state.encoder_fn,
-            next_observations[agent],
-        )
-        for agent in next_observations.keys()
-    }
-
-    dones = multi_agent_array_of_name(sample, "done")
-    discounts = {
-        agent: gamma * (1.0 - dones[agent][..., None]) for agent in dones.keys()
-    }
-
-    rewards = multi_agent_array_of_name(sample, "reward")
-    rewards = {agent: rewards[agent][..., None] for agent in rewards.keys()}
-    gaes, targets = {}, {}
-    for agent in values.keys():
-        g, t = jax.vmap(
-            jax.jit(calculate_gaes_targets, static_argnums=(4, 5)),
-            in_axes=(1, 1, 1, 1, None, None),
-            out_axes=1,
-        )(
-            values[agent],
-            next_values[agent],
-            discounts[agent],
-            rewards[agent],
-            _lambda,
-            normalize,
-        )
-        gaes[agent] = g
-        targets[agent] = t
-
-    actions = multi_agent_array_of_name(sample, "action")
-    actions = {agent: actions[agent][..., None] for agent in actions.keys()}
-    log_probs = multi_agent_array_of_name(sample, "log_prob")
-    log_probs = {agent: log_probs[agent][..., None] for agent in log_probs.keys()}
-
-    # reshape everything into arrays
-    observations = jnp.concatenate(list(observations.values()), axis=0)
-    actions = jnp.concatenate(list(actions.values()), axis=0)
-    log_probs = jnp.concatenate(list(log_probs.values()), axis=0)
-    gaes = jnp.concatenate(list(gaes.values()), axis=0)
-    targets = jnp.concatenate(list(targets.values()), axis=0)
-    values = jnp.concatenate(list(values.values()), axis=0)
-
-    observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
-    actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
-    log_probs = jnp.reshape(log_probs, (-1, *log_probs.shape[2:]))
-    gaes = jnp.reshape(gaes, (-1, *gaes.shape[2:]))
-    targets = jnp.reshape(targets, (-1, *targets.shape[2:]))
-    values = jnp.reshape(values, (-1, *values.shape[2:]))
-
-    return observations, actions, log_probs, gaes, targets, values
+    return fn
 
 
 class PPO(Base):
     def __init__(
         self,
         seed: int,
-        env: gym.Env,
         config: ml_collections.ConfigDict,
         *,
-        create_modules: Callable[..., tuple[nn.Module, nn.Module]] = create_modules,
-        create_params: Callable[..., ParamsPPO] = create_params_ppo,
         rearrange_pattern: str = "b h w c -> b h w c",
         n_envs: int = 1,
+        run_name: str = None,
+        tabulate: bool = False,
     ):
-        Base.__init__(self, seed)
+        Base.__init__(self, seed, run_name=run_name)
         self.config = config
 
-        policy, value, encoder = create_modules(
-            config.observation_space,
-            config.action_space,
-            config.shared_encoder,
-            rearrange_pattern=rearrange_pattern,
-        )
-        params = create_params(
+        self.state = train_state_policy_value_factory(
             self.nextkey(),
-            policy,
-            value,
-            encoder,
-            config.observation_space,
-            shared_encoder=config.shared_encoder,
+            self.config,
+            rearrange_pattern=rearrange_pattern,
+            n_envs=n_envs,
+            tabulate=tabulate,
         )
-        self.state = create_train_state(
-            policy, value, encoder, params, self.config, n_envs=n_envs
-        )
-
-        self.explore_fn = explore if n_envs > 1 else explore_unbatched
-        self.explore_fn = jax.jit(self.explore_fn, static_argnums=(1, 2))
-
-        self.process_experience_fn = (
-            process_experience_vectorized if n_envs > 1 else process_experience
-        )
-
-        self.n_envs = n_envs
-
-    def select_action(
-        self, observation: dict[str, jax.Array]
-    ) -> tuple[dict[str, jax.Array], dict[str, jax.Array]]:
-        # could use a jax tree_map
-        action, log_prob = {}, {}
-        for agent, obs in observation.items():
-            a, lp = self.explore_fn(
-                self.nextkey(),
-                self.state.policy_fn,
-                self.state.encoder_fn,
-                self.state.params,
-                obs,
-            )
-            action[agent] = a
-            log_prob[agent] = lp
-        return action, log_prob
-
-    def explore(self, observation: dict[str, jax.Array]) -> dict[str, jax.Array]:
-        # could use a jax tree_map
-        action, log_prob = {}, {}
-        for agent, obs in observation.items():
-            a, lp = self.explore_fn(
-                self.nextkey(),
-                self.state.policy_fn,
-                self.state.encoder_fn,
-                self.state.params,
-                obs,
-            )
-            action[agent] = a
-            log_prob[agent] = lp
-        return action, log_prob
-
-    def update(self, buffer: OnPolicyBuffer):
-        sample = buffer.sample()
-        experiences = self.process_experience_fn(
-            self.state.params,
+        self.explore_fn = explore_factory(self.state, n_envs > 1)
+        self.process_experience_fn = process_experience_factory(
             self.state,
             self.config.gamma,
             self.config._lambda,
             self.config.normalize,
-            sample,
+            n_envs > 1,
+        )
+        self.update_step_fn = update_step_factory(
+            self.state,
+            self.config.clip_eps,
+            self.config.entropy_coef,
+            self.config.value_coef,
+            self.config.batch_size,
         )
 
-        loss = 0.0
-        for epoch in range(self.config.num_epochs):
-            self.state, l, info = jax.jit(update_step, static_argnums=(3, 4, 5, 6))(
-                self.nextkey(),
-                self.state,
-                experiences,
-                self.config.clip_eps,
-                self.config.entropy_coef,
-                self.config.value_coef,
-                self.config.batch_size,
-            )
-            loss += l
+        self.n_envs = n_envs
 
-        loss /= self.config.num_epochs
+    def select_action(self, observation: DictArray) -> tuple[DictArray, DictArray]:
+        return self.explore(observation)
+
+    def explore(self, observation: DictArray) -> tuple[DictArray, DictArray]:
+        def fn(
+            params: ParamsPolicyValue,
+            key: jax.random.PRNGKeyArray,
+            observation: DictArray,
+        ):
+            action, log_prob = {}, {}
+            for agent, obs in observation.items():
+                key, _k = jax.random.split(key)
+                a, lp = self.explore_fn(params, _k, obs)
+                action[agent] = a
+                log_prob[agent] = lp
+            return action, log_prob
+
+        return fn(self.state.params, self.nextkey(), observation)
+
+    def update(self, buffer: OnPolicyBuffer):
+        def fn(
+            state: TrainStatePolicyValue, key: jax.random.PRNGKeyArray, sample: tuple
+        ):
+            experiences = self.process_experience_fn(state.params, sample)
+
+            loss = 0.0
+            for epoch in range(self.config.num_epochs):
+                key, _k = jax.random.split(key)
+                state, l, info = self.update_step_fn(state, _k, experiences)
+                loss += l
+
+            loss /= self.config.num_epochs
+            return state, info
+
+        sample = buffer.sample()
+        self.state, info = fn(self.state, self.nextkey(), sample)
         return info
 
-    def train(self, env: ParallelEnv | SubProcVecParallelEnv, n_env_steps: int):
-        from rl.train import train
+    def train(
+        self,
+        env: ParallelEnv | SubProcVecParallelEnv,
+        n_env_steps: int,
+        callbacks: list,
+    ):
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.PARALLEL,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            saver=self.saver,
+            callbacks=callbacks,
+        )
+
+    def resume(self, env: ParallelEnv | SubProcVecParallelEnv, n_env_steps: int):
+        step, self.state = self.saver.restore_latest_step(self.state)
 
         return train(
             int(np.asarray(self.nextkey())[0]),
@@ -289,4 +205,6 @@ class PPO(Base):
             n_env_steps,
             EnvType.PARALLEL,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            start_step=step,
+            saver=self.saver,
         )
