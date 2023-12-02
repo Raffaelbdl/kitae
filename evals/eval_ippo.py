@@ -17,7 +17,9 @@ def create_cooperative_pong(render: bool = False) -> pettingzoo.ParallelEnv:
     env = cooperative_pong_v5.parallel_env(
         render_mode="human" if render else "rgb_array"
     )
-    env = ss.action_lambda_v1(env, lambda x, y: int(x), lambda x: x)
+    env = ss.action_lambda_v1(
+        env, lambda x, y: int(x) if x is not None else 0, lambda x: x
+    )
     env = ss.color_reduction_v0(env, mode="B")
     env = ss.frame_stack_v2(env, stack_size=4)
     env = ss.resize_v1(env, 84, 84)

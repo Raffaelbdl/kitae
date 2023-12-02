@@ -3,14 +3,16 @@ import ml_collections
 
 from rl.algos import ppo
 from rl.wrapper import EnvpoolCompatibility
+from rl.callbacks.callback import Callback
+from rl.callbacks.wandb_callback import WandbCallback
 
 from evals.eval_callbacks import EvalCallback, TimeCallback, ScoreCallback
 
 
 def eval_ppo_cnn_envpool():
-    TASK_ID = "Pong-v5"
+    TASK_ID = "Breakout-v5"
     N_ENVS = 32
-    N_ENV_STEPS = 10**7
+    N_ENV_STEPS = 5 * 10**7
     CONFIG = ml_collections.ConfigDict(
         {
             "learning_rate": 0.0003,
@@ -41,14 +43,15 @@ def eval_ppo_cnn_envpool():
         0, CONFIG, rearrange_pattern="b c h w -> b h w c", n_envs=N_ENVS, tabulate=True
     )
 
-    callbacks: list[EvalCallback] = [
+    callbacks: list[Callback] = [
         TimeCallback(TASK_ID, n_envs=N_ENVS),
         ScoreCallback(TASK_ID, n_envs=N_ENVS, maxlen=20),
+        WandbCallback("cooperative_pong", entity="raffael", config=CONFIG),
     ]
 
     model.train(env, CONFIG.n_env_steps, callbacks=callbacks)
 
-    for c in callbacks:
+    for c in callbacks[:2]:
         c.write_results("ppo_cnn_envpool")
 
 
