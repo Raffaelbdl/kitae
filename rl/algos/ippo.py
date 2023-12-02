@@ -109,6 +109,7 @@ class PPO(Base):
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         n_envs: int = 1,
+        n_agents: int = 2,
         run_name: str = None,
         tabulate: bool = False,
     ):
@@ -119,7 +120,7 @@ class PPO(Base):
             self.nextkey(),
             self.config,
             rearrange_pattern=rearrange_pattern,
-            n_envs=n_envs,
+            n_envs=n_envs * n_agents,
             tabulate=tabulate,
         )
         self.explore_fn = explore_factory(self.state, n_envs > 1)
