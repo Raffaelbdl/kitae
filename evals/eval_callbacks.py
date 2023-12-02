@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime
 from time import time
 
-from rl.callback import Callback, CallbackData
+from rl.callbacks.callback import Callback, CallbackData
 
 
 class EvalCallback(Callback, ABC):

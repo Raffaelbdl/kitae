@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 @dataclass
 class CallbackData:
     episode_return: float = field(default=0.0)
+    logs: dict = field(default_factory=lambda: {})
 
 
 class Callback:
