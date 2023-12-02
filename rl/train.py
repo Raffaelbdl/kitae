@@ -7,7 +7,9 @@ from vec_parallel_env import SubProcVecParallelEnv
 import wandb
 
 from rl.base import Base, EnvType, EnvProcs
-from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.buffer import OnPolicyBuffer, OnPolicyExp, FBXOnPolicyBuffer
+from rl import callback
+from rl.callback import Callback, CallbackData
 
 EnvLike = gym.Env | EnvPool | pettingzoo.ParallelEnv | SubProcVecParallelEnv
 
@@ -87,10 +89,14 @@ def process_termination(
     logs: dict,
     env_type: EnvType,
     env_procs: EnvProcs,
+    callbacks: list[Callback],
 ):
     def single_one_process(env, done, trunc, logs):
         if done or trunc:
             print(step, " > ", logs["episode_return"], " | ", logs["kl_divergence"])
+            callback.on_episode_end(
+                callbacks, CallbackData(episode_return=logs["episode_return"])
+            )
             logs["episode_return"] = 0.0
             next_observation, info = env.reset()
             return next_observation, info
@@ -99,6 +105,9 @@ def process_termination(
     def single_many_process(env, done, trunc, logs):
         for i, (d, t) in enumerate(zip(done, trunc)):
             if d or t:
+                callback.on_episode_end(
+                    callbacks, CallbackData(episode_return=logs["episode_return"][i])
+                )
                 if i == 0:
                     print(
                         step,
@@ -113,6 +122,9 @@ def process_termination(
     def parallel_one_process(env, done, trunc, logs):
         if any(done.values()) or any(trunc.values()):
             print(step, " > ", logs["episode_return"], " | ", logs["kl_divergence"])
+            callback.on_episode_end(
+                callbacks, CallbackData(episode_return=logs["episode_return"])
+            )
             logs["episode_return"] = 0.0
             next_observation, info = env.reset()
             return next_observation, info
@@ -124,6 +136,9 @@ def process_termination(
         )
         for i, (d, t) in enumerate(zip(check_d, check_t)):
             if np.any(d) or np.any(t):
+                callback.on_episode_end(
+                    callbacks, CallbackData(episode_return=logs["episode_return"][i])
+                )
                 if i == 0:
                     print(
                         step,
@@ -158,7 +173,9 @@ def train(
     start_step: int = 1,
     saver: Saver = None,
     use_wandb: bool = False,
+    callbacks: list[Callback] = [],
 ):
+    callback.on_train_start(callbacks, CallbackData())
     buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
 
     observation, info = env.reset(seed=seed + 1)
@@ -178,6 +195,19 @@ def train(
             )
             logs["episode_return"] += process_reward(reward, env_type, env_procs)
 
+            termination = process_termination(
+                step * base.n_envs,
+                env,
+                done,
+                trunc,
+                logs,
+                env_type,
+                env_procs,
+                callbacks,
+            )
+            if termination[0] is not None and termination[1] is not None:
+                next_observation, info = termination
+
             buffer.add(
                 OnPolicyExp(
                     observation=observation,
@@ -189,14 +219,10 @@ def train(
                 )
             )
 
-            termination = process_termination(
-                step, env, done, trunc, logs, env_type, env_procs
-            )
-            if termination[0] is not None and termination[1] is not None:
-                next_observation, info = termination
-
             if len(buffer) >= base.config.max_buffer_size:
+                callback.on_update_start(callbacks, CallbackData())
                 logs |= base.update(buffer)
+                callback.on_update_end(callbacks, CallbackData())
 
                 if use_wandb:
                     wandb.log(logs)
@@ -206,6 +232,7 @@ def train(
             observation = next_observation
 
     env.close()
+    callback.on_train_end(callbacks, CallbackData())
 
 
 def process_termination_population(
