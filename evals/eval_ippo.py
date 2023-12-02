@@ -6,6 +6,7 @@ from rl.algos import ippo
 from rl.wrapper import SubProcVecParallelEnvCompatibility
 from vec_parallel_env import SubProcVecParallelEnv
 import numpy as np
+from rl.callbacks.wandb_callback import WandbCallback
 from evals.eval_callbacks import EvalCallback, TimeCallback, ScoreCallback
 
 
@@ -107,6 +108,7 @@ def eval_ppo_cnn_subprocvenv():
     )
 
     callbacks: list[EvalCallback] = [
+        WandbCallback("cooperative_pong", "raffael", CONFIG),
         TimeCallback(TASK_ID, n_envs=N_ENVS),
         ScoreCallback(TASK_ID, n_envs=N_ENVS, maxlen=20),
     ]
