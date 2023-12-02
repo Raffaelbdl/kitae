@@ -7,7 +7,7 @@ from vec_parallel_env import SubProcVecParallelEnv
 import wandb
 
 from rl.base import Base, EnvType, EnvProcs
-from rl.buffer import OnPolicyBuffer, OnPolicyExp, FBXOnPolicyBuffer
+from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl import callback
 from rl.callback import Callback, CallbackData
 
