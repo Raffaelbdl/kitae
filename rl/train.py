@@ -8,8 +8,8 @@ import wandb
 
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
-from rl import callback
-from rl.callback import Callback, CallbackData
+from rl.callbacks import callback
+from rl.callbacks.callback import Callback, CallbackData
 
 EnvLike = gym.Env | EnvPool | pettingzoo.ParallelEnv | SubProcVecParallelEnv
 
@@ -222,10 +222,7 @@ def train(
             if len(buffer) >= base.config.max_buffer_size:
                 callback.on_update_start(callbacks, CallbackData())
                 logs |= base.update(buffer)
-                callback.on_update_end(callbacks, CallbackData())
-
-                if use_wandb:
-                    wandb.log(logs)
+                callback.on_update_end(callbacks, CallbackData(logs=logs))
 
             s.update(step, base.state)
 
