@@ -26,7 +26,8 @@ class WandbCallback(Callback):
 
     def on_update_end(self, callback_data: CallbackData):
         logs = callback_data.logs
-        logs["mean_episode_return"] = sum(self.episode_returns) / len(
-            self.episode_returns
-        )
+        if len(self.episode_returns) > 0:
+            logs["mean_episode_return"] = sum(self.episode_returns) / len(
+                self.episode_returns
+            )
         self.wandb.log(callback_data.logs)
