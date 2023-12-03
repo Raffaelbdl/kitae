@@ -119,3 +119,48 @@ def eval_ppo_cnn_subprocvenv():
 
     for c in callbacks:
         c.write_results("ippo_cnn_subprocvenv")
+
+
+def eval_ppo_vec():
+    from pettingzoo.mpe import simple_spread_v3
+
+    TASK_ID = "SimpleSpread"
+    N_ENVS = 1
+    N_ENV_STEPS = 5 * 10**6
+    CONFIG = ml_collections.ConfigDict(
+        {
+            "learning_rate": 0.0003,
+            "gamma": 0.99,
+            "clip_eps": 0.2,
+            "entropy_coef": 0.01,
+            "value_coef": 0.5,
+            "_lambda": 0.95,
+            "normalize": True,
+            "max_buffer_size": 128,
+            "batch_size": 32,
+            "num_epochs": 4,
+            "learning_rate_annealing": True,
+            "max_grad_norm": 0.5,
+            "n_env_steps": N_ENV_STEPS // N_ENVS,
+            "shared_encoder": True,
+            "save_frequency": -1,
+        }
+    )
+
+    env = simple_spread_v3.parallel_env()
+    env.reset()
+    CONFIG["action_space"] = env.action_space(env.agents[0])
+    CONFIG["observation_space"] = env.observation_space(env.agents[0])
+
+    model = ippo.PPO(0, CONFIG, n_envs=N_ENVS, tabulate=True)
+
+    callbacks = [
+        WandbCallback("cooperative_pong", "raffael", CONFIG),
+        TimeCallback(TASK_ID, n_envs=N_ENVS),
+        ScoreCallback(TASK_ID, n_envs=N_ENVS, maxlen=20),
+    ]
+
+    model.train(env, CONFIG.n_env_steps, callbacks=callbacks)
+
+    for c in callbacks[1:]:
+        c.write_results("ippo_cnn")
