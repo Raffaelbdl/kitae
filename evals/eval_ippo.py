@@ -34,7 +34,7 @@ def create_cooperative_pong(render: bool = False) -> pettingzoo.ParallelEnv:
 def eval_ppo_cnn():
     TASK_ID = "CooperativePong"
     N_ENVS = 1
-    N_ENV_STEPS = 10**3
+    N_ENV_STEPS = 10**6
     CONFIG = ml_collections.ConfigDict(
         {
             "learning_rate": 0.0003,
@@ -44,9 +44,9 @@ def eval_ppo_cnn():
             "value_coef": 0.5,
             "_lambda": 0.95,
             "normalize": True,
-            "max_buffer_size": 128,
-            "batch_size": 256,
-            "num_epochs": 1,
+            "max_buffer_size": 256,
+            "batch_size": 64,
+            "num_epochs": 4,
             "learning_rate_annealing": True,
             "max_grad_norm": 0.5,
             "n_env_steps": N_ENV_STEPS // N_ENVS,

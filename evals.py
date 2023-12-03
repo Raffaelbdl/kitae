@@ -2,7 +2,7 @@ from evals import eval_ppo, eval_ippo
 
 
 def main():
-    eval_ppo.eval_ppo_cnn_envpool()
+    eval_ippo.eval_ppo_cnn()
 
 
 if __name__ == "__main__":
