@@ -94,6 +94,7 @@ class PopulationPPO(Base):
                     _log_probs[agent] = lp
                 actions.append(_actions)
                 log_probs.append(_log_probs)
+            return actions, log_probs
 
         return fn(self.state.params, self.nextkey(), observations)
 
@@ -112,7 +113,7 @@ class PopulationPPO(Base):
 
             loss /= self.config.num_epochs
             info["total_loss"] = loss
-            return info
+            return state, info
 
         samples = [b.sample() for b in buffers]
         self.state, info = fn(self.state, self.nextkey(), samples)
