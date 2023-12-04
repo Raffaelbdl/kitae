@@ -1,7 +1,6 @@
 from typing import Callable
 
 from envpool.python.api import EnvPool
-from flax import linen as nn
 import gymnasium as gym
 import jax
 from jax import numpy as jnp
@@ -11,100 +10,96 @@ import numpy as np
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer
 from rl.loss import loss_shannon_jensen_divergence
+from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 from rl.train import train_population
+
+from rl.modules.policy_value import train_state_policy_value_population_factory
 
 GymEnv = gym.Env
 EnvPoolEnv = EnvPool
 
-from rl.algos.ppo import (
-    ParamsPPO,
-    TrainStatePPO,
-    create_modules,
-    create_params_ppo,
-    create_train_state,
-    explore,
-    explore_unbatched,
-    process_experience,
-    process_experience_vectorized,
-    loss_fn as loss_single_fn,
-)
+from rl.algos.ppo import loss_factory as loss_single_factory
+from rl.algos.ppo import explore_factory, process_experience_factory
 
 
-def loss_fn(
-    params_population: list[ParamsPPO],
-    policy_fn: Callable,
-    value_fn: Callable,
-    encoder_fn: Callable,
-    batch: list[tuple[jax.Array]],
+def loss_factory(
+    train_state: TrainStatePolicyValue,
     clip_eps: float,
     entropy_coef: float,
     value_coef: float,
     jsd_coef: float,
-):
-    loss, infos = 0.0, {}
-    logits_pop = []
-    entropy_pop = []
+) -> Callable:
+    loss_single_fn = loss_single_factory(
+        train_state, clip_eps, entropy_coef, value_coef
+    )
 
-    for i in range(len(params_population)):
-        l, i = loss_single_fn(
-            params_population[i],
-            policy_fn,
-            value_fn,
-            encoder_fn,
-            batch[i],
-            clip_eps,
-            entropy_coef,
-            value_coef,
+    @jax.jit
+    def fn(
+        params_population: list[ParamsPolicyValue], batch: list[tuple[jax.Array]]
+    ) -> float:
+        loss, infos = 0.0, {}
+        logits_pop = []
+        entropy_pop = []
+
+        for i in range(len(params_population)):
+            l, i = loss_single_fn(params_population[i], batch[i])
+            loss += l
+            logits_pop.append(i["logits"])
+            entropy_pop.append(i["entropy"])
+            infos |= i
+
+        if jsd_coef <= 0.0:
+            return loss, infos
+
+        logits_average = jnp.array(logits_pop).mean(axis=0)
+        entropy_average = jnp.array(entropy_pop).mean(axis=0)[..., None]
+
+        loss += jsd_coef * loss_shannon_jensen_divergence(
+            logits_average, entropy_average
         )
-        loss += l
-        logits_pop.append(i["logits"])
-        entropy_pop.append(i["entropy"])
-        infos |= i
+        return loss, infos
 
-    logits_average = jnp.array(logits_pop).mean(axis=0)
-    entropy_average = jnp.array(entropy_pop).mean(axis=0)[..., None]
-
-    loss += jsd_coef * loss_shannon_jensen_divergence(logits_average, entropy_average)
-    return loss, infos
+    return fn
 
 
-def update_step(
-    key: jax.Array,
-    state: TrainStatePPO,
-    experiences: list[tuple],
+def update_step_factory(
+    train_state: TrainStatePolicyValue,
     clip_eps: float,
     entropy_coef: float,
     value_coef: float,
     jsd_coef: float,
     batch_size: int,
 ):
-    num_elems = experiences[0][0].shape[0]
-    iterations = num_elems // batch_size
-    inds = jax.random.permutation(key, num_elems)[: iterations * batch_size]
+    loss_fn = loss_factory(train_state, clip_eps, entropy_coef, value_coef, jsd_coef)
 
-    experiences = jax.tree_util.tree_map(
-        lambda x: x[inds].reshape((iterations, batch_size) + x.shape[1:]),
-        experiences,
-    )
+    @jax.jit
+    def fn(
+        state: TrainStatePolicyValue,
+        key: jax.Array,
+        experiences: list[tuple[jax.Array]],
+    ):
+        num_elems = experiences[0][0].shape[0]
+        iterations = num_elems // batch_size
+        inds = jax.random.permutation(key, num_elems)[: iterations * batch_size]
 
-    loss = 0.0
-    for i in range(iterations):
-        batch = [tuple(v[i] for v in e) for e in experiences]
-
-        (l, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            state.params,
-            policy_fn=state.policy_fn,
-            value_fn=state.value_fn,
-            encoder_fn=state.encoder_fn,
-            batch=batch,
-            clip_eps=clip_eps,
-            entropy_coef=entropy_coef,
-            value_coef=value_coef,
-            jsd_coef=jsd_coef,
+        experiences = jax.tree_util.tree_map(
+            lambda x: x[inds].reshape((iterations, batch_size) + x.shape[1:]),
+            experiences,
         )
-        loss += l
-        state = state.apply_gradients(grads=grads)
-    return state, loss, info
+
+        loss = 0.0
+        for i in range(iterations):
+            batch = [tuple(v[i] for v in e) for e in experiences]
+
+            (l, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+                state.params, batch=batch
+            )
+            loss += l
+
+            state = state.apply_gradients(grads=grads)
+        return state, loss, info
+
+    return fn
 
 
 class PopulationPPO(Base):
@@ -114,40 +109,39 @@ class PopulationPPO(Base):
         population_size: int,
         config: ml_collections.ConfigDict,
         *,
-        create_modules: Callable[..., tuple[nn.Module, nn.Module]] = create_modules,
-        create_params: Callable[..., ParamsPPO] = create_params_ppo,
         rearrange_pattern: str = "b h w c -> b h w c",
+        preprocess_fn: Callable = None,
         n_envs: int = 1,
+        run_name: str = None,
+        tabulate: bool = False,
     ):
-        Base.__init__(self, seed)
+        Base.__init__(self, seed, run_name=run_name)
         self.config = config
 
-        policy, value, encoder = create_modules(
-            config.observation_space,
-            config.action_space,
-            config.shared_encoder,
+        self.state = train_state_policy_value_population_factory(
+            self.nextkey(),
+            self.config,
+            population_size,
             rearrange_pattern=rearrange_pattern,
+            preprocess_fn=preprocess_fn,
+            n_envs=n_envs,
+            tabulate=tabulate,
         )
-        params_population = [
-            create_params(
-                self.nextkey(),
-                policy,
-                value,
-                encoder,
-                config.observation_space,
-                shared_encoder=config.shared_encoder,
-            )
-            for _ in range(population_size)
-        ]
-        self.state = create_train_state(
-            policy, value, encoder, params_population, config, n_envs=n_envs
+        self.explore_fn = explore_factory(self.state, n_envs > 1)
+        self.process_experience_fn = process_experience_factory(
+            self.state,
+            self.config.gamma,
+            self.config._lambda,
+            self.config.normalize,
+            n_envs > 1,
         )
-
-        self.explore_fn = explore if n_envs > 1 else explore_unbatched
-        self.explore_fn = jax.jit(self.explore_fn, static_argnums=(1, 2))
-
-        self.process_experience_fn = (
-            process_experience_vectorized if n_envs > 1 else process_experience
+        self.update_step_fn = update_step_factory(
+            self.state,
+            self.config.clip_eps,
+            self.config.entropy_coef,
+            self.config.value_coef,
+            self.config.jsd_coef,
+            self.config.batch_size,
         )
 
         self.population_size = population_size
@@ -160,52 +154,44 @@ class PopulationPPO(Base):
 
     def explore(
         self, observations: list[jax.Array]
-    ) -> list[tuple[jax.Array, jax.Array]]:
-        actions, log_probs = [], []
-        for i, obs in enumerate(observations):
-            action, log_prob = self.explore_fn(
-                self.nextkey(),
-                self.state.policy_fn,
-                self.state.encoder_fn,
-                self.state.params[i],
-                obs,
-            )
-            actions.append(action)
-            log_probs.append(log_prob)
-        return actions, log_probs
+    ) -> tuple[list[jax.Array], list[jax.Array]]:
+        def fn(
+            params: list[ParamsPolicyValue],
+            key: jax.Array,
+            observations: list[jax.Array],
+        ):
+            actions, log_probs = [], []
+            for i, obs in enumerate(observations):
+                key, _k = jax.random.split(key)
+                action, log_prob = self.explore_fn(params[i], _k, obs)
+                actions.append(action)
+                log_probs.append(log_prob)
+            return actions, log_probs
 
-    def update(self, buffers: list[OnPolicyBuffer]) -> None:
-        experiences = [
-            self.process_experience_fn(
-                self.state.params[i],
-                self.state,
-                self.config.gamma,
-                self.config._lambda,
-                self.config.normalize,
-                buffers[i].sample(),
-            )
-            for i in range(len(buffers))
-        ]
+        return fn(self.state.params, self.nextkey(), observations)
 
-        loss = 0.0
-        for epoch in range(self.config.num_epochs):
-            self.state, l, info = jax.jit(update_step, static_argnums=(3, 4, 5, 6, 7))(
-                self.nextkey(),
-                self.state,
-                experiences,
-                self.config.clip_eps,
-                self.config.entropy_coef,
-                self.config.value_coef,
-                self.config.jsd_coef,
-                self.config.batch_size,
-            )
-            loss += l
+    def update(self, buffers: list[OnPolicyBuffer]):
+        def fn(state: TrainStatePolicyValue, key: jax.Array, samples: list[tuple]):
+            experiences = [
+                self.process_experience_fn(state.params[i], samples[i])
+                for i in range(len(samples))
+            ]
 
-        loss /= self.config.num_epochs
-        info["total_loss"] = loss
+            loss = 0.0
+            for epoch in range(self.config.num_epochs):
+                key, _k = jax.random.split(key)
+                state, l, info = self.update_step_fn(state, _k, experiences)
+                loss += l
+
+            loss /= self.config.num_epochs
+            info["total_loss"] = loss
+            return state, info
+
+        samples = [b.sample() for b in buffers]
+        self.state, info = fn(self.state, self.nextkey(), samples)
         return info
 
-    def train(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, use_wandb: bool):
+    def train(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, callbacks: list):
         return train_population(
             int(np.asarray(self.nextkey())[0]),
             self,
@@ -214,10 +200,10 @@ class PopulationPPO(Base):
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
             saver=self.saver,
-            use_wandb=use_wandb,
+            callbacks=callbacks,
         )
 
-    def resume(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, use_wandb: bool):
+    def resume(self, env: list[GymEnv | EnvPoolEnv], n_env_steps: int, callbacks: list):
         step, self.state = self.saver.restore_latest_step(self.state)
 
         return train_population(
@@ -229,6 +215,5 @@ class PopulationPPO(Base):
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
             start_step=step,
             saver=self.saver,
-            use_wandb=use_wandb,
+            callbacks=callbacks,
         )
-
