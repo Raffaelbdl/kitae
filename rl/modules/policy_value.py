@@ -16,6 +16,7 @@ import optax
 
 from rl.base import Params
 from rl.modules.modules import modules_factory, create_params
+from rl.modules.optimizer import linear_learning_rate_schedule
 
 
 @chex.dataclass
@@ -93,18 +94,18 @@ def create_train_state_policy_value(
     *,
     n_envs: int = 1,
 ) -> TrainStatePolicyValue:
-    num_batches = n_envs * config.max_buffer_size // config.batch_size
+    learning_rate = config.learning_rate
+
     if config.learning_rate_annealing:
-        n_updates = (
-            config.n_env_steps
-            * n_envs
-            // config.max_buffer_size
-            * config.num_epochs
-            * num_batches
+        learning_rate = linear_learning_rate_schedule(
+            learning_rate,
+            0.0,
+            n_envs=n_envs,
+            n_env_steps=config.n_env_steps,
+            max_buffer_size=config.max_buffer_size,
+            batch_size=config.batch_size,
+            num_epochs=config.num_epochs,
         )
-        learning_rate = optax.linear_schedule(config.learning_rate, 0.0, n_updates, 0)
-    else:
-        learning_rate = config.learning_rate
 
     tx = optax.chain(
         optax.clip_by_global_norm(config.max_grad_norm),
