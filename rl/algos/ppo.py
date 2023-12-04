@@ -242,6 +242,7 @@ class PPO(Base):
                 loss += l
 
             loss /= self.config.num_epochs
+            info["total_loss"] = loss
             return state, info
 
         sample = buffer.sample()
@@ -260,7 +261,7 @@ class PPO(Base):
             callbacks=callbacks,
         )
 
-    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int):
+    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
         step, self.state = self.saver.restore_latest_step(self.state)
 
         return train(
@@ -272,4 +273,5 @@ class PPO(Base):
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
             start_step=step,
             saver=self.saver,
+            callbacks=callbacks,
         )

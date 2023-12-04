@@ -145,11 +145,7 @@ class PPO(Base):
         return self.explore(observation)
 
     def explore(self, observation: DictArray) -> tuple[DictArray, DictArray]:
-        def fn(
-            params: ParamsPolicyValue,
-            key: jax.random.PRNGKeyArray,
-            observation: DictArray,
-        ):
+        def fn(params: ParamsPolicyValue, key: jax.Array, observation: DictArray):
             action, log_prob = {}, {}
             for agent, obs in observation.items():
                 key, _k = jax.random.split(key)
@@ -161,9 +157,7 @@ class PPO(Base):
         return fn(self.state.params, self.nextkey(), observation)
 
     def update(self, buffer: OnPolicyBuffer):
-        def fn(
-            state: TrainStatePolicyValue, key: jax.random.PRNGKeyArray, sample: tuple
-        ):
+        def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
 
             loss = 0.0
@@ -173,6 +167,7 @@ class PPO(Base):
                 loss += l
 
             loss /= self.config.num_epochs
+            info["total_loss"] = loss
             return state, info
 
         sample = buffer.sample()
@@ -196,7 +191,12 @@ class PPO(Base):
             callbacks=callbacks,
         )
 
-    def resume(self, env: ParallelEnv | SubProcVecParallelEnv, n_env_steps: int):
+    def resume(
+        self,
+        env: ParallelEnv | SubProcVecParallelEnv,
+        n_env_steps: int,
+        callbacks: list,
+    ):
         step, self.state = self.saver.restore_latest_step(self.state)
 
         return train(
@@ -208,4 +208,5 @@ class PPO(Base):
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
             start_step=step,
             saver=self.saver,
+            callbacks=callbacks,
         )
