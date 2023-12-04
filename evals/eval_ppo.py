@@ -8,6 +8,8 @@ from rl.callbacks.wandb_callback import WandbCallback
 
 from evals.eval_callbacks import EvalCallback, TimeCallback, ScoreCallback
 
+from rl.transformation import normalize_frames
+
 
 def eval_ppo_cnn_envpool():
     TASK_ID = "Pong-v5"
@@ -43,7 +45,7 @@ def eval_ppo_cnn_envpool():
         0,
         CONFIG,
         rearrange_pattern="b c h w -> b h w c",
-        preprocess_fn=lambda x: x / 255.0,
+        preprocess_fn=normalize_frames,
         n_envs=N_ENVS,
         tabulate=True,
     )
