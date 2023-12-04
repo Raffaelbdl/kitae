@@ -34,11 +34,14 @@ def conv_layer(
 
 class VisionEncoder(nn.Module):
     rearrange_pattern: str
+    preprocess_fn: Callable
 
     @nn.compact
     def __call__(self, x: jax.Array):
         x = x.astype(jnp.float32)
         x = rearrange(x, self.rearrange_pattern)
+        if self.preprocess_fn is not None:
+            x = self.preprocess_fn(x)
 
         x = conv_layer(32, 8, 4)(x)
         x = nn.relu(x)
@@ -57,9 +60,14 @@ class VisionEncoder(nn.Module):
 
 
 class VectorEncoder(nn.Module):
+    preprocess_fn: Callable
+
     @nn.compact
     def __call__(self, x: jax.Array):
         x = x.astype(jnp.float32)
+        if self.preprocess_fn is not None:
+            x = self.preprocess_fn(x)
+
         x = nn.Dense(
             features=64,
             kernel_init=nn.initializers.orthogonal(np.sqrt(2.0)),
@@ -100,11 +108,16 @@ def encoder_factory(
     observation_space: spaces.Space,
     *,
     rearrange_pattern: str = "b h w c -> b h w c",
+    preprocess_fn: Callable = None,
 ) -> Type[nn.Module]:
     if len(observation_space.shape) == 1:
-        return VectorEncoder
+        return functools.partial(VectorEncoder, preprocess_fn=preprocess_fn)
     elif len(observation_space.shape) == 3:
-        return functools.partial(VisionEncoder, rearrange_pattern=rearrange_pattern)
+        return functools.partial(
+            VisionEncoder,
+            rearrange_pattern=rearrange_pattern,
+            preprocess_fn=preprocess_fn,
+        )
     else:
         raise NotImplementedError
 
@@ -115,10 +128,15 @@ def modules_factory(
     shared_encoder: bool,
     *,
     rearrange_pattern: str = "b h w c -> b h w c",
+    preprocess_fn: Callable = None,
 ) -> dict[str, nn.Module]:
     """Returns a dict of modules:
     policy / value / encoder"""
-    encoder = encoder_factory(observation_space, rearrange_pattern=rearrange_pattern)
+    encoder = encoder_factory(
+        observation_space,
+        rearrange_pattern=rearrange_pattern,
+        preprocess_fn=preprocess_fn,
+    )
 
     num_actions = (
         action_space.n
