@@ -81,12 +81,12 @@ def process_experience_factory(
         actions = jax.tree_map(lambda x: x[..., None], stacked.action)
         log_probs = jax.tree_map(lambda x: x[..., None], stacked.log_prob)
 
-        observations = jnp.concatenate(list(observations.values()), axis=0)
-        actions = jnp.concatenate(list(actions.values()), axis=0)
-        log_probs = jnp.concatenate(list(log_probs.values()), axis=0)
-        gaes = jnp.concatenate(list(gaes.values()), axis=0)
-        targets = jnp.concatenate(list(targets.values()), axis=0)
-        values = jnp.concatenate(list(values.values()), axis=0)
+        observations = jnp.concatenate(list(observations.values()), axis=1)
+        actions = jnp.concatenate(list(actions.values()), axis=1)
+        log_probs = jnp.concatenate(list(log_probs.values()), axis=1)
+        gaes = jnp.concatenate(list(gaes.values()), axis=1)
+        targets = jnp.concatenate(list(targets.values()), axis=1)
+        values = jnp.concatenate(list(values.values()), axis=1)
 
         if vectorized:
             observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
