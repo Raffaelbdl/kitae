@@ -172,9 +172,9 @@ def train(
     *,
     start_step: int = 1,
     saver: Saver = None,
-    use_wandb: bool = False,
-    callbacks: list[Callback] = [],
+    callbacks: list[Callback] = None,
 ):
+    callbacks = callbacks if callbacks else []
     callback.on_train_start(callbacks, CallbackData())
     buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
 
@@ -241,6 +241,7 @@ def process_termination_population(
     env_type: EnvType,
     env_procs: EnvProcs,
     agent_id: int,
+    callbacks: list[Callback],
 ):
     def single_one_process(env, done, trunc, logs):
         if done or trunc:
@@ -251,6 +252,9 @@ def process_termination_population(
                 " | ",
                 logs["kl_divergence"],
             )
+            callback.on_episode_end(
+                callbacks, CallbackData(episode_return=logs["episode_return"][agent_id])
+            )
             logs["episode_return"][agent_id] = 0.0
             next_observation, info = env.reset()
             return next_observation, info
@@ -259,6 +263,11 @@ def process_termination_population(
     def single_many_process(env, done, trunc, logs):
         for i, (d, t) in enumerate(zip(done, trunc)):
             if d or t:
+                callback.on_episode_end(
+                    callbacks,
+                    CallbackData(episode_return=logs["episode_return"][agent_id][i]),
+                )
+
                 if i == 0:
                     print(
                         step,
@@ -279,6 +288,9 @@ def process_termination_population(
                 " | ",
                 logs["kl_divergence"],
             )
+            callback.on_episode_end(
+                callbacks, CallbackData(episode_return=logs["episode_return"][agent_id])
+            )
             logs["episode_return"][agent_id] = 0.0
             next_observation, info = env.reset()
             return next_observation, info
@@ -290,6 +302,10 @@ def process_termination_population(
         )
         for i, (d, t) in enumerate(zip(check_d, check_t)):
             if np.any(d) or np.any(t):
+                callback.on_episode_end(
+                    callbacks,
+                    CallbackData(episode_return=logs["episode_return"][agent_id][i]),
+                )
                 if i == 0:
                     print(
                         step,
@@ -323,8 +339,10 @@ def train_population(
     *,
     start_step: int = 1,
     saver: Saver = None,
-    use_wandb: bool = False,
+    callbacks: list[Callback] = None,
 ):
+    callbacks = callbacks if callbacks else []
+    callback.on_train_start(callbacks, CallbackData())
     buffers = [
         OnPolicyBuffer(seed + i, base.config.max_buffer_size) for i in range(len(envs))
     ]
@@ -337,7 +355,6 @@ def train_population(
         ],
         "kl_divergence": 0.0,
     }
-
     with SaverContext(saver, base.config.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
             logs["step"] = step
@@ -351,6 +368,22 @@ def train_population(
                 )
                 logs["episode_return"][i] += process_reward(reward, env_type, env_procs)
 
+                termination = process_termination_population(
+                    step * base.n_envs,
+                    env,
+                    done,
+                    trunc,
+                    logs,
+                    env_type,
+                    env_procs,
+                    i,
+                    callbacks,
+                )
+                if termination[0] is not None and termination[1] is not None:
+                    next_observation, info = termination
+
+                next_observations.append(next_observation)
+
                 buffers[i].add(
                     OnPolicyExp(
                         observation=observations[i],
@@ -362,19 +395,10 @@ def train_population(
                     )
                 )
 
-                termination = process_termination_population(
-                    step, env, done, trunc, logs, env_type, env_procs, i
-                )
-                if termination[0] is not None and termination[1] is not None:
-                    next_observation, info = termination
-
-                next_observations.append(next_observation)
-
             if len(buffers[0]) >= base.config.max_buffer_size:
+                callback.on_update_start(callbacks, CallbackData())
                 logs |= base.update(buffers)
-
-            if use_wandb:
-                wandb.log(logs)
+                callback.on_update_end(callbacks, CallbackData(logs=logs))
 
             s.update(step, base.state)
 
