@@ -10,7 +10,7 @@ from evals.eval_callbacks import EvalCallback, TimeCallback, ScoreCallback
 
 
 def eval_ppo_cnn_envpool():
-    TASK_ID = "Breakout-v5"
+    TASK_ID = "Pong-v5"
     N_ENVS = 32
     N_ENV_STEPS = 5 * 10**7
     CONFIG = ml_collections.ConfigDict(
@@ -40,13 +40,18 @@ def eval_ppo_cnn_envpool():
     CONFIG["observation_space"] = env.observation_space
 
     model = ppo.PPO(
-        0, CONFIG, rearrange_pattern="b c h w -> b h w c", n_envs=N_ENVS, tabulate=True
+        0,
+        CONFIG,
+        rearrange_pattern="b c h w -> b h w c",
+        preprocess_fn=lambda x: x / 255.0,
+        n_envs=N_ENVS,
+        tabulate=True,
     )
 
     callbacks: list[Callback] = [
         TimeCallback(TASK_ID, n_envs=N_ENVS),
         ScoreCallback(TASK_ID, n_envs=N_ENVS, maxlen=20),
-        WandbCallback("cooperative_pong", entity="raffael", config=CONFIG),
+        # WandbCallback("cooperative_pong", entity="raffael", config=CONFIG),
     ]
 
     model.train(env, CONFIG.n_env_steps, callbacks=callbacks)

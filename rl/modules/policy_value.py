@@ -38,12 +38,14 @@ def create_modules(
     shared_encoder: bool,
     *,
     rearrange_pattern: str,
+    preprocess_fn: Callable,
 ) -> dict[str, nn.Module]:
     return modules_factory(
         observation_space,
         action_space,
         shared_encoder,
         rearrange_pattern=rearrange_pattern,
+        preprocess_fn=preprocess_fn,
     )
 
 
@@ -127,6 +129,7 @@ def train_state_policy_value_factory(
     config: ml_collections,
     *,
     rearrange_pattern: str,
+    preprocess_fn: Callable,
     n_envs: int,
     tabulate: bool = False,
 ) -> TrainStatePolicyValue:
@@ -135,6 +138,7 @@ def train_state_policy_value_factory(
         config.action_space,
         config.shared_encoder,
         rearrange_pattern=rearrange_pattern,
+        preprocess_fn=preprocess_fn,
     )
     params = create_params_policy_value(
         key,

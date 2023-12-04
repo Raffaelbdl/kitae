@@ -186,6 +186,7 @@ class PPO(Base):
         config: ml_collections.ConfigDict,
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
+        preprocess_fn: Callable = None,
         n_envs: int = 1,
         run_name: str = None,
         tabulate: bool = False,
@@ -197,6 +198,7 @@ class PPO(Base):
             self.nextkey(),
             self.config,
             rearrange_pattern=rearrange_pattern,
+            preprocess_fn=preprocess_fn,
             n_envs=n_envs,
             tabulate=tabulate,
         )
