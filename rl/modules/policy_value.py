@@ -93,7 +93,7 @@ def create_train_state_policy_value(
     *,
     n_envs: int = 1,
 ) -> TrainStatePolicyValue:
-    num_batches = config.max_buffer_size // config.batch_size
+    num_batches = n_envs * config.max_buffer_size // config.batch_size
     if config.learning_rate_annealing:
         n_updates = (
             config.n_env_steps
