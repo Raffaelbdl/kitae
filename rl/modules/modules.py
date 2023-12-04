@@ -37,7 +37,7 @@ class VisionEncoder(nn.Module):
 
     @nn.compact
     def __call__(self, x: jax.Array):
-        x = x.astype(jnp.float32) / 255.0
+        x = x.astype(jnp.float32)
         x = rearrange(x, self.rearrange_pattern)
 
         x = conv_layer(32, 8, 4)(x)
