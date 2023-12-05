@@ -65,8 +65,8 @@ CONFIG = ml_collections.ConfigDict(
 envs = EnvpoolCompatibility(
     envpool.make("CartPole-v1", env_type="gymnasium", num_envs=N_ENVS)
 )
-CONFIG["action_space"] = env.action_space
-CONFIG["observation_space"] = env.observation_space
+CONFIG["action_space"] = envs.action_space
+CONFIG["observation_space"] = envs.observation_space
 
 model = ppo.PPO(0, CONFIG, n_envs=N_ENVS, tabulate=True)
 model.train(envs, CONFIG.n_env_steps, callbacks=[])
