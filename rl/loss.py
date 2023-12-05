@@ -38,9 +38,10 @@ def loss_policy_ppo_discrete(
     kl_divergence = jax.lax.stop_gradient(jnp.mean((ratios - 1) - log_ratios))
     infos = {
         "loss_policy": loss_policy,
+        "mean_entropy": jnp.mean(entropy),
+        "kl_divergence": kl_divergence,
         "logits": logits,
         "entropy": entropy,
-        "kl_divergence": kl_divergence,
     }
 
     return loss_policy + entropy_coef * loss_entropy, infos

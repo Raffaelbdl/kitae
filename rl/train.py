@@ -10,10 +10,13 @@ from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.callbacks import callback
 from rl.callbacks.callback import Callback, CallbackData
+from rl.callbacks.episode_return_callback import EpisodeReturnCallback
 
 EnvLike = gym.Env | EnvPool | pettingzoo.ParallelEnv | SubProcVecParallelEnv
 
 from rl.save import Saver, SaverContext
+
+from rl.logging import Logger
 
 
 def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
@@ -37,21 +40,6 @@ def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
         return parallel_one_process(action)
     elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
         return parallel_many_process(action)
-    else:
-        raise NotImplementedError
-
-
-def init_episode_return(
-    first_observation: jax.Array, env_type: EnvType, env_procs: EnvProcs
-):
-    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
-        return 0.0
-    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
-        return np.zeros((first_observation.shape[0],))
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
-        return 0.0
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
-        return np.zeros((np.array(list(first_observation.values())[0]).shape[0],))
     else:
         raise NotImplementedError
 
@@ -93,9 +81,9 @@ def process_termination(
 ):
     def single_one_process(env, done, trunc, logs):
         if done or trunc:
-            print(step, " > ", logs["episode_return"], " | ", logs["kl_divergence"])
+            print(step, " > ", logs["episode_return"])
             callback.on_episode_end(
-                callbacks, CallbackData(episode_return=logs["episode_return"])
+                callbacks, CallbackData.on_episode_end(0, logs["episode_return"])
             )
             logs["episode_return"] = 0.0
             next_observation, info = env.reset()
@@ -106,24 +94,18 @@ def process_termination(
         for i, (d, t) in enumerate(zip(done, trunc)):
             if d or t:
                 callback.on_episode_end(
-                    callbacks, CallbackData(episode_return=logs["episode_return"][i])
+                    callbacks, CallbackData.on_episode_end(0, logs["episode_return"][i])
                 )
                 if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        logs["episode_return"][i],
-                        " | ",
-                        logs["kl_divergence"],
-                    )
+                    print(step, " > ", logs["episode_return"][i])
                 logs["episode_return"][i] = 0.0
         return None, None
 
     def parallel_one_process(env, done, trunc, logs):
         if any(done.values()) or any(trunc.values()):
-            print(step, " > ", logs["episode_return"], " | ", logs["kl_divergence"])
+            print(step, " > ", logs["episode_return"])
             callback.on_episode_end(
-                callbacks, CallbackData(episode_return=logs["episode_return"])
+                callbacks, CallbackData.on_episode_end(0, logs["episode_return"])
             )
             logs["episode_return"] = 0.0
             next_observation, info = env.reset()
@@ -137,16 +119,10 @@ def process_termination(
         for i, (d, t) in enumerate(zip(check_d, check_t)):
             if np.any(d) or np.any(t):
                 callback.on_episode_end(
-                    callbacks, CallbackData(episode_return=logs["episode_return"][i])
+                    callbacks, CallbackData.on_episode_end(0, logs["episode_return"][i])
                 )
                 if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        logs["episode_return"][i],
-                        " | ",
-                        logs["kl_divergence"],
-                    )
+                    print(step, " > ", logs["episode_return"][i])
                 logs["episode_return"][i] = 0.0
         return None, None
 
@@ -175,32 +151,33 @@ def train(
     callbacks: list[Callback] = None,
 ):
     callbacks = callbacks if callbacks else []
+    callbacks = [EpisodeReturnCallback(population_size=1)] + callbacks
     callback.on_train_start(callbacks, CallbackData())
+
     buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
 
     observation, info = env.reset(seed=seed + 1)
 
-    logs = {
-        "episode_return": init_episode_return(observation, env_type, env_procs),
-        "kl_divergence": 0.0,
-    }
+    logger = Logger(callbacks, env_type=env_type, env_procs=env_procs)
+    logger.init_logs(observation)
 
     with SaverContext(saver, base.config.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
-            logs["step"] = step
+            logger["step"] = step
 
             action, log_prob = base.explore(observation)
+
             next_observation, reward, done, trunc, info = env.step(
                 process_action(action, env_type, env_procs)
             )
-            logs["episode_return"] += process_reward(reward, env_type, env_procs)
+            logger["episode_return"] += process_reward(reward, env_type, env_procs)
 
             termination = process_termination(
                 step * base.n_envs,
                 env,
                 done,
                 trunc,
-                logs,
+                logger,
                 env_type,
                 env_procs,
                 callbacks,
@@ -221,8 +198,8 @@ def train(
 
             if len(buffer) >= base.config.max_buffer_size:
                 callback.on_update_start(callbacks, CallbackData())
-                logs |= base.update(buffer)
-                callback.on_update_end(callbacks, CallbackData(logs=logs))
+                logger.update(base.update(buffer))
+                callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))
 
             s.update(step, base.state)
 
@@ -245,15 +222,10 @@ def process_termination_population(
 ):
     def single_one_process(env, done, trunc, logs):
         if done or trunc:
-            print(
-                step,
-                " > ",
-                logs["episode_return"][agent_id],
-                " | ",
-                logs["kl_divergence"],
-            )
+            print(step, " > ", logs["episode_return"][agent_id])
             callback.on_episode_end(
-                callbacks, CallbackData(episode_return=logs["episode_return"][agent_id])
+                callbacks,
+                CallbackData.on_episode_end(agent_id, logs["episode_return"][agent_id]),
             )
             logs["episode_return"][agent_id] = 0.0
             next_observation, info = env.reset()
@@ -265,31 +237,22 @@ def process_termination_population(
             if d or t:
                 callback.on_episode_end(
                     callbacks,
-                    CallbackData(episode_return=logs["episode_return"][agent_id][i]),
+                    CallbackData.on_episode_end(
+                        agent_id, logs["episode_return"][agent_id][i]
+                    ),
                 )
 
                 if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        logs["episode_return"][agent_id][i],
-                        " | ",
-                        logs["kl_divergence"],
-                    )
+                    print(step, " > ", logs["episode_return"][agent_id][i])
                 logs["episode_return"][agent_id][i] = 0.0
         return None, None
 
     def parallel_one_process(env, done, trunc, logs):
         if any(done.values()) or any(trunc.values()):
-            print(
-                step,
-                " > ",
-                logs["episode_return"][agent_id],
-                " | ",
-                logs["kl_divergence"],
-            )
+            print(step, " > ", logs["episode_return"][agent_id])
             callback.on_episode_end(
-                callbacks, CallbackData(episode_return=logs["episode_return"][agent_id])
+                callbacks,
+                CallbackData.on_episode_end(agent_id, logs["epiode_return"][agent_id]),
             )
             logs["episode_return"][agent_id] = 0.0
             next_observation, info = env.reset()
@@ -304,16 +267,12 @@ def process_termination_population(
             if np.any(d) or np.any(t):
                 callback.on_episode_end(
                     callbacks,
-                    CallbackData(episode_return=logs["episode_return"][agent_id][i]),
+                    CallbackData.on_episode_end(
+                        agent_id, logs["episode_return"][agent_id][i]
+                    ),
                 )
                 if i == 0:
-                    print(
-                        step,
-                        " > ",
-                        logs["episode_return"][agent_id][i],
-                        " | ",
-                        logs["kl_divergence"],
-                    )
+                    print(step, " > ", logs["episode_return"][agent_id][i])
                 logs["episode_return"][agent_id][i] = 0.0
         return None, None
 
@@ -342,22 +301,21 @@ def train_population(
     callbacks: list[Callback] = None,
 ):
     callbacks = callbacks if callbacks else []
+    callbacks = [EpisodeReturnCallback(population_size=len(envs))] + callbacks
     callback.on_train_start(callbacks, CallbackData())
+
     buffers = [
         OnPolicyBuffer(seed + i, base.config.max_buffer_size) for i in range(len(envs))
     ]
 
     observations, infos = zip(*[envs[i].reset(seed=seed + i) for i in range(len(envs))])
 
-    logs = {
-        "episode_return": [
-            init_episode_return(obs, env_type, env_procs) for obs in observations
-        ],
-        "kl_divergence": 0.0,
-    }
+    logger = Logger(callbacks, env_type=env_type, env_procs=env_procs)
+    logger.init_logs(observations)
+
     with SaverContext(saver, base.config.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
-            logs["step"] = step
+            logger["step"] = step
 
             actions, log_probs = base.explore(observations)
 
@@ -366,14 +324,16 @@ def train_population(
                 next_observation, reward, done, trunc, info = env.step(
                     process_action(actions[i], env_type, env_procs)
                 )
-                logs["episode_return"][i] += process_reward(reward, env_type, env_procs)
+                logger["episode_return"][i] += process_reward(
+                    reward, env_type, env_procs
+                )
 
                 termination = process_termination_population(
                     step * base.n_envs,
                     env,
                     done,
                     trunc,
-                    logs,
+                    logger,
                     env_type,
                     env_procs,
                     i,
@@ -397,11 +357,12 @@ def train_population(
 
             if len(buffers[0]) >= base.config.max_buffer_size:
                 callback.on_update_start(callbacks, CallbackData())
-                logs |= base.update(buffers)
-                callback.on_update_end(callbacks, CallbackData(logs=logs))
+                logger.update(base.update(buffers))
+                callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))
 
             s.update(step, base.state)
 
             observations = next_observations
 
-        env.close()
+    env.close()
+    callback.on_train_end(callbacks, CallbackData())
