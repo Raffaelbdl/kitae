@@ -1,10 +1,11 @@
-from typing import Callable, TypeVar
+from typing import Any, Callable, TypeVar
 
 import chex
 import distrax as dx
 from flax import struct
 import flax.linen as nn
 from flax.training import train_state
+from flax.training.train_state import TrainState
 import gymnasium as gym
 from gymnasium import spaces
 import jax
@@ -14,270 +15,195 @@ import ml_collections
 import numpy as np
 import optax
 
-from rl import Base, Params
-from rl.buffer import OffPolicyBuffer, OffPolicyExp
-from rl.modules import modules_factory, create_params
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.types import Params
+from rl.buffer import Buffer, OffPolicyBuffer, OffPolicyExp
+from rl.modules.qvalue import train_state_qvalue_factory
+
+from rl.types import GymEnv, EnvPoolEnv
+
+from rl.train import train
+from rl.loss import loss_mean_squared_error
+
 
 NO_EXPLORATION = 0.0
 
 
-def create_module(
-    observation_space: spaces.Space,
-    action_space: spaces.Discrete,
-) -> tuple[nn.Module, nn.Module]:
-    modules = modules_factory(observation_space, action_space, False)
-    return modules["policy"]
+def loss_factory(train_state: TrainState) -> Callable:
+    @jax.jit
+    def fn(params: Params, batch: tuple[jax.Array]):
+        observations, actions, returns = batch
+        all_qvalues = train_state.apply_fn({"params": params}, observations)
+        qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
+
+        loss = loss_mean_squared_error(qvalues, returns)
+        return loss, {"loss_qvalue": loss}
+
+    return fn
 
 
-def create_train_state(
-    module: nn.Module, params: Params, config: ml_collections.ConfigDict
-) -> train_state.TrainState:
-    tx = optax.adam(config.learning_rate)
-    return train_state.TrainState.create(apply_fn=module.apply, params=params, tx=tx)
+def explore_factory(train_state: TrainState, batched: bool) -> Callable:
+    @jax.jit
+    def fn(
+        params: Params, key: jax.Array, observations: jax.Array, exploration: float
+    ) -> jax.Array:
+        if not batched:
+            observations = jnp.expand_dims(observations, axis=0)
+
+        all_qvalues = train_state.apply_fn({"params": params}, observations)
+        greedy_action = jnp.argmax(all_qvalues, axis=-1)
+        key1, key2 = jax.random.split(key)
+        eps = jax.random.uniform(key1, greedy_action.shape)
+        random_action = jax.random.randint(
+            key2, greedy_action.shape, 0, all_qvalues.shape[-1]
+        )
+
+        outputs = jnp.where(eps <= exploration, random_action, greedy_action)
+        if not batched:
+            return jax.tree_map(lambda x: jnp.squeeze(x, axis=0), outputs)
+        return outputs
+
+    return fn
 
 
-def loss_fn(params: Params, qvalue_fn: Callable, states: jax.Array, returns: jax.Array):
-    q_values = qvalue_fn({"params": params}, states)
-    loss = jnp.mean(jnp.square(q_values - returns))
-    return loss, {"loss": loss}
+def process_experience_factory(
+    train_state: TrainState, gamma: float, vectorized: bool
+) -> Callable:
+    from rl.buffer import stack_experiences
+
+    def compute_returns(
+        params: Params,
+        next_observations: jax.Array,
+        rewards: jax.Array,
+        dones: jax.Array,
+    ) -> jax.Array:
+        all_next_qvalues = train_state.apply_fn({"params": params}, next_observations)
+        next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
+
+        discounts = gamma * (1.0 - dones[..., None])
+        return rewards[..., None] + discounts * next_qvalues
+
+    returns_fn = compute_returns
+    if vectorized:
+        returns_fn = jax.vmap(returns_fn, in_axes=(None, 1, 1, 1), out_axes=1)
+
+    @jax.jit
+    def fn(params: Params, sample: list[OffPolicyExp]):
+        stacked = stack_experiences(sample)
+
+        observations = stacked.observation
+        actions = stacked.action[..., None]
+        returns = compute_returns(
+            params, stacked.next_observation, stacked.reward, stacked.done
+        )
+
+        if vectorized:
+            observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
+            actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
+            returns = jnp.reshape(returns, (-1, *returns.shape[2:]))
+
+        return observations, actions, returns
+
+    return fn
 
 
-def compute_q_values(
-    params: Params, qvalue_fn: Callable, observations: jax.Array
-) -> jax.Array:
-    return qvalue_fn({"params": params}, observations)
+def update_step_factory(train_state: TrainState) -> Callable:
+    loss_fn = loss_factory(train_state)
 
+    @jax.jit
+    def fn(state: TrainState, key: jax.Array, batch: tuple[jax.Array]):
+        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+            state.params, batch=batch
+        )
+        state = state.apply_gradients(grads=grads)
+        return state, loss, info
 
-def compute_max_qvalues(
-    params: Params, apply_fn: Callable, observations: jax.Array
-) -> jax.Array:
-    return jnp.max(
-        compute_q_values(params, apply_fn, observations), axis=-1, keepdims=True
-    )
-
-
-def explore(
-    key: jax.Array,
-    params: Params,
-    apply_fn: Callable,
-    exp_coef: float,
-    observations: jax.Array,
-) -> jax.Array:
-    qvalues = apply_fn({"params": params}, observations)
-    greedy_actions = jnp.argmax(qvalues, axis=-1, keepdims=False)
-
-    eps = jrd.uniform(key, greedy_actions.shape)
-
-    random_actions = jrd.randint(key, greedy_actions.shape, 0, qvalues.shape[-1])
-    return jnp.where(eps <= exp_coef, random_actions, greedy_actions)
-
-
-def explore_unbatched(
-    key: jax.Array,
-    params: Params,
-    apply_fn: Callable,
-    exp_coef: float,
-    observation: jax.Array,
-) -> jax.Array:
-    observations = jnp.expand_dims(observation, axis=0)
-    actions = explore(key, params, apply_fn, exp_coef, observations)
-    return jnp.squeeze(actions, axis=0)
-
-
-def process_experience(
-    params: Params,
-    qvalue_fn: Callable,
-    gamma: float,
-    sample: list[OffPolicyExp],
-):
-    from rl.buffer import array_of_name
-
-    next_observations = array_of_name(sample, "next_observation")
-    next_qvalues = jax.jit(compute_max_qvalues, static_argnums=1)(
-        params, qvalue_fn, next_observations
-    )
-
-    not_dones = 1.0 - array_of_name(sample, "done")[..., None]
-    rewards = array_of_name(sample, "reward")[..., None]
-
-    observations = np.array([exp.observation for exp in sample])
-    returns = rewards + gamma * not_dones * next_qvalues
-    return observations, returns
-
-
-def process_experience_vectorized(
-    params: Params,
-    qvalue_fn: Callable,
-    gamma: float,
-    sample: list[OffPolicyExp],
-):
-    from rl.buffer import array_of_name
-
-    next_observations = array_of_name(sample, "next_observation")
-    next_qvalues = jax.vmap(
-        jax.jit(compute_max_qvalues, static_argnums=1),
-        in_axes=(None, None, 1),
-        out_axes=1,
-    )(params, qvalue_fn, next_observations)
-
-    not_dones = 1.0 - array_of_name(sample, "done")[..., None]
-    rewards = array_of_name(sample, "reward")[..., None]
-
-    observations = np.array([exp.observation for exp in sample])
-    returns = rewards + gamma * not_dones * next_qvalues
-
-    observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
-    returns = jnp.reshape(returns, (-1, *returns.shape[2:]))
-    return observations, returns
-
-
-def update_step(
-    state: train_state.TrainState,
-    observations: jax.Array,
-    returns: jax.Array,
-):
-    (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-        state.params, state.apply_fn, observations, returns
-    )
-    state = state.apply_gradients(grads=grads)
-    return state, loss, info
+    return fn
 
 
 class DQN(Base):
     def __init__(
         self,
         seed: int,
-        env: gym.Env,
         config: ml_collections.ConfigDict,
         *,
-        create_module: Callable[..., nn.Module] = create_module,
-        create_params: Callable[..., Params] = create_params,
+        rearrange_pattern: str = "b h w c -> b h w c",
+        preprocess_fn: Callable = None,
         n_envs: int = 1,
+        run_name: str = None,
+        tabulate: bool = False,
     ):
-        Base.__init__(self, seed)
+        Base.__init__(self, seed, run_name=run_name)
         self.config = config
 
-        qvalue = create_module(env.observation_space, env.action_space)
-        params = create_params(self.nextkey(), qvalue, env.observation_space.shape)
-        self.state = create_train_state(qvalue, params, self.config)
-
-        self.explore_fn = explore if n_envs > 1 else explore_unbatched
-        self.explore_fn = jax.jit(self.explore_fn, static_argnums=(2))
-
-        self.process_experience_fn = (
-            process_experience_vectorized if n_envs > 1 else process_experience
+        self.state = train_state_qvalue_factory(
+            self.nextkey(),
+            self.config,
+            rearrange_pattern=rearrange_pattern,
+            preprocess_fn=preprocess_fn,
+            n_envs=n_envs,
+            tabulate=tabulate,
         )
+        self.explore_fn = explore_factory(self.state, n_envs > 1)
+        self.process_experience_fn = process_experience_factory(
+            self.state, self.config.gamma, n_envs > 1
+        )
+        self.update_step_fn = update_step_factory(self.state)
 
         self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> jax.Array:
         action = self.explore_fn(
-            self.nextkey(),
-            self.state.params,
-            self.state.apply_fn,
-            NO_EXPLORATION,
-            observation,
+            self.state.params, self.nextkey(), observation, NO_EXPLORATION
         )
-        # action = jax.jit(explore_unbatched, static_argnums=(2))(
-        #     self.nextkey(),
-        #     self.state.params,
-        #     self.state.apply_fn,
-        #     NO_EXPLORATION,
-        #     observation,
-        # )
-        return action
+        return action, jnp.zeros_like(action)
 
     def explore(self, observation: jax.Array):
         action = self.explore_fn(
-            self.nextkey(),
-            self.state.params,
-            self.state.apply_fn,
-            self.config.exploration_coef,
-            observation,
+            self.state.params, self.nextkey(), observation, self.config.exploration
         )
-        # action = jax.jit(explore_unbatched, static_argnums=(2))(
-        #     self.nextkey(),
-        #     self.state.params,
-        #     self.state.apply_fn,
-        #     self.config.exploration_coef,
-        #     observation,
-        # )
-        return action
+        return action, jnp.zeros_like(action)
+
+    def should_update(self, step: int, buffer: OffPolicyBuffer) -> None:
+        return (
+            len(buffer) >= self.config.batch_size and step % self.config.skip_steps == 0
+        )
 
     def update(self, buffer: OffPolicyBuffer):
+        def fn(state: TrainState, key: jax.Array, sample: tuple):
+            experiences = self.process_experience_fn(state.params, sample)
+            state, loss, info = self.update_step_fn(state, key, experiences)
+            return state, info
+
         sample = buffer.sample(self.config.batch_size)
-        observations, returns = self.process_experience_fn(
-            self.state.params, self.state.apply_fn, self.config.gamma, sample
-        )
-        self.state, loss, info = jax.jit(update_step)(self.state, observations, returns)
+        self.state, info = fn(self.state, self.nextkey(), sample)
+        return info
 
-        return loss
-
-
-def train(seed: int, dqn: DQN, env: gym.Env, n_env_steps: int):
-    assert dqn.n_envs == 1
-
-    buffer = OffPolicyBuffer(seed, dqn.config.max_buffer_size)
-
-    observation, info = env.reset(seed=seed + 1)
-    episode_return = 0.0
-
-    for step in range(1, n_env_steps + 1):
-        action = dqn.explore(np.array(observation))
-        next_observation, reward, done, trunc, info = env.step(int(action))
-        episode_return += reward
-
-        buffer.add(
-            OffPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-            )
+    def train(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.OFF_POLICY,
+            saver=self.saver,
+            callbacks=callbacks,
         )
 
-        if done or trunc:
-            print(step, " > ", episode_return)
-            episode_return = 0.0
-            next_observation, info = env.reset()
+    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+        step, self.state = self.saver.restore_latest_step(self.state)
 
-        if len(buffer) > dqn.config.batch_size and step % dqn.config.skip_steps == 0:
-            dqn.update(buffer)
-
-        observation = next_observation
-
-
-def train_vectorized(seed: int, dqn: DQN, env: gym.Env, n_env_steps: int):
-    assert dqn.n_envs > 1
-
-    buffer = OffPolicyBuffer(seed, dqn.config.max_buffer_size)
-
-    observation, info = env.reset()
-    episode_return = np.zeros((observation.shape[0],))
-
-    for step in range(1, n_env_steps + 1):
-        action = dqn.explore(observation)
-        next_observation, reward, done, trunc, info = env.step(np.array(action))
-        episode_return += reward
-
-        buffer.add(
-            OffPolicyExp(
-                observation=observation,
-                action=action,
-                reward=reward,
-                done=done,
-                next_observation=next_observation,
-            )
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            EnvType.SINGLE,
+            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.OFF_POLICY,
+            start_step=step,
+            saver=self.saver,
+            callbacks=callbacks,
         )
-
-        for i, (d, t) in enumerate(zip(done, trunc)):
-            if d or t:
-                if i == 0:
-                    print(step, " > ", episode_return[i])
-                episode_return[i] = 0.0
-
-        if len(buffer) > dqn.config.batch_size and step % dqn.config.skip_steps == 0:
-            dqn.update(buffer)
-
-        observation = next_observation
