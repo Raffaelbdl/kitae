@@ -1,8 +1,12 @@
 from typing import Any, Optional, Union, Dict, Sequence, List
 
 import flatdict
-from wandb.sdk.lib.paths import StrPath
-from wandb.sdk.wandb_settings import Settings
+
+try:
+    from wandb.sdk.lib.paths import StrPath
+    from wandb.sdk.wandb_settings import Settings
+except ImportError:
+    print("Cannot use WandbCallback. You must install wandb first")
 
 from rl.callbacks.callback import Callback, CallbackData
 
