@@ -41,12 +41,12 @@ def loss_factory(
         logits_pop = []
         entropy_pop = []
 
-        for i in range(len(params_population)):
-            l, i = loss_single_fn(params_population[i], batch[i])
+        for agent_id in range(len(params_population)):
+            l, i = loss_single_fn(params_population[agent_id], batch[agent_id])
             loss += l
-            logits_pop.append(i["logits"])
-            entropy_pop.append(i["entropy"])
-            infos |= i
+            logits_pop.append(i.pop("logits"))
+            entropy_pop.append(i.pop("entropy"))
+            infos[f"agent_{agent_id}"] = i
 
         if jsd_coef <= 0.0:
             return loss, infos
@@ -57,6 +57,10 @@ def loss_factory(
         loss += jsd_coef * loss_shannon_jensen_divergence(
             logits_average, entropy_average
         )
+        infos["population"] = {
+            "loss_jsd": loss,
+            "mean_population_entropy": jnp.mean(entropy_average),
+        }
         return loss, infos
 
     return fn

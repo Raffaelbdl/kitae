@@ -50,6 +50,7 @@ def loss_factory(
 
         loss = loss_policy + value_coef * loss_value
         info = info_policy | info_value
+        info["total_loss"] = loss
         return loss, info
 
     return fn
