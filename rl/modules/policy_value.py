@@ -122,7 +122,7 @@ def create_train_state_policy_value(
 
 def train_state_policy_value_factory(
     key: jax.Array,
-    config: ml_collections,
+    config: ml_collections.ConfigDict,
     *,
     rearrange_pattern: str,
     preprocess_fn: Callable,
