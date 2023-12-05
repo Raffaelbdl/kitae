@@ -164,3 +164,54 @@ def eval_ppo_vec():
 
     for c in callbacks[1:]:
         c.write_results("ippo_cnn")
+
+
+def eval_cartpole():
+    from evals.eval_envs import CartPoleParallel
+
+    env = CartPoleParallel()
+    TASK_ID = "CartpoleParallel"
+    N_ENVS = 16
+    N_ENV_STEPS = 10**5
+    CONFIG = ml_collections.ConfigDict(
+        {
+            "learning_rate": 0.001,
+            "gamma": 0.99,
+            "clip_eps": 0.2,
+            "entropy_coef": 0.01,
+            "value_coef": 0.5,
+            "_lambda": 0.95,
+            "normalize": True,
+            "max_buffer_size": 64,
+            "batch_size": 64,
+            "num_epochs": 1,
+            "learning_rate_annealing": True,
+            "max_grad_norm": 0.5,
+            "n_env_steps": N_ENV_STEPS // N_ENVS,
+            "shared_encoder": False,
+            "save_frequency": -1,
+        }
+    )
+
+    env.reset()
+    CONFIG["action_space"] = env.action_space(env.agents[0])
+    CONFIG["observation_space"] = env.observation_space(env.agents[0])
+
+    # import supersuit as ss
+    # env = ss.action_lambda_v1(env, lambda x, y: int(x), lambda x: x)
+
+    env = SubProcVecParallelEnv([lambda: env for _ in range(N_ENVS)])
+    env = SubProcVecParallelEnvCompatibility(env)
+
+    model = ippo.PPO(0, CONFIG, n_envs=N_ENVS, tabulate=True)
+
+    callbacks = [
+        # WandbCallback("cooperative_pong", "raffael", CONFIG),
+        TimeCallback(TASK_ID, n_envs=N_ENVS),
+        ScoreCallback(TASK_ID, n_envs=N_ENVS, maxlen=20),
+    ]
+
+    model.train(env, CONFIG.n_env_steps, callbacks=callbacks)
+
+    for c in callbacks[1:]:
+        c.write_results("ippo_cartpole")
