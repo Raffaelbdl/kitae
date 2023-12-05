@@ -1,29 +1,19 @@
-from typing import Any, Callable, TypeVar
+from typing import Callable
 
-import chex
-import distrax as dx
-from flax import struct
-import flax.linen as nn
-from flax.training import train_state
 from flax.training.train_state import TrainState
-import gymnasium as gym
-from gymnasium import spaces
 import jax
 import jax.numpy as jnp
-import jax.random as jrd
 import ml_collections
 import numpy as np
-import optax
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.types import Params
-from rl.buffer import Buffer, OffPolicyBuffer, OffPolicyExp
-from rl.modules.qvalue import train_state_qvalue_factory
-
-from rl.types import GymEnv, EnvPoolEnv
-
-from rl.train import train
+from rl.buffer import OffPolicyBuffer, OffPolicyExp
 from rl.loss import loss_mean_squared_error
+from rl.train import train
+
+from rl.types import Params, GymEnv, EnvPoolEnv
+
+from rl.modules.qvalue import train_state_qvalue_factory
 
 
 NO_EXPLORATION = 0.0

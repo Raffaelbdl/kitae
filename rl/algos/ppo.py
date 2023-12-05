@@ -8,7 +8,7 @@ import ml_collections
 import numpy as np
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import Buffer, OnPolicyBuffer, OnPolicyExp
+from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
