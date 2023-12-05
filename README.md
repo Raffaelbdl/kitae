@@ -6,7 +6,7 @@
 [**Installation**](#installation) 
 |  [**Overview**](#overview) 
 | [**Example Usage**](#example-usage)
-| [**Roadmap**](#example-usage)
+| [**Roadmap**](#roadmap)
 
 ## Installation
 This package requires Python 3.10 or later and a working [JAX](https://github.com/google/jax) installation.
