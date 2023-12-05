@@ -31,7 +31,7 @@ homepage = "https://github.com/Raffaelbdl/flax_rl"
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
-version = {attr = "flax_rl.version.__version__"}
+version = {attr = "rl.version.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["rl*"]
