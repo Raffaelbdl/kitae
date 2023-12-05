@@ -1,0 +1,14 @@
+chex
+distrax
+einops
+envpool
+flatdict
+flax
+gymnasium
+numpy
+ml_collections
+optax
+orbax_checkpoint
+pettingzoo
+
+git+https://github.com/Raffaelbdl/vectorization_parallel_env

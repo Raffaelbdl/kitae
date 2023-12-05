@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flax_rl"
+requires-python = ">=3.10"
+description = "A RL library using Flax modules"
+authors = [
+    {name = "Raffael Bolla Di Lorenzo", email = "raffaelbdl@gmail.com"}
+]
+dependencies = [
+    "chex",
+    "distrax",
+    "einops",
+    "envpool",
+    "flatdict",
+    "flax",
+    "gymnasium",
+    "numpy",
+    "ml_collections",
+    "optax",
+    "orbax_checkpoint",
+    "pettingzoo",
+    "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env"
+]
+dynamic = ["version", "readme"]
+
+[project.urls]
+homepage = "https://github.com/Raffaelbdl/flax_rl"
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"], content-type = "text/markdown"}
+version = {attr = "rl.version.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["rl*"]
