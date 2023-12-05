@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flax_rl"
-requires_python = ">=3.10"
+requires-python = ">=3.10"
 description = "A RL library using Flax modules"
 authors = [
     {name = "Raffael Bolla Di Lorenzo", email = "raffaelbdl@gmail.com"}
