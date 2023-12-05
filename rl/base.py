@@ -2,19 +2,14 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 import os
-from typing import Any, TypeVar
+from typing import Any
 
-import flax
 from flax.training import train_state
-import jax.random as jrd
 
-ActionType = TypeVar("ActionType")
-ObsType = TypeVar("ObsType")
-Params = flax.core.FrozenDict
-
+from rl import Seeded
 from rl.buffer import Buffer
 from rl.save import Saver
-from rl import Seeded
+from rl.types import ActionType, ObsType
 
 
 class EnvProcs(Enum):

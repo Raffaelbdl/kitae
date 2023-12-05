@@ -1,9 +1,8 @@
-from collections import deque
 from typing import Any, Optional, Union, Dict, Sequence, List
-from wandb.sdk.lib.paths import StrPath
-from wandb.sdk.wandb_settings import Settings
 
 import flatdict
+from wandb.sdk.lib.paths import StrPath
+from wandb.sdk.wandb_settings import Settings
 
 from rl.callbacks.callback import Callback, CallbackData
 

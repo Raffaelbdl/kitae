@@ -1,9 +1,7 @@
 from typing import Callable
 
 import distrax as dx
-from envpool.python.api import EnvPool
 import flax.linen as nn
-import gymnasium as gym
 import jax
 import jax.numpy as jnp
 import ml_collections
@@ -14,14 +12,11 @@ from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
-from rl.modules.policy_value import (
-    train_state_policy_value_factory,
-    TrainStatePolicyValue,
-    ParamsPolicyValue,
-)
 
-GymEnv = gym.Env
-EnvPoolEnv = EnvPool
+from rl.types import GymEnv, EnvPoolEnv
+
+from rl.modules.policy_value import train_state_policy_value_factory
+from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 
 
 def loss_factory(

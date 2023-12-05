@@ -1,28 +1,19 @@
-from typing import Callable, TypeVar
+from typing import Callable
 
-import chex
-from flax import linen as nn
-import gymnasium as gym
 import jax
-from jax import numpy as jnp
 import ml_collections
 import numpy as np
-import pettingzoo
-import vec_parallel_env
 
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer
 from rl.train import train_population
 
-ParallelEnv = pettingzoo.ParallelEnv
-SubProcParallelEnv = vec_parallel_env.SubProcVecParallelEnv
+from rl.types import ParallelEnv, SubProcVecParallelEnv, DictArray
 
-DictArray = dict[str, jax.Array]
-
-from rl.modules.policy_value import train_state_policy_value_population_factory
-from rl.modules.policy_value import ParamsPolicyValue, TrainStatePolicyValue
 from rl.algos.ppo import explore_factory
 from rl.algos.ippo import process_experience_factory
+from rl.modules.policy_value import ParamsPolicyValue, TrainStatePolicyValue
+from rl.modules.policy_value import train_state_policy_value_population_factory
 from rl.populations.pop_ppo import update_step_factory
 
 
@@ -121,7 +112,7 @@ class PopulationPPO(Base):
 
     def train(
         self,
-        env: list[ParallelEnv | SubProcParallelEnv],
+        env: list[ParallelEnv | SubProcVecParallelEnv],
         n_env_steps: int,
         callbacks: list,
     ):
@@ -138,7 +129,7 @@ class PopulationPPO(Base):
 
     def resume(
         self,
-        env: list[ParallelEnv | SubProcParallelEnv],
+        env: list[ParallelEnv | SubProcVecParallelEnv],
         n_env_steps: int,
         callbacks: list,
     ):

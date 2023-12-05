@@ -2,8 +2,6 @@ import jax
 import jax.numpy as jnp
 import ml_collections
 import numpy as np
-import pettingzoo
-import vec_parallel_env
 
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
@@ -11,16 +9,12 @@ from rl.timesteps import calculate_gaes_targets
 from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 from rl.train import train
 
-ParallelEnv = pettingzoo.ParallelEnv
-SubProcVecParallelEnv = vec_parallel_env.SubProcVecParallelEnv
+from rl.algos.ppo import train_state_policy_value_factory
+from rl.algos.ppo import explore_factory
+from rl.algos.ppo import update_step_factory
 
-DictArray = dict[str, jax.Array]
-
-from rl.algos.ppo import (
-    train_state_policy_value_factory,
-    explore_factory,
-    update_step_factory,
-)
+from rl.types import ParallelEnv, SubProcVecParallelEnv
+from rl.types import DictArray
 
 
 def process_experience_factory(

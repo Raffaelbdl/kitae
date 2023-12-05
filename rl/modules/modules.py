@@ -1,18 +1,14 @@
 import functools
 from typing import Callable, Type
 
-import chex
 from einops import rearrange
-import flax
-from flax import struct
 from flax import linen as nn
-from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
 from jax import numpy as jnp
 import numpy as np
 
-from rl.base import Params
+from rl.types import Params
 
 
 def conv_layer(

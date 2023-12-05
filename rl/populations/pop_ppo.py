@@ -1,7 +1,5 @@
 from typing import Callable
 
-from envpool.python.api import EnvPool
-import gymnasium as gym
 import jax
 from jax import numpy as jnp
 import ml_collections
@@ -10,16 +8,15 @@ import numpy as np
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer
 from rl.loss import loss_shannon_jensen_divergence
-from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 from rl.train import train_population
 
-from rl.modules.policy_value import train_state_policy_value_population_factory
-
-GymEnv = gym.Env
-EnvPoolEnv = EnvPool
+from rl.types import GymEnv, EnvPoolEnv
 
 from rl.algos.ppo import loss_factory as loss_single_factory
-from rl.algos.ppo import explore_factory, process_experience_factory
+from rl.algos.ppo import explore_factory
+from rl.algos.ppo import process_experience_factory
+from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
+from rl.modules.policy_value import train_state_policy_value_population_factory
 
 
 def loss_factory(

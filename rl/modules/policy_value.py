@@ -1,22 +1,18 @@
-import functools
-from typing import Callable, Type
+from typing import Callable
 
 import chex
-from einops import rearrange
-import flax
 from flax import struct
 from flax import linen as nn
 from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
-from jax import numpy as jnp
 import ml_collections
-import numpy as np
 import optax
 
-from rl.base import Params
 from rl.modules.modules import modules_factory, create_params
 from rl.modules.optimizer import linear_learning_rate_schedule
+
+from rl.types import Params
 
 
 @chex.dataclass

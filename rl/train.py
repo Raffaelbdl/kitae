@@ -1,21 +1,15 @@
-from envpool.python.api import EnvPool
-import gymnasium as gym
 import jax
 import numpy as np
-import pettingzoo
-from vec_parallel_env import SubProcVecParallelEnv
-import wandb
 
 from rl.base import Base, EnvType, EnvProcs
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.save import Saver, SaverContext
+
+from rl.types import EnvLike
+
 from rl.callbacks import callback
 from rl.callbacks.callback import Callback, CallbackData
 from rl.callbacks.episode_return_callback import EpisodeReturnCallback
-
-EnvLike = gym.Env | EnvPool | pettingzoo.ParallelEnv | SubProcVecParallelEnv
-
-from rl.save import Saver, SaverContext
-
 from rl.logging import Logger
 
 
