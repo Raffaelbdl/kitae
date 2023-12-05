@@ -5,7 +5,7 @@ import ml_collections
 import numpy as np
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import Buffer, OnPolicyBuffer
+from rl.buffer import OnPolicyBuffer
 from rl.train import train_population
 
 from rl.types import ParallelEnv, SubProcVecParallelEnv, DictArray
