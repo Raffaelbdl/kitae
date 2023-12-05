@@ -98,3 +98,8 @@ def loss_shannon_jensen_divergence(
     """
     chex.assert_equal_rank([average_logits, average_entropy])
     return -jnp.mean(dx.Categorical(logits=average_logits).entropy() - average_entropy)
+
+
+def loss_mean_squared_error(x: jax.Array, y: jax.Array) -> float:
+    chex.assert_equal_shape([x, y])
+    return jnp.mean(jnp.square(x - y))
