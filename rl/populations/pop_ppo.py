@@ -5,8 +5,8 @@ from jax import numpy as jnp
 import ml_collections
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs
-from rl.buffer import OnPolicyBuffer
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.buffer import Buffer, OnPolicyBuffer
 from rl.loss import loss_shannon_jensen_divergence
 from rl.train import train_population
 
@@ -171,6 +171,9 @@ class PopulationPPO(Base):
 
         return fn(self.state.params, self.nextkey(), observations)
 
+    def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
+        return len(buffer) >= self.config.max_buffer_size
+
     def update(self, buffers: list[OnPolicyBuffer]):
         def fn(state: TrainStatePolicyValue, key: jax.Array, samples: list[tuple]):
             experiences = [
@@ -200,6 +203,7 @@ class PopulationPPO(Base):
             n_env_steps,
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
         )
@@ -214,6 +218,7 @@ class PopulationPPO(Base):
             n_env_steps,
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,
             callbacks=callbacks,

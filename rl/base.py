@@ -22,6 +22,11 @@ class EnvType(Enum):
     PARALLEL = "parallel"
 
 
+class AlgoType(Enum):
+    ON_POLICY = "on_policy"
+    OFF_POLICY = "off_policy"
+
+
 class Base(ABC, Seeded):
     def __init__(self, seed: int, *, run_name: str = None):
         Seeded.__init__(self, seed)
@@ -38,6 +43,10 @@ class Base(ABC, Seeded):
 
     @abstractmethod
     def explore(self, observation: ObsType) -> ActionType:
+        ...
+
+    @abstractmethod
+    def should_update(self, step: int, buffer: Buffer) -> None:
         ...
 
     @abstractmethod

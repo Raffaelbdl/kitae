@@ -1,8 +1,8 @@
 import jax
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs
-from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.buffer import OnPolicyBuffer, OnPolicyExp, OffPolicyBuffer
 from rl.save import Saver, SaverContext
 
 from rl.types import EnvLike
@@ -139,6 +139,7 @@ def train(
     n_env_steps: int,
     env_type: EnvType,
     env_procs: EnvProcs,
+    algo_type: AlgoType,
     *,
     start_step: int = 1,
     saver: Saver = None,
@@ -148,7 +149,10 @@ def train(
     callbacks = [EpisodeReturnCallback(population_size=1)] + callbacks
     callback.on_train_start(callbacks, CallbackData())
 
-    buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
+    if algo_type == AlgoType.ON_POLICY:
+        buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
+    else:
+        buffer = OffPolicyBuffer(seed, base.config.max_buffer_size)
 
     observation, info = env.reset(seed=seed + 1)
 
@@ -190,7 +194,7 @@ def train(
                 )
             )
 
-            if len(buffer) >= base.config.max_buffer_size:
+            if base.should_update(step, buffer):
                 callback.on_update_start(callbacks, CallbackData())
                 logger.update(base.update(buffer))
                 callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))
@@ -289,6 +293,7 @@ def train_population(
     n_env_steps: int,
     env_type: EnvType,
     env_procs: EnvProcs,
+    algo_type: AlgoType,
     *,
     start_step: int = 1,
     saver: Saver = None,
@@ -298,9 +303,14 @@ def train_population(
     callbacks = [EpisodeReturnCallback(population_size=len(envs))] + callbacks
     callback.on_train_start(callbacks, CallbackData())
 
-    buffers = [
-        OnPolicyBuffer(seed + i, base.config.max_buffer_size) for i in range(len(envs))
-    ]
+    if algo_type == AlgoType.ON_POLICY:
+        buffers = [
+            OnPolicyBuffer(seed, base.config.max_buffer_size) for i in range(len(envs))
+        ]
+    else:
+        buffers = [
+            OffPolicyBuffer(seed, base.config.max_buffer_size) for i in range(len(envs))
+        ]
 
     observations, infos = zip(*[envs[i].reset(seed=seed + i) for i in range(len(envs))])
 
@@ -349,7 +359,7 @@ def train_population(
                     )
                 )
 
-            if len(buffers[0]) >= base.config.max_buffer_size:
+            if base.should_update(buffers[0]):
                 callback.on_update_start(callbacks, CallbackData())
                 logger.update(base.update(buffers))
                 callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))

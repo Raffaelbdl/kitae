@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import ml_collections
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs
+from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
 from rl.timesteps import calculate_gaes_targets
 from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
@@ -150,6 +150,9 @@ class PPO(Base):
 
         return fn(self.state.params, self.nextkey(), observation)
 
+    def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
+        return len(buffer) >= self.config.max_buffer_size
+
     def update(self, buffer: OnPolicyBuffer):
         def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
@@ -181,6 +184,7 @@ class PPO(Base):
             n_env_steps,
             EnvType.PARALLEL,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
         )
@@ -200,6 +204,7 @@ class PPO(Base):
             n_env_steps,
             EnvType.PARALLEL,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,
             callbacks=callbacks,

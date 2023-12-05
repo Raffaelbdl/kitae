@@ -7,8 +7,8 @@ import jax.numpy as jnp
 import ml_collections
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs
-from rl.buffer import OnPolicyBuffer, OnPolicyExp
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.buffer import Buffer, OnPolicyBuffer, OnPolicyExp
 from rl.loss import loss_policy_ppo_discrete, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
@@ -225,10 +225,11 @@ class PPO(Base):
         )
         return action, log_prob
 
+    def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
+        return len(buffer) >= self.config.max_buffer_size
+
     def update(self, buffer: OnPolicyBuffer):
-        def fn(
-            state: TrainStatePolicyValue, key: jax.random.PRNGKeyArray, sample: tuple
-        ):
+        def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
 
             loss = 0.0
@@ -253,6 +254,7 @@ class PPO(Base):
             n_env_steps,
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
         )
@@ -267,6 +269,7 @@ class PPO(Base):
             n_env_steps,
             EnvType.SINGLE,
             EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,
             callbacks=callbacks,
