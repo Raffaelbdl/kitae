@@ -53,6 +53,7 @@ def loss_factory(
 
 def explore_factory(
     train_state: TrainStatePolicyValue,
+    config: ml_collections.ConfigDict,
     batched: bool,
 ) -> Callable:
     @jax.jit
@@ -77,9 +78,7 @@ def explore_factory(
 
 def process_experience_factory(
     train_state: TrainStatePolicyValue,
-    gamma: float,
-    _lambda: float,
-    normalize: bool,
+    config: ml_collections.ConfigDict,
     vectorized: bool,
 ):
     from rl.buffer import stack_experiences
@@ -99,11 +98,11 @@ def process_experience_factory(
         next_values = all_values[1:]
 
         not_dones = 1.0 - dones[..., None]
-        discounts = gamma * not_dones
+        discounts = config.gamma * not_dones
 
         rewards = rewards[..., None]
         gaes, targets = calculate_gaes_targets(
-            values, next_values, discounts, rewards, _lambda, normalize
+            values, next_values, discounts, rewards, config._lambda, config.normalize
         )
 
         return gaes, targets, values
@@ -143,22 +142,20 @@ def process_experience_factory(
 
 
 def update_step_factory(
-    train_state: TrainStatePolicyValue,
-    clip_eps: float,
-    entropy_coef: float,
-    value_coef: float,
-    batch_size: int,
+    train_state: TrainStatePolicyValue, config: ml_collections.ConfigDict
 ):
-    loss_fn = loss_factory(train_state, clip_eps, entropy_coef, value_coef)
+    loss_fn = loss_factory(
+        train_state, config.clip_eps, config.entropy_coef, config.value_coef
+    )
 
     @jax.jit
     def fn(state: TrainStatePolicyValue, key: jax.Array, experiences: tuple[jax.Array]):
         num_elems = experiences[0].shape[0]
-        iterations = num_elems // batch_size
-        inds = jax.random.permutation(key, num_elems)[: iterations * batch_size]
+        iterations = num_elems // config.batch_size
+        inds = jax.random.permutation(key, num_elems)[: iterations * config.batch_size]
 
         experiences = jax.tree_util.tree_map(
-            lambda x: x[inds].reshape((iterations, batch_size) + x.shape[1:]),
+            lambda x: x[inds].reshape((iterations, config.batch_size) + x.shape[1:]),
             experiences,
         )
 
@@ -187,34 +184,20 @@ class PPO(Base):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Base.__init__(self, seed, run_name=run_name)
-        self.config = config
-
-        self.state = train_state_policy_value_factory(
-            self.nextkey(),
-            self.config,
+        Base.__init__(
+            self,
+            seed=seed,
+            config=config,
+            train_state_factory=train_state_policy_value_factory,
+            explore_factory=explore_factory,
+            process_experience_factory=process_experience_factory,
+            update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
             n_envs=n_envs,
+            run_name=run_name,
             tabulate=tabulate,
         )
-        self.explore_fn = explore_factory(self.state, n_envs > 1)
-        self.process_experience_fn = process_experience_factory(
-            self.state,
-            self.config.gamma,
-            self.config._lambda,
-            self.config.normalize,
-            n_envs > 1,
-        )
-        self.update_step_fn = update_step_factory(
-            self.state,
-            self.config.clip_eps,
-            self.config.entropy_coef,
-            self.config.value_coef,
-            self.config.batch_size,
-        )
-
-        self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         return self.explore(observation)
@@ -260,7 +243,7 @@ class PPO(Base):
         )
 
     def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
-        step, self.state = self.saver.restore_latest_step(self.state)
+        step = self.restore()
 
         return train(
             int(np.asarray(self.nextkey())[0]),

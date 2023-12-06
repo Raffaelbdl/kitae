@@ -1,12 +1,20 @@
 from contextlib import AbstractContextManager
+import json
+import os
 from types import TracebackType
+from typing import TYPE_CHECKING
 
+import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
 
 
+if TYPE_CHECKING:
+    from rl.base import Base
+
+
 class Saver:
-    def __init__(self, dir: str) -> None:
+    def __init__(self, dir: str, base: "Base") -> None:
         self.ckptr = orbax.checkpoint.PyTreeCheckpointer()
         self.options = orbax.checkpoint.CheckpointManagerOptions(
             max_to_keep=None, create=True
@@ -14,6 +22,9 @@ class Saver:
         self.ckpt_manager = orbax.checkpoint.CheckpointManager(
             dir, self.ckptr, self.options
         )
+
+        with open(os.path.join(dir, "metadata"), "wb") as f:
+            cloudpickle.dump(base.to_dict(), f)
 
     def save(self, step: int, state: train_state.TrainState):
         ckpt = {"model": state}
@@ -38,11 +49,11 @@ class SaverContext(AbstractContextManager):
         self.cur_state = None
 
     def update(self, step: int, state: train_state.TrainState):
-        if self.save_frequency < 0:
-            return
-
         self.cur_step = step
         self.cur_state = state
+
+        if self.save_frequency < 0:
+            return
 
         if step % self.save_frequency != 0:
             return
