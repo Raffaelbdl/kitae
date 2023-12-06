@@ -151,7 +151,7 @@ def train_state_policy_value_factory(
         modules["encoder"],
         params,
         config,
-        n_envs=n_envs,
+        n_envs=n_envs * config.n_agents,
     )
     return state
 

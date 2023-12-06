@@ -22,7 +22,8 @@ dependencies = [
     "optax",
     "orbax_checkpoint",
     "pettingzoo",
-    "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env"
+    "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env",
+    "jrd_extensions@git+https://github.com/Raffaelbdl/jrd_extensions"
 ]
 dynamic = ["version", "readme"]
 

@@ -1,3 +1,5 @@
+from typing import Callable
+
 import jax
 import jax.numpy as jnp
 import ml_collections
@@ -19,9 +21,7 @@ from rl.types import DictArray
 
 def process_experience_factory(
     train_state: TrainStatePolicyValue,
-    gamma: float,
-    _lambda: float,
-    normalize: float,
+    config: ml_collections.ConfigDict,
     vectorized: bool,
 ):
     from rl.buffer import stack_experiences
@@ -41,11 +41,11 @@ def process_experience_factory(
         next_values = all_values[1:]
 
         not_dones = 1.0 - dones[..., None]
-        discounts = gamma * not_dones
+        discounts = config.gamma * not_dones
 
         rewards = rewards[..., None]
         gaes, targets = calculate_gaes_targets(
-            values, next_values, discounts, rewards, _lambda, normalize
+            values, next_values, discounts, rewards, config._lambda, config.normalize
         )
 
         return gaes, targets, values
@@ -102,38 +102,25 @@ class PPO(Base):
         config: ml_collections.ConfigDict,
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
+        preprocess_fn: Callable = None,
         n_envs: int = 1,
-        n_agents: int = 2,
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Base.__init__(self, seed, run_name=run_name)
-        self.config = config
-
-        self.state = train_state_policy_value_factory(
-            self.nextkey(),
-            self.config,
+        Base.__init__(
+            self,
+            seed=seed,
+            config=config,
+            train_state_factory=train_state_policy_value_factory,
+            explore_factory=explore_factory,
+            process_experience_factory=process_experience_factory,
+            update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
-            n_envs=n_envs * n_agents,
+            preprocess_fn=preprocess_fn,
+            n_envs=n_envs,
+            run_name=run_name,
             tabulate=tabulate,
         )
-        self.explore_fn = explore_factory(self.state, n_envs > 1)
-        self.process_experience_fn = process_experience_factory(
-            self.state,
-            self.config.gamma,
-            self.config._lambda,
-            self.config.normalize,
-            n_envs > 1,
-        )
-        self.update_step_fn = update_step_factory(
-            self.state,
-            self.config.clip_eps,
-            self.config.entropy_coef,
-            self.config.value_coef,
-            self.config.batch_size,
-        )
-
-        self.n_envs = n_envs
 
     def select_action(self, observation: DictArray) -> tuple[DictArray, DictArray]:
         return self.explore(observation)

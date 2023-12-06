@@ -15,7 +15,6 @@ from rl.types import Params, GymEnv, EnvPoolEnv
 
 from rl.modules.qvalue import train_state_qvalue_factory
 
-
 NO_EXPLORATION = 0.0
 
 
@@ -32,7 +31,9 @@ def loss_factory(train_state: TrainState) -> Callable:
     return fn
 
 
-def explore_factory(train_state: TrainState, batched: bool) -> Callable:
+def explore_factory(
+    train_state: TrainState, config: ml_collections.ConfigDict, batched: bool
+) -> Callable:
     @jax.jit
     def fn(
         params: Params, key: jax.Array, observations: jax.Array, exploration: float
@@ -48,16 +49,17 @@ def explore_factory(train_state: TrainState, batched: bool) -> Callable:
             key2, greedy_action.shape, 0, all_qvalues.shape[-1]
         )
 
-        outputs = jnp.where(eps <= exploration, random_action, greedy_action)
+        actions = jnp.where(eps <= exploration, random_action, greedy_action)
         if not batched:
-            return jax.tree_map(lambda x: jnp.squeeze(x, axis=0), outputs)
-        return outputs
+            actions = jax.tree_map(lambda x: jnp.squeeze(x, axis=0), actions)
+
+        return actions, jnp.zeros_like(actions)
 
     return fn
 
 
 def process_experience_factory(
-    train_state: TrainState, gamma: float, vectorized: bool
+    train_state: TrainState, config: ml_collections.ConfigDict, vectorized: bool
 ) -> Callable:
     from rl.buffer import stack_experiences
 
@@ -70,7 +72,7 @@ def process_experience_factory(
         all_next_qvalues = train_state.apply_fn({"params": params}, next_observations)
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
-        discounts = gamma * (1.0 - dones[..., None])
+        discounts = config.gamma * (1.0 - dones[..., None])
         return rewards[..., None] + discounts * next_qvalues
 
     returns_fn = compute_returns
@@ -97,7 +99,9 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(train_state: TrainState) -> Callable:
+def update_step_factory(
+    train_state: TrainState, config: ml_collections.ConfigDict
+) -> Callable:
     loss_fn = loss_factory(train_state)
 
     @jax.jit
@@ -123,36 +127,32 @@ class DQN(Base):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Base.__init__(self, seed, run_name=run_name)
-        self.config = config
-
-        self.state = train_state_qvalue_factory(
-            self.nextkey(),
-            self.config,
+        Base.__init__(
+            self,
+            seed,
+            config=config,
+            train_state_factory=train_state_qvalue_factory,
+            explore_factory=explore_factory,
+            process_experience_factory=process_experience_factory,
+            update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
             n_envs=n_envs,
+            run_name=run_name,
             tabulate=tabulate,
         )
-        self.explore_fn = explore_factory(self.state, n_envs > 1)
-        self.process_experience_fn = process_experience_factory(
-            self.state, self.config.gamma, n_envs > 1
-        )
-        self.update_step_fn = update_step_factory(self.state)
-
-        self.n_envs = n_envs
 
     def select_action(self, observation: jax.Array) -> jax.Array:
-        action = self.explore_fn(
+        action, zeros = self.explore_fn(
             self.state.params, self.nextkey(), observation, NO_EXPLORATION
         )
-        return action, jnp.zeros_like(action)
+        return action, zeros
 
     def explore(self, observation: jax.Array):
-        action = self.explore_fn(
+        action, zeros = self.explore_fn(
             self.state.params, self.nextkey(), observation, self.config.exploration
         )
-        return action, jnp.zeros_like(action)
+        return action, zeros
 
     def should_update(self, step: int, buffer: OffPolicyBuffer) -> None:
         return (
