@@ -7,8 +7,8 @@ from typing import Any, Callable
 import chex
 from flax import struct
 from flax.training.train_state import TrainState
+from jrd_extensions import Seeded
 
-from rl import Seeded
 from rl.buffer import Buffer
 from rl.save import Saver
 from rl.types import ActionType, ObsType, Params
