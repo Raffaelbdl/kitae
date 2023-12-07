@@ -1,4 +1,4 @@
-# FLAX_RL: Yet another RL library build with FLAX modules
+# FLAX_RL: Yet another RL library built with FLAX modules
 
 ![Python Version](https://img.shields.io/badge/Python->=3.10-blue)
 ![Code Style](https://img.shields.io/badge/Code_Style-black-black)
