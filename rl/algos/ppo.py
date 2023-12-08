@@ -18,6 +18,9 @@ from rl.types import GymEnv, EnvPoolEnv
 from rl.modules.policy_value import train_state_policy_value_factory
 from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 
+from rl.algos.general_fns import fn_parallel
+from rl.buffer import stack_experiences
+
 
 def loss_factory(
     train_state: TrainStatePolicyValue,
@@ -54,23 +57,17 @@ def loss_factory(
 def explore_factory(
     train_state: TrainStatePolicyValue,
     config: ml_collections.ConfigDict,
-    batched: bool,
 ) -> Callable:
     @jax.jit
     def fn(
         params: ParamsPolicyValue, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
-        if not batched:
-            observations = jnp.expand_dims(observations, axis=0)
-
         hiddens = train_state.encoder_fn(
             {"params": params.params_encoder}, observations
         )
         logits = train_state.policy_fn({"params": params.params_policy}, hiddens)
         outputs = dx.Categorical(logits=logits).sample_and_log_prob(seed=key)
 
-        if not batched:
-            return jax.tree_map(lambda x: jnp.squeeze(x, axis=0), outputs)
         return outputs
 
     return fn
@@ -80,9 +77,8 @@ def process_experience_factory(
     train_state: TrainStatePolicyValue,
     config: ml_collections.ConfigDict,
     vectorized: bool,
+    parallel: bool,
 ):
-    from rl.buffer import stack_experiences
-
     def compute_values_gaes(
         params: ParamsPolicyValue,
         observations: jax.Array,
@@ -110,31 +106,20 @@ def process_experience_factory(
     gaes_fn = compute_values_gaes
     if vectorized:
         gaes_fn = jax.vmap(gaes_fn, in_axes=(None, 1, 1, 1, 1), out_axes=1)
+    if parallel:
+        gaes_fn = fn_parallel(gaes_fn)
 
     @jax.jit
     def fn(params: ParamsPolicyValue, sample: list[OnPolicyExp]):
         stacked = stack_experiences(sample)
 
         observations = stacked.observation
-
         gaes, targets, values = gaes_fn(
-            params,
-            observations,
-            stacked.next_observation,
-            stacked.done,
-            stacked.reward,
+            params, observations, stacked.next_observation, stacked.done, stacked.reward
         )
 
-        actions = stacked.action[..., None]
-        log_probs = stacked.log_prob[..., None]
-
-        if vectorized:
-            observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
-            actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
-            log_probs = jnp.reshape(log_probs, (-1, *log_probs.shape[2:]))
-            gaes = jnp.reshape(gaes, (-1, *gaes.shape[2:]))
-            targets = jnp.reshape(targets, (-1, *targets.shape[2:]))
-            values = jnp.reshape(values, (-1, *values.shape[2:]))
+        actions = jax.tree_map(lambda x: x[..., None], stacked.action)
+        log_probs = jax.tree_map(lambda x: x[..., None], stacked.log_prob)
 
         return observations, actions, log_probs, gaes, targets, values
 
@@ -180,7 +165,6 @@ class PPO(Base):
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        n_envs: int = 1,
         run_name: str = None,
         tabulate: bool = False,
     ):
@@ -194,7 +178,6 @@ class PPO(Base):
             update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            n_envs=n_envs,
             run_name=run_name,
             tabulate=tabulate,
         )
@@ -203,9 +186,14 @@ class PPO(Base):
         return self.explore(observation)
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        action, log_prob = self.explore_fn(
-            self.state.params, self.nextkey(), observation
+        keys = (
+            {a: self.nextkey() for a in observation.keys()}
+            if self.parallel
+            else self.nextkey()
         )
+
+        action, log_prob = self.explore_fn(self.state.params, keys, observation)
+
         return action, log_prob
 
     def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
@@ -235,8 +223,10 @@ class PPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
@@ -250,8 +240,10 @@ class PPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,

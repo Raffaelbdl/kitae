@@ -13,6 +13,8 @@ from rl.buffer import Buffer
 from rl.save import Saver
 from rl.types import ActionType, ObsType, Params
 
+from rl.algos.general_fns import explore_general_factory, process_experience_general_factory
+
 
 class EnvProcs(Enum):
     ONE = "one"
@@ -47,7 +49,6 @@ class Base(ABC, Seeded):
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        n_envs: int = 1,
         run_name: str = None,
         tabulate: bool = False,
     ):
@@ -56,21 +57,33 @@ class Base(ABC, Seeded):
 
         self.rearrange_pattern = rearrange_pattern
         self.preprocess_fn = preprocess_fn
-        self.n_envs = n_envs
         self.tabulate = tabulate
+
+        self.vectorized = self.config.env_config.n_envs > 1
+        self.parallel = self.config.env_config.n_agents > 1
 
         self.state: TrainState = train_state_factory(
             self.nextkey(),
             self.config,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            n_envs=n_envs,
             tabulate=tabulate,
         )
-        self.explore_fn: Callable = explore_factory(self.state, self.config, n_envs > 1)
-        self.process_experience_fn: Callable = process_experience_factory(
-            self.state, self.config, n_envs > 1
+
+        self.explore_fn: Callable = explore_general_factory(
+            explore_factory(self.state, self.config), self.vectorized, self.parallel
         )
+        self.process_experience_fn: Callable = process_experience_general_factory(
+            process_experience_factory(
+                self.state,
+                self.config,
+                self.vectorized,
+                self.parallel,
+            ),
+            self.vectorized,
+            self.parallel,
+        )
+
         self.update_step_fn = update_step_factory(self.state, self.config)
 
         self.explore_factory = explore_factory
@@ -114,7 +127,6 @@ class Base(ABC, Seeded):
         return {
             "seed": self.seed,
             "config": self.config,
-            "n_envs": self.n_envs,
             "run_name": self.run_name,
             "rearrange_pattern": self.rearrange_pattern,
             "preprocess_fn": self.preprocess_fn,
@@ -134,5 +146,9 @@ class Base(ABC, Seeded):
     def deploy_agent(self, batched: bool) -> Deployed:
         return Deployed(
             params=self.state.params,
-            select_action=self.explore_factory(self.state, self.config, batched),
+            select_action=explore_general_factory(
+                self.explore_factory(self.state, self.config),
+                batched=batched,
+                parallel=False,
+            ),
         )
