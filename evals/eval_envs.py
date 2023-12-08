@@ -1,7 +1,12 @@
 from typing import Any
 
+import envpool
 import gymnasium as gym
 from pettingzoo import ParallelEnv
+from vec_parallel_env import SubProcVecParallelEnv
+
+from rl.config import EnvConfig
+from rl.wrapper import EnvpoolCompatibility, SubProcVecParallelEnvCompatibility
 
 
 class CartPoleParallel(ParallelEnv):
@@ -51,3 +56,48 @@ class CartPoleParallel(ParallelEnv):
             observations[agent] = o
             infos[agent] = i
         return observations, infos
+
+
+def make_cartpole():
+    env = gym.make("CartPole-v1")
+    return env, EnvConfig(env.observation_space, env.action_space, 1, 1)
+
+
+def make_cartpole_vector(n_envs: int):
+    env = envpool.make("CartPole-v1", env_type="gymnasium", num_envs=n_envs)
+    env_config = EnvConfig(env.observation_space, env.action_space, n_envs, 1)
+    env = EnvpoolCompatibility(env)
+    return env, env_config
+
+
+def make_cartpole_parallel():
+    env = CartPoleParallel()
+    env.reset()
+    env_config = EnvConfig(
+        env.observation_space(env.agents[0]),
+        env.action_space(env.agents[0]),
+        1,
+        2,
+    )
+    return env, env_config
+
+
+def make_cartpole_parallel_vector(n_envs: int):
+    env = CartPoleParallel()
+    env.reset()
+    env_config = EnvConfig(
+        env.observation_space(env.agents[0]),
+        env.action_space(env.agents[0]),
+        n_envs,
+        2,
+    )
+    env = SubProcVecParallelEnv([lambda: env for _ in range(n_envs)])
+    env = SubProcVecParallelEnvCompatibility(env)
+    return env, env_config
+
+
+def make_pong_vector(n_envs: int):
+    env = EnvpoolCompatibility(
+        envpool.make("Pong-v5", env_type="gymnasium", num_envs=n_envs)
+    )
+    return env, EnvConfig(env.observation_space, env.action_space, n_envs, 1)
