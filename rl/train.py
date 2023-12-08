@@ -333,7 +333,7 @@ def train_population(
                 )
 
                 termination = process_termination_population(
-                    step * base.n_envs,
+                    step * base.config.env_config.n_envs,
                     env,
                     done,
                     trunc,
@@ -359,7 +359,7 @@ def train_population(
                     )
                 )
 
-            if base.should_update(buffers[0]):
+            if base.should_update(step, buffers[0]):
                 callback.on_update_start(callbacks, CallbackData())
                 logger.update(base.update(buffers))
                 callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))

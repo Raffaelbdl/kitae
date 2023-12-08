@@ -64,14 +64,15 @@ def loss_factory(
 
 
 def update_step_factory(
-    train_state: TrainStatePolicyValue,
-    clip_eps: float,
-    entropy_coef: float,
-    value_coef: float,
-    jsd_coef: float,
-    batch_size: int,
+    train_state: TrainStatePolicyValue, config: ml_collections.ConfigDict
 ):
-    loss_fn = loss_factory(train_state, clip_eps, entropy_coef, value_coef, jsd_coef)
+    loss_fn = loss_factory(
+        train_state,
+        config.clip_eps,
+        config.entropy_coef,
+        config.value_coef,
+        config.jsd_coef,
+    )
 
     @jax.jit
     def fn(
@@ -80,11 +81,11 @@ def update_step_factory(
         experiences: list[tuple[jax.Array]],
     ):
         num_elems = experiences[0][0].shape[0]
-        iterations = num_elems // batch_size
-        inds = jax.random.permutation(key, num_elems)[: iterations * batch_size]
+        iterations = num_elems // config.batch_size
+        inds = jax.random.permutation(key, num_elems)[: iterations * config.batch_size]
 
         experiences = jax.tree_util.tree_map(
-            lambda x: x[inds].reshape((iterations, batch_size) + x.shape[1:]),
+            lambda x: x[inds].reshape((iterations, config.batch_size) + x.shape[1:]),
             experiences,
         )
 
@@ -107,69 +108,43 @@ class PopulationPPO(Base):
     def __init__(
         self,
         seed: int,
-        population_size: int,
         config: ml_collections.ConfigDict,
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        n_envs: int = 1,
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Base.__init__(self, seed, run_name=run_name)
-        self.config = config
-
-        self.state = train_state_policy_value_population_factory(
-            self.nextkey(),
-            self.config,
-            population_size,
+        Base.__init__(
+            self,
+            seed=seed,
+            config=config,
+            train_state_factory=train_state_policy_value_population_factory,
+            explore_factory=explore_factory,
+            process_experience_factory=process_experience_factory,
+            update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            n_envs=n_envs,
+            run_name=run_name,
             tabulate=tabulate,
         )
-        self.explore_fn = explore_factory(self.state, n_envs > 1)
-        self.process_experience_fn = process_experience_factory(
-            self.state,
-            self.config.gamma,
-            self.config._lambda,
-            self.config.normalize,
-            n_envs > 1,
-        )
-        self.update_step_fn = update_step_factory(
-            self.state,
-            self.config.clip_eps,
-            self.config.entropy_coef,
-            self.config.value_coef,
-            self.config.jsd_coef,
-            self.config.batch_size,
-        )
 
-        self.population_size = population_size
-        self.n_envs = n_envs
-
-    def select_action(
-        self, observations: list[jax.Array]
-    ) -> list[tuple[jax.Array, jax.Array]]:
+    def select_action(self, observations):
         return self.explore(observations)
 
-    def explore(
-        self, observations: list[jax.Array]
-    ) -> tuple[list[jax.Array], list[jax.Array]]:
-        def fn(
-            params: list[ParamsPolicyValue],
-            key: jax.Array,
-            observations: list[jax.Array],
-        ):
-            actions, log_probs = [], []
-            for i, obs in enumerate(observations):
-                key, _k = jax.random.split(key)
-                action, log_prob = self.explore_fn(params[i], _k, obs)
-                actions.append(action)
-                log_probs.append(log_prob)
-            return actions, log_probs
+    def explore(self, observations):
+        actions, log_probs = [], []
+        for i, obs in enumerate(observations):
+            keys = (
+                {a: self.nextkey() for a in obs.keys()}
+                if self.parallel
+                else self.nextkey()
+            )
+            action, log_prob = self.explore_fn(self.state.params[i], keys, obs)
+            actions.append(action)
+            log_probs.append(log_prob)
 
-        return fn(self.state.params, self.nextkey(), observations)
+        return actions, log_probs
 
     def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
         return len(buffer) >= self.config.max_buffer_size
@@ -201,8 +176,10 @@ class PopulationPPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
@@ -216,8 +193,10 @@ class PopulationPPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,
