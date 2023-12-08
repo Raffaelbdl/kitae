@@ -126,12 +126,11 @@ def train_state_policy_value_factory(
     *,
     rearrange_pattern: str,
     preprocess_fn: Callable,
-    n_envs: int,
     tabulate: bool = False,
 ) -> TrainStatePolicyValue:
     modules = create_modules(
-        config.observation_space,
-        config.action_space,
+        config.env_config.observation_space,
+        config.env_config.action_space,
         config.shared_encoder,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
@@ -141,7 +140,7 @@ def train_state_policy_value_factory(
         modules["policy"],
         modules["value"],
         modules["encoder"],
-        config.observation_space,
+        config.env_config.observation_space,
         shared_encoder=config.shared_encoder,
         tabulate=tabulate,
     )
@@ -151,7 +150,7 @@ def train_state_policy_value_factory(
         modules["encoder"],
         params,
         config,
-        n_envs=n_envs * config.n_agents,
+        n_envs=config.env_config.n_envs * config.env_config.n_agents,
     )
     return state
 

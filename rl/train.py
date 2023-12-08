@@ -171,7 +171,7 @@ def train(
             logger["episode_return"] += process_reward(reward, env_type, env_procs)
 
             termination = process_termination(
-                step * base.n_envs,
+                step * base.config.env_config.n_envs,
                 env,
                 done,
                 trunc,
