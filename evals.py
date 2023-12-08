@@ -1,8 +1,8 @@
-from evals import eval_ppo, eval_ippo
+from evals import eval_ppo, eval_dqn
 
 
 def main():
-    eval_ppo.eval_ppo_cnn_envpool()
+    eval_dqn.dqn_pong_vector()
 
 
 if __name__ == "__main__":

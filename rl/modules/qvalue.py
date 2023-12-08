@@ -74,17 +74,18 @@ def train_state_qvalue_factory(
     *,
     rearrange_pattern: str,
     preprocess_fn: Callable,
-    n_envs: int,
     tabulate: bool = False,
 ) -> TrainState:
     modules = create_modules(
-        config.observation_space,
-        config.action_space,
+        config.env_config.observation_space,
+        config.env_config.action_space,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
     params = create_params_qvalue(
-        key, modules["qvalue"], config.observation_space, tabulate=tabulate
+        key, modules["qvalue"], config.env_config.observation_space, tabulate=tabulate
     )
-    state = create_train_state_qvalue(modules["qvalue"], params, config, n_envs=n_envs)
+    state = create_train_state_qvalue(
+        modules["qvalue"], params, config, n_envs=config.env_config.n_envs
+    )
     return state

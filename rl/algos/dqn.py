@@ -14,6 +14,9 @@ from rl.train import train
 from rl.types import Params, GymEnv, EnvPoolEnv
 
 from rl.modules.qvalue import train_state_qvalue_factory
+from rl.algos.general_fns import fn_parallel
+from rl.buffer import stack_experiences
+
 
 NO_EXPLORATION = 0.0
 
@@ -32,15 +35,13 @@ def loss_factory(train_state: TrainState) -> Callable:
 
 
 def explore_factory(
-    train_state: TrainState, config: ml_collections.ConfigDict, batched: bool
+    train_state: TrainState,
+    config: ml_collections.ConfigDict,
 ) -> Callable:
     @jax.jit
     def fn(
         params: Params, key: jax.Array, observations: jax.Array, exploration: float
     ) -> jax.Array:
-        if not batched:
-            observations = jnp.expand_dims(observations, axis=0)
-
         all_qvalues = train_state.apply_fn({"params": params}, observations)
         greedy_action = jnp.argmax(all_qvalues, axis=-1)
         key1, key2 = jax.random.split(key)
@@ -50,8 +51,6 @@ def explore_factory(
         )
 
         actions = jnp.where(eps <= exploration, random_action, greedy_action)
-        if not batched:
-            actions = jax.tree_map(lambda x: jnp.squeeze(x, axis=0), actions)
 
         return actions, jnp.zeros_like(actions)
 
@@ -59,10 +58,11 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: TrainState, config: ml_collections.ConfigDict, vectorized: bool
+    train_state: TrainState,
+    config: ml_collections.ConfigDict,
+    vectorized: bool,
+    parallel: bool,
 ) -> Callable:
-    from rl.buffer import stack_experiences
-
     def compute_returns(
         params: Params,
         next_observations: jax.Array,
@@ -73,26 +73,23 @@ def process_experience_factory(
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
         discounts = config.gamma * (1.0 - dones[..., None])
-        return rewards[..., None] + discounts * next_qvalues
+        return (rewards[..., None] + discounts * next_qvalues,)
 
     returns_fn = compute_returns
     if vectorized:
         returns_fn = jax.vmap(returns_fn, in_axes=(None, 1, 1, 1), out_axes=1)
+    if parallel:
+        returns_fn = fn_parallel(returns_fn)
 
     @jax.jit
     def fn(params: Params, sample: list[OffPolicyExp]):
         stacked = stack_experiences(sample)
 
         observations = stacked.observation
-        actions = stacked.action[..., None]
-        returns = compute_returns(
+        actions = jax.tree_map(lambda x: x[..., None], stacked.action)
+        (returns,) = returns_fn(
             params, stacked.next_observation, stacked.reward, stacked.done
         )
-
-        if vectorized:
-            observations = jnp.reshape(observations, (-1, *observations.shape[2:]))
-            actions = jnp.reshape(actions, (-1, *actions.shape[2:]))
-            returns = jnp.reshape(returns, (-1, *returns.shape[2:]))
 
         return observations, actions, returns
 
@@ -123,7 +120,6 @@ class DQN(Base):
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        n_envs: int = 1,
         run_name: str = None,
         tabulate: bool = False,
     ):
@@ -137,20 +133,31 @@ class DQN(Base):
             update_step_factory=update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            n_envs=n_envs,
             run_name=run_name,
             tabulate=tabulate,
         )
 
     def select_action(self, observation: jax.Array) -> jax.Array:
+        keys = (
+            {a: self.nextkey() for a in observation.keys()}
+            if self.parallel
+            else self.nextkey()
+        )
+
         action, zeros = self.explore_fn(
-            self.state.params, self.nextkey(), observation, NO_EXPLORATION
+            self.state.params, keys, observation, exploration=NO_EXPLORATION
         )
         return action, zeros
 
     def explore(self, observation: jax.Array):
+        keys = (
+            {a: self.nextkey() for a in observation.keys()}
+            if self.parallel
+            else self.nextkey()
+        )
+
         action, zeros = self.explore_fn(
-            self.state.params, self.nextkey(), observation, self.config.exploration
+            self.state.params, keys, observation, exploration=self.config.exploration
         )
         return action, zeros
 
@@ -175,8 +182,10 @@ class DQN(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.OFF_POLICY,
             saver=self.saver,
             callbacks=callbacks,
@@ -190,8 +199,10 @@ class DQN(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE,
-            EnvProcs.ONE if self.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE
+            if self.config.env_config.n_agents == 1
+            else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
             AlgoType.OFF_POLICY,
             start_step=step,
             saver=self.saver,
