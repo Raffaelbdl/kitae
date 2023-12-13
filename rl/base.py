@@ -13,7 +13,10 @@ from rl.buffer import Buffer
 from rl.save import Saver
 from rl.types import ActionType, ObsType, Params
 
-from rl.algos.general_fns import explore_general_factory, process_experience_general_factory
+from rl.algos.general_fns import (
+    explore_general_factory,
+    process_experience_general_factory,
+)
 
 
 class EnvProcs(Enum):
@@ -31,8 +34,18 @@ class AlgoType(Enum):
     OFF_POLICY = "off_policy"
 
 
+class Deployed(Seeded):
+    def __init__(self, seed: int, params: Params, select_action_fn: Callable) -> None:
+        Seeded.__init__(self, seed)
+        self.params = params
+        self.select_action_fn = select_action_fn
+
+    def select_action(self, observation):
+        return self.select_action_fn(self.params, self.nextkey(), observation)
+
+
 @chex.dataclass
-class Deployed:
+class DeployedJit:
     params: Params
     select_action: Callable = struct.field(pytree_node=False)
 
@@ -144,7 +157,7 @@ class Base(ABC, Seeded):
         return cls(**base_kwargs)
 
     def deploy_agent(self, batched: bool) -> Deployed:
-        return Deployed(
+        return DeployedJit(
             params=self.state.params,
             select_action=explore_general_factory(
                 self.explore_factory(self.state, self.config),

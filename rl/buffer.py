@@ -62,6 +62,6 @@ class OnPolicyBuffer(Buffer):
 
         self.buffer = []
 
-    def sample(self) -> list[OnPolicyExp]:
+    def sample(self, batch_size: int) -> list[OnPolicyExp]:
         sample, self.buffer = self.buffer, []
         return sample
