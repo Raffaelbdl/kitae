@@ -20,6 +20,13 @@ from rl.buffer import stack_experiences
 
 NO_EXPLORATION = 0.0
 
+from rl.config import AlgoConfig, AlgoParams
+
+
+class DQNParams(AlgoParams):
+    def __init__(self, exploration: float, gamma: float, skip_steps: int):
+        super().__init__(exploration=exploration, gamma=gamma, skip_steps=skip_steps)
+
 
 def loss_factory(train_state: TrainState) -> Callable:
     @jax.jit
@@ -36,7 +43,7 @@ def loss_factory(train_state: TrainState) -> Callable:
 
 def explore_factory(
     train_state: TrainState,
-    config: ml_collections.ConfigDict,
+    algo_params: DQNParams,
 ) -> Callable:
     @jax.jit
     def fn(
@@ -59,7 +66,7 @@ def explore_factory(
 
 def process_experience_factory(
     train_state: TrainState,
-    config: ml_collections.ConfigDict,
+    algo_params: DQNParams,
     vectorized: bool,
     parallel: bool,
 ) -> Callable:
@@ -72,7 +79,7 @@ def process_experience_factory(
         all_next_qvalues = train_state.apply_fn({"params": params}, next_observations)
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
-        discounts = config.gamma * (1.0 - dones[..., None])
+        discounts = algo_params.gamma * (1.0 - dones[..., None])
         return (rewards[..., None] + discounts * next_qvalues,)
 
     returns_fn = compute_returns
@@ -115,8 +122,7 @@ def update_step_factory(
 class DQN(Base):
     def __init__(
         self,
-        seed: int,
-        config: ml_collections.ConfigDict,
+        config: AlgoConfig,
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
@@ -125,7 +131,6 @@ class DQN(Base):
     ):
         Base.__init__(
             self,
-            seed,
             config=config,
             train_state_factory=train_state_qvalue_factory,
             explore_factory=explore_factory,
@@ -157,13 +162,17 @@ class DQN(Base):
         )
 
         action, zeros = self.explore_fn(
-            self.state.params, keys, observation, exploration=self.config.exploration
+            self.state.params,
+            keys,
+            observation,
+            exploration=self.algo_params.exploration,
         )
         return action, zeros
 
     def should_update(self, step: int, buffer: OffPolicyBuffer) -> None:
         return (
-            len(buffer) >= self.config.batch_size and step % self.config.skip_steps == 0
+            len(buffer) >= self.config.update_cfg.batch_size
+            and step % self.algo_params.skip_steps == 0
         )
 
     def update(self, buffer: OffPolicyBuffer):
@@ -172,7 +181,7 @@ class DQN(Base):
             state, loss, info = self.update_step_fn(state, key, experiences)
             return state, info
 
-        sample = buffer.sample(self.config.batch_size)
+        sample = buffer.sample(self.config.update_cfg.batch_size)
         self.state, info = fn(self.state, self.nextkey(), sample)
         return info
 
@@ -182,10 +191,8 @@ class DQN(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE
-            if self.config.env_config.n_agents == 1
-            else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
             AlgoType.OFF_POLICY,
             saver=self.saver,
             callbacks=callbacks,
@@ -199,10 +206,8 @@ class DQN(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE
-            if self.config.env_config.n_agents == 1
-            else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
             AlgoType.OFF_POLICY,
             start_step=step,
             saver=self.saver,

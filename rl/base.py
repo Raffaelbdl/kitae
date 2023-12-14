@@ -5,6 +5,8 @@ import os
 from typing import Any, Callable
 
 import chex
+import yaml
+import cloudpickle
 from flax import struct
 from flax.training.train_state import TrainState
 from jrd_extensions import Seeded
@@ -17,6 +19,8 @@ from rl.algos.general_fns import (
     explore_general_factory,
     process_experience_general_factory,
 )
+from ml_collections import FrozenConfigDict, ConfigDict
+from rl.config import AlgoConfig
 
 
 class EnvProcs(Enum):
@@ -53,8 +57,7 @@ class DeployedJit:
 class Base(ABC, Seeded):
     def __init__(
         self,
-        seed: int,
-        config,
+        config: AlgoConfig,
         train_state_factory: Callable,
         explore_factory: Callable,
         process_experience_factory: Callable,
@@ -65,15 +68,16 @@ class Base(ABC, Seeded):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Seeded.__init__(self, seed)
+        Seeded.__init__(self, config.seed)
         self.config = config
+        self.algo_params = FrozenConfigDict(config.algo_params)
 
         self.rearrange_pattern = rearrange_pattern
         self.preprocess_fn = preprocess_fn
         self.tabulate = tabulate
 
-        self.vectorized = self.config.env_config.n_envs > 1
-        self.parallel = self.config.env_config.n_agents > 1
+        self.vectorized = self.config.env_cfg.n_envs > 1
+        self.parallel = self.config.env_cfg.n_agents > 1
 
         self.state: TrainState = train_state_factory(
             self.nextkey(),
@@ -84,12 +88,14 @@ class Base(ABC, Seeded):
         )
 
         self.explore_fn: Callable = explore_general_factory(
-            explore_factory(self.state, self.config), self.vectorized, self.parallel
+            explore_factory(self.state, self.config.algo_params),
+            self.vectorized,
+            self.parallel,
         )
         self.process_experience_fn: Callable = process_experience_general_factory(
             process_experience_factory(
                 self.state,
-                self.config,
+                self.config.algo_params,
                 self.vectorized,
                 self.parallel,
             ),
@@ -134,27 +140,20 @@ class Base(ABC, Seeded):
         step, self.state = self.saver.restore_latest_step(self.state)
         return step
 
-    def to_dict(self) -> dict:
-        """Serialize metadata"""
-
-        return {
-            "seed": self.seed,
-            "config": self.config,
-            "run_name": self.run_name,
-            "rearrange_pattern": self.rearrange_pattern,
-            "preprocess_fn": self.preprocess_fn,
-            "tabulate": self.tabulate,
-        }
-
     @classmethod
-    def unserialize(cls, metadata_path: str):
-        """Unserialize metadata"""
-        import cloudpickle
+    def unserialize(cls, data_dir: str):
+        config_path = os.path.join(data_dir, "config")
+        with open(config_path, "r") as f:
+            config_dict = yaml.load(f, yaml.SafeLoader)
+        config = ConfigDict(config_dict)
 
-        with open(metadata_path, "rb") as f:
-            base_kwargs = cloudpickle.load(f)
+        extra_path = os.path.join(data_dir, "extra")
+        with open(extra_path, "rb") as f:
+            extra = cloudpickle.load(f)
 
-        return cls(**base_kwargs)
+        config.env_cfg = extra.pop("env_config")
+
+        return cls(seed=config.seed, config=config, **extra)
 
     def deploy_agent(self, batched: bool) -> Deployed:
         return DeployedJit(

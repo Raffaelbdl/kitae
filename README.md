@@ -35,41 +35,41 @@ For research purposes, please use the original implementations for comparaison.
 
 ## Example Usage
 ```python
-import envpool
-import ml_collections
+from evals.eval_envs import make_pong_vector
 
 from rl.algos import ppo
-from rl.wrapper import EnvpoolCompatbility
+from rl import config as cfg
 
-N_ENVS = 32
-N_ENV_STEPS = 10**5
-CONFIG = ml_collections.ConfigDict(
-    {
-        "learning_rate": 0.0003,
-        "gamma": 0.99,
-        "clip_eps": 0.2,
-        "entropy_coef": 0.01,
-        "value_coef": 0.5,
-        "_lambda": 0.95,
-        "normalize": True,
-        "max_buffer_size": 128,
-        "batch_size": 256,
-        "num_epochs": 1,
-        "learning_rate_annealing": True,
-        "max_grad_norm": 0.5,
-        "n_env_steps": N_ENV_STEPS // N_ENVS,
-        "shared_encoder": True,
-        "save_frequency": -1,
-    }
-)
-envs = EnvpoolCompatibility(
-    envpool.make("CartPole-v1", env_type="gymnasium", num_envs=N_ENVS)
-)
-CONFIG["action_space"] = envs.action_space
-CONFIG["observation_space"] = envs.observation_space
+SEED = 0
 
-model = ppo.PPO(0, CONFIG, n_envs=N_ENVS, tabulate=True)
-model.train(envs, CONFIG.n_env_steps, callbacks=[])
+env, env_config = make_pong_vector(32)
+
+algo = ppo.PPO(
+    cfg.AlgoConfig(
+        SEED,
+        ppo.PPOParams(
+            gamma=0.99,
+            _lambda=0.95,
+            clip_eps=0.2,
+            entropy_coef=0.01,
+            value_coef=0.5,
+            normalize=True,
+        ),
+        cfg.UpdateConfig(
+            learning_rate=0.0003,
+            learning_rate_annealing=True,
+            max_grad_norm=0.5,
+            max_buffer_size=128,
+            batch_size=256,
+            n_epochs=1,
+            shared_encoder=True,
+        ),
+        cfg.TrainConfig(n_env_steps=5*10**5, save_frequency=-1),
+        env_config,
+    )
+)
+
+algo.train(env, algo.config.train_cfg.n_env_steps, callbacks=[])
 ```
 
 ## Roadmap

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable
 
 import distrax as dx
@@ -20,6 +21,18 @@ from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
 
 from rl.algos.general_fns import fn_parallel
 from rl.buffer import stack_experiences
+
+from rl.config import AlgoConfig, AlgoParams
+
+
+@dataclass
+class PPOParams(AlgoParams):
+    gamma: float
+    _lambda: float
+    clip_eps: float
+    entropy_coef: float
+    value_coef: float
+    normalize: bool
 
 
 def loss_factory(
@@ -56,7 +69,7 @@ def loss_factory(
 
 def explore_factory(
     train_state: TrainStatePolicyValue,
-    config: ml_collections.ConfigDict,
+    algo_params: PPOParams,
 ) -> Callable:
     @jax.jit
     def fn(
@@ -75,7 +88,7 @@ def explore_factory(
 
 def process_experience_factory(
     train_state: TrainStatePolicyValue,
-    config: ml_collections.ConfigDict,
+    algo_params: PPOParams,
     vectorized: bool,
     parallel: bool,
 ):
@@ -94,11 +107,16 @@ def process_experience_factory(
         next_values = all_values[1:]
 
         not_dones = 1.0 - dones[..., None]
-        discounts = config.gamma * not_dones
+        discounts = algo_params.gamma * not_dones
 
         rewards = rewards[..., None]
         gaes, targets = calculate_gaes_targets(
-            values, next_values, discounts, rewards, config._lambda, config.normalize
+            values,
+            next_values,
+            discounts,
+            rewards,
+            algo_params._lambda,
+            algo_params.normalize,
         )
 
         return gaes, targets, values
@@ -130,17 +148,24 @@ def update_step_factory(
     train_state: TrainStatePolicyValue, config: ml_collections.ConfigDict
 ):
     loss_fn = loss_factory(
-        train_state, config.clip_eps, config.entropy_coef, config.value_coef
+        train_state,
+        config.algo_params.clip_eps,
+        config.algo_params.entropy_coef,
+        config.algo_params.value_coef,
     )
 
     @jax.jit
     def fn(state: TrainStatePolicyValue, key: jax.Array, experiences: tuple[jax.Array]):
         num_elems = experiences[0].shape[0]
-        iterations = num_elems // config.batch_size
-        inds = jax.random.permutation(key, num_elems)[: iterations * config.batch_size]
+        iterations = num_elems // config.update_cfg.batch_size
+        inds = jax.random.permutation(key, num_elems)[
+            : iterations * config.update_cfg.batch_size
+        ]
 
         experiences = jax.tree_util.tree_map(
-            lambda x: x[inds].reshape((iterations, config.batch_size) + x.shape[1:]),
+            lambda x: x[inds].reshape(
+                (iterations, config.update_cfg.batch_size) + x.shape[1:]
+            ),
             experiences,
         )
 
@@ -160,8 +185,7 @@ def update_step_factory(
 class PPO(Base):
     def __init__(
         self,
-        seed: int,
-        config: ml_collections.ConfigDict,
+        config: AlgoConfig,
         *,
         rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
@@ -170,7 +194,6 @@ class PPO(Base):
     ):
         Base.__init__(
             self,
-            seed=seed,
             config=config,
             train_state_factory=train_state_policy_value_factory,
             explore_factory=explore_factory,
@@ -197,23 +220,23 @@ class PPO(Base):
         return action, log_prob
 
     def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
-        return len(buffer) >= self.config.max_buffer_size
+        return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer):
         def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
 
             loss = 0.0
-            for epoch in range(self.config.num_epochs):
+            for epoch in range(self.config.update_cfg.n_epochs):
                 key, _k = jax.random.split(key)
                 state, l, info = self.update_step_fn(state, _k, experiences)
                 loss += l
 
-            loss /= self.config.num_epochs
+            loss /= self.config.update_cfg.n_epochs
             info["total_loss"] = loss
             return state, info
 
-        sample = buffer.sample()
+        sample = buffer.sample(self.config.update_cfg.batch_size)
         self.state, info = fn(self.state, self.nextkey(), sample)
         return info
 
@@ -223,10 +246,8 @@ class PPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE
-            if self.config.env_config.n_agents == 1
-            else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE if self.config.env_cfg.n_agents == 1 else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_cfg.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             saver=self.saver,
             callbacks=callbacks,
@@ -240,10 +261,8 @@ class PPO(Base):
             self,
             env,
             n_env_steps,
-            EnvType.SINGLE
-            if self.config.env_config.n_agents == 1
-            else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_config.n_envs == 1 else EnvProcs.MANY,
+            EnvType.SINGLE if self.config.env_cfg.n_agents == 1 else EnvType.PARALLEL,
+            EnvProcs.ONE if self.config.env_cfg.n_envs == 1 else EnvProcs.MANY,
             AlgoType.ON_POLICY,
             start_step=step,
             saver=self.saver,

@@ -150,16 +150,16 @@ def train(
     callback.on_train_start(callbacks, CallbackData())
 
     if algo_type == AlgoType.ON_POLICY:
-        buffer = OnPolicyBuffer(seed, base.config.max_buffer_size)
+        buffer = OnPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
     else:
-        buffer = OffPolicyBuffer(seed, base.config.max_buffer_size)
+        buffer = OffPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
 
     observation, info = env.reset(seed=seed + 1)
 
     logger = Logger(callbacks, env_type=env_type, env_procs=env_procs)
     logger.init_logs(observation)
 
-    with SaverContext(saver, base.config.save_frequency) as s:
+    with SaverContext(saver, base.config.train_cfg.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
             logger["step"] = step
 
@@ -171,7 +171,7 @@ def train(
             logger["episode_return"] += process_reward(reward, env_type, env_procs)
 
             termination = process_termination(
-                step * base.config.env_config.n_envs,
+                step * base.config.env_cfg.n_envs,
                 env,
                 done,
                 trunc,

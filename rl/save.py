@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
-
+import yaml
+import json
 
 if TYPE_CHECKING:
     from rl.base import Base
@@ -23,8 +24,28 @@ class Saver:
             dir, self.ckptr, self.options
         )
 
-        with open(os.path.join(dir, "metadata"), "wb") as f:
-            cloudpickle.dump(base.to_dict(), f)
+        self.save_base_data(dir, base)
+
+    def save_base_data(self, dir: str, base: "Base") -> None:
+        config_dict = base.config.to_dict()
+        env_config = config_dict.pop("env_cfg")
+
+        config_path = os.path.join(dir, "config")
+        with open(config_path, "w") as f:
+            yaml.dump(config_dict, f)
+
+        extra_path = os.path.join(dir, "extra")
+        with open(extra_path, "wb") as f:
+            cloudpickle.dump(
+                {
+                    "env_config": env_config,
+                    "run_name": base.run_name,
+                    "rearrange_pattern": base.rearrange_pattern,
+                    "preprocess_fn": base.preprocess_fn,
+                    "tabulate": base.tabulate,
+                },
+                f,
+            )
 
     def save(self, step: int, state: train_state.TrainState):
         ckpt = {"model": state}
