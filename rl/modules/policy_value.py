@@ -92,21 +92,21 @@ def create_train_state_policy_value(
     *,
     n_envs: int = 1,
 ) -> TrainStatePolicyValue:
-    learning_rate = config.learning_rate
+    learning_rate = config.update_cfg.learning_rate
 
-    if config.learning_rate_annealing:
+    if config.update_cfg.learning_rate_annealing:
         learning_rate = linear_learning_rate_schedule(
             learning_rate,
             0.0,
             n_envs=n_envs,
-            n_env_steps=config.n_env_steps,
-            max_buffer_size=config.max_buffer_size,
-            batch_size=config.batch_size,
-            num_epochs=config.num_epochs,
+            n_env_steps=config.train_cfg.n_env_steps,
+            max_buffer_size=config.update_cfg.max_buffer_size,
+            batch_size=config.update_cfg.batch_size,
+            num_epochs=config.update_cfg.n_epochs,
         )
 
     tx = optax.chain(
-        optax.clip_by_global_norm(config.max_grad_norm),
+        optax.clip_by_global_norm(config.update_cfg.max_grad_norm),
         optax.adam(learning_rate, eps=1e-5),
     )
 
@@ -129,9 +129,9 @@ def train_state_policy_value_factory(
     tabulate: bool = False,
 ) -> TrainStatePolicyValue:
     modules = create_modules(
-        config.env_config.observation_space,
-        config.env_config.action_space,
-        config.shared_encoder,
+        config.env_cfg.observation_space,
+        config.env_cfg.action_space,
+        config.update_cfg.shared_encoder,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
@@ -140,8 +140,8 @@ def train_state_policy_value_factory(
         modules["policy"],
         modules["value"],
         modules["encoder"],
-        config.env_config.observation_space,
-        shared_encoder=config.shared_encoder,
+        config.env_cfg.observation_space,
+        shared_encoder=config.update_cfg.shared_encoder,
         tabulate=tabulate,
     )
     state = create_train_state_policy_value(
@@ -150,7 +150,7 @@ def train_state_policy_value_factory(
         modules["encoder"],
         params,
         config,
-        n_envs=config.env_config.n_envs * config.env_config.n_agents,
+        n_envs=config.env_cfg.n_envs * config.env_cfg.n_agents,
     )
     return state
 

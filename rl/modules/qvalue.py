@@ -47,21 +47,21 @@ def create_train_state_qvalue(
     *,
     n_envs: int = 1,
 ) -> TrainState:
-    learning_rate = config.learning_rate
+    learning_rate = config.update_cfg.learning_rate
 
-    if config.learning_rate_annealing:
+    if config.update_cfg.learning_rate_annealing:
         learning_rate = linear_learning_rate_schedule(
             learning_rate,
             0.0,
             n_envs=n_envs,
-            n_env_steps=config.n_env_steps,
-            max_buffer_size=config.max_buffer_size,
-            batch_size=config.batch_size,
-            num_epochs=config.num_epochs,
+            n_env_steps=config.train_cfg.n_env_steps,
+            max_buffer_size=config.update_cfg.max_buffer_size,
+            batch_size=config.update_cfg.batch_size,
+            num_epochs=config.update_cfg.num_epochs,
         )
 
     tx = optax.chain(
-        optax.clip_by_global_norm(config.max_grad_norm),
+        optax.clip_by_global_norm(config.update_cfg.max_grad_norm),
         optax.adam(learning_rate, eps=1e-5),
     )
 
@@ -77,15 +77,15 @@ def train_state_qvalue_factory(
     tabulate: bool = False,
 ) -> TrainState:
     modules = create_modules(
-        config.env_config.observation_space,
-        config.env_config.action_space,
+        config.env_cfg.observation_space,
+        config.env_cfg.action_space,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
     params = create_params_qvalue(
-        key, modules["qvalue"], config.env_config.observation_space, tabulate=tabulate
+        key, modules["qvalue"], config.env_cfg.observation_space, tabulate=tabulate
     )
     state = create_train_state_qvalue(
-        modules["qvalue"], params, config, n_envs=config.env_config.n_envs
+        modules["qvalue"], params, config, n_envs=config.env_cfg.n_envs
     )
     return state
