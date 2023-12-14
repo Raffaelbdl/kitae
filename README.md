@@ -74,12 +74,13 @@ model.train(envs, CONFIG.n_env_steps, callbacks=[])
 
 ## Roadmap
 Current roadmap to reach V0.1.0 :
-- [ ] : Implement other algorithms
-    - [ ] : PPO in continous action space
-    - [ ] : SAC
-    - [ ] : DDPG
-- [ ] : Automate the multi-agents versions of every algorithms
-- [ ] : Move the populations to another library
-- [ ] : Benchmark the performance of the algorithms
-- [ ] : Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
-- [ ] : Add docstrings
+- [ ] Implement other algorithms
+    - [ ] PPO in continous action space
+    - [ ] SAC
+    - [ ] DDPG
+- [ ] Automate the multi-agents versions of every algorithms
+- [ ] Move the populations to another library
+- [ ] Benchmark the performance of the algorithms
+- [ ] Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
+- [ ] Add docstrings
+
