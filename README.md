@@ -24,14 +24,6 @@ FLAX_RL also aims at making it easier to use agents in single or multi-agents se
 
 For research purposes, please use the original implementations for comparaison. 
 
-<details>
-<summary>Implemented algorithms</summary>
-- PPO
-- IPPO
-- DQN
-</details>
-
-
 
 ## Example Usage
 ```python
@@ -78,9 +70,9 @@ Current roadmap to reach V0.1.0 :
     - [ ] PPO in continous action space
     - [ ] SAC
     - [ ] DDPG
-- [ ] Automate the multi-agents versions of every algorithms
+- [x] Automate the multi-agents versions of every algorithms
 - [ ] Move the populations to another library
 - [ ] Benchmark the performance of the algorithms
-- [ ] Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
+- [x] Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
 - [ ] Add docstrings
 
