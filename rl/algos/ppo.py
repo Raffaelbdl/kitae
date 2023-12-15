@@ -10,7 +10,7 @@ import numpy as np
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.buffer import OnPolicyBuffer, OnPolicyExp
-from rl.loss import loss_policy_ppo_discrete, loss_value_clip
+from rl.loss import loss_policy_ppo, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
 
@@ -23,6 +23,10 @@ from rl.algos.general_fns import fn_parallel
 from rl.buffer import stack_experiences
 
 from rl.config import AlgoConfig, AlgoParams
+import distrax as dx
+
+from absl import logging
+from rl.distribution import get_log_probs
 
 
 @dataclass
@@ -48,12 +52,13 @@ def loss_factory(
             {"params": params.params_encoder}, observations
         )
 
-        logits = train_state.policy_fn({"params": params.params_policy}, hiddens)
-        all_log_probs = nn.log_softmax(logits)
-        log_probs = jnp.take_along_axis(all_log_probs, actions, axis=-1)
+        dists: dx.Categorical = train_state.policy_fn(
+            {"params": params.params_policy}, hiddens
+        )
+        log_probs, log_probs_old = get_log_probs(dists, actions, log_probs_old)
 
-        loss_policy, info_policy = loss_policy_ppo_discrete(
-            logits, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
+        loss_policy, info_policy = loss_policy_ppo(
+            dists, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
         )
 
         values = train_state.value_fn({"params": params.params_value}, hiddens)
@@ -62,6 +67,7 @@ def loss_factory(
         loss = loss_policy + value_coef * loss_value
         info = info_policy | info_value
         info["total_loss"] = loss
+
         return loss, info
 
     return fn
@@ -78,8 +84,8 @@ def explore_factory(
         hiddens = train_state.encoder_fn(
             {"params": params.params_encoder}, observations
         )
-        logits = train_state.policy_fn({"params": params.params_policy}, hiddens)
-        outputs = dx.Categorical(logits=logits).sample_and_log_prob(seed=key)
+        dists = train_state.policy_fn({"params": params.params_policy}, hiddens)
+        outputs = dists.sample_and_log_prob(seed=key)
 
         return outputs
 
@@ -136,9 +142,18 @@ def process_experience_factory(
             params, observations, stacked.next_observation, stacked.done, stacked.reward
         )
 
-        actions = jax.tree_map(lambda x: x[..., None], stacked.action)
-        log_probs = jax.tree_map(lambda x: x[..., None], stacked.log_prob)
+        actions = stacked.action
+        log_probs = stacked.log_prob
 
+        logging.debug(
+            (
+                "Experiences shapes : \n"
+                + f"observations : {observations.shape} \n"
+                + f"actions : {actions.shape} \n"
+                + f"log_probs : {log_probs.shape} \n"
+                + f"gaes : {gaes.shape}"
+            )
+        )
         return observations, actions, log_probs, gaes, targets, values
 
     return fn

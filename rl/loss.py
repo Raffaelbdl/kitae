@@ -4,9 +4,7 @@ import jax
 import jax.numpy as jnp
 
 
-def loss_policy_ppo_discrete(
-    logits, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
-):
+def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef):
     """PPO Policy loss function
 
     Args:
@@ -32,7 +30,7 @@ def loss_policy_ppo_discrete(
     ratios_clip = jnp.clip(ratios, 1 - clip_eps, 1 + clip_eps)
     loss_policy = -jnp.mean(jnp.fmin(ratios * gaes, ratios_clip * gaes))
 
-    entropy = dx.Categorical(logits=logits).entropy()
+    entropy = dist.entropy()
     loss_entropy = -jnp.mean(entropy)
 
     kl_divergence = jax.lax.stop_gradient(jnp.mean((ratios - 1) - log_ratios))
@@ -40,8 +38,8 @@ def loss_policy_ppo_discrete(
         "loss_policy": loss_policy,
         "mean_entropy": jnp.mean(entropy),
         "kl_divergence": kl_divergence,
-        "logits": logits,
         "entropy": entropy,
+        # "dist": dist, cannot be output, but needed for population training
     }
 
     return loss_policy + entropy_coef * loss_entropy, infos
