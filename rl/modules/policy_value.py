@@ -1,18 +1,88 @@
-from typing import Callable
+from dataclasses import dataclass
+from typing import Any, Callable
 
 import chex
+import distrax as dx
 from flax import struct
 from flax import linen as nn
 from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
+import jax.numpy as jnp
 import ml_collections
 import optax
 
-from rl.modules.modules import modules_factory, create_params
+from rl.config import AlgoConfig
+from rl.modules.modules import init_params, encoder_factory, PassThrough
 from rl.modules.optimizer import linear_learning_rate_schedule
 
 from rl.types import Params
+
+
+class PolicyOutput(nn.Module):
+    num_outputs: int
+
+    @nn.compact
+    def __call__(self, x: jax.Array) -> dx.Distribution:
+        ...
+
+
+class PolicyCategoricalOutput(PolicyOutput):
+    num_outputs: int
+
+    @nn.compact
+    def __call__(self, x: jax.Array) -> dx.Distribution:
+        logits = nn.Dense(
+            features=self.num_outputs,
+            kernel_init=nn.initializers.orthogonal(0.01),
+            bias_init=nn.initializers.constant(0.0),
+        )(x)
+
+        return dx.Categorical(logits)
+
+
+class PolicyNormalOutput(PolicyOutput):
+    num_outputs: int
+
+    @nn.compact
+    def __call__(self, x: jax.Array) -> dx.Distribution:
+        loc = nn.Dense(
+            features=self.num_outputs,
+            kernel_init=nn.initializers.orthogonal(0.01),
+            bias_init=nn.initializers.constant(0.0),
+        )(x)
+        log_scale = jnp.broadcast_to(
+            self.param("log_std", nn.initializers.zeros, (1, self.num_outputs)),
+            loc.shape,
+        )
+
+        return dx.Normal(loc, jnp.exp(log_scale))
+
+
+def policy_output_factory(action_space: spaces.Discrete) -> type[PolicyOutput]:
+    if isinstance(action_space, spaces.Discrete):
+        return PolicyCategoricalOutput
+    elif isinstance(action_space, spaces.Box):
+        return PolicyNormalOutput
+    else:
+        raise NotImplementedError
+
+
+class ValueOutput(nn.Module):
+    @nn.compact
+    def __call__(self, x: jax.Array):
+        return nn.Dense(
+            features=1,
+            kernel_init=nn.initializers.orthogonal(1.0),
+            bias_init=nn.initializers.constant(0.0),
+        )(x)
+
+
+@dataclass
+class PolicyValueModules:
+    encoder: nn.Module
+    policy: nn.Module
+    value: nn.Module
 
 
 @chex.dataclass
@@ -28,28 +98,50 @@ class TrainStatePolicyValue(TrainState):
     value_fn: Callable = struct.field(pytree_node=False)
 
 
-def create_modules(
+def create_policy_value_modules(
     observation_space: spaces.Space,
     action_space: spaces.Discrete,
     shared_encoder: bool,
     *,
     rearrange_pattern: str,
     preprocess_fn: Callable,
-) -> dict[str, nn.Module]:
-    return modules_factory(
+):
+    encoder = encoder_factory(
         observation_space,
-        action_space,
-        shared_encoder,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
 
+    policy_output = policy_output_factory(action_space)
+    num_actions = (
+        action_space.n
+        if isinstance(action_space, spaces.Discrete)
+        else action_space.shape[-1]
+    )
+
+    if shared_encoder:
+        return PolicyValueModules(
+            encoder=encoder(), policy=policy_output(num_actions), value=ValueOutput()
+        )
+
+    class Policy(nn.Module):
+        @nn.compact
+        def __call__(self, x: jax.Array):
+            x = encoder()(x)
+            return policy_output(num_actions)(x)
+
+    class Value(nn.Module):
+        @nn.compact
+        def __call__(self, x: jax.Array):
+            x = encoder()(x)
+            return ValueOutput()(x)
+
+    return PolicyValueModules(encoder=PassThrough(), policy=Policy(), value=Value())
+
 
 def create_params_policy_value(
     key: jax.Array,
-    policy: nn.Module,
-    value: nn.Module,
-    encoder: nn.Module,
+    modules: PolicyValueModules,
     observation_space: spaces.Space,
     *,
     shared_encoder: bool = False,
@@ -63,30 +155,31 @@ def create_params_policy_value(
             hidden_shape = (64,)
 
         return ParamsPolicyValue(
-            params_encoder=create_params(
-                key1, encoder, observation_space.shape, tabulate=tabulate
+            params_encoder=init_params(
+                key1, modules.encoder, observation_space.shape, tabulate=tabulate
             ),
-            params_policy=create_params(key2, policy, hidden_shape, tabulate=tabulate),
-            params_value=create_params(key3, value, hidden_shape, tabulate=tabulate),
-        )
-    else:
-        return ParamsPolicyValue(
-            params_encoder=create_params(
-                key1, encoder, observation_space.shape, tabulate=tabulate
+            params_policy=init_params(
+                key2, modules.policy, hidden_shape, tabulate=tabulate
             ),
-            params_policy=create_params(
-                key2, policy, observation_space.shape, tabulate=tabulate
-            ),
-            params_value=create_params(
-                key3, value, observation_space.shape, tabulate=tabulate
+            params_value=init_params(
+                key3, modules.value, hidden_shape, tabulate=tabulate
             ),
         )
+    return ParamsPolicyValue(
+        params_encoder=init_params(
+            key1, modules.encoder, observation_space.shape, tabulate=tabulate
+        ),
+        params_policy=init_params(
+            key2, modules.policy, observation_space.shape, tabulate=tabulate
+        ),
+        params_value=init_params(
+            key3, modules.value, observation_space.shape, tabulate=tabulate
+        ),
+    )
 
 
 def create_train_state_policy_value(
-    policy: nn.Module,
-    value: nn.Module,
-    encoder: nn.Module,
+    modules: PolicyValueModules,
     params: ParamsPolicyValue,
     config: ml_collections.ConfigDict,
     *,
@@ -114,9 +207,9 @@ def create_train_state_policy_value(
         apply_fn=None,
         params=params,
         tx=tx,
-        policy_fn=policy.apply,
-        value_fn=value.apply,
-        encoder_fn=encoder.apply,
+        policy_fn=modules.policy.apply,
+        value_fn=modules.value.apply,
+        encoder_fn=modules.encoder.apply,
     )
 
 
@@ -128,7 +221,7 @@ def train_state_policy_value_factory(
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> TrainStatePolicyValue:
-    modules = create_modules(
+    modules = create_policy_value_modules(
         config.env_cfg.observation_space,
         config.env_cfg.action_space,
         config.update_cfg.shared_encoder,
@@ -137,17 +230,13 @@ def train_state_policy_value_factory(
     )
     params = create_params_policy_value(
         key,
-        modules["policy"],
-        modules["value"],
-        modules["encoder"],
+        modules,
         config.env_cfg.observation_space,
         shared_encoder=config.update_cfg.shared_encoder,
         tabulate=tabulate,
     )
     state = create_train_state_policy_value(
-        modules["policy"],
-        modules["value"],
-        modules["encoder"],
+        modules,
         params,
         config,
         n_envs=config.env_cfg.n_envs * config.env_cfg.n_agents,
@@ -163,7 +252,7 @@ def train_state_policy_value_population_factory(
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> TrainStatePolicyValue:
-    modules = create_modules(
+    modules = create_policy_value_modules(
         config.env_config.observation_space,
         config.env_config.action_space,
         config.shared_encoder,
@@ -173,9 +262,7 @@ def train_state_policy_value_population_factory(
     params_population = [
         create_params_policy_value(
             key,
-            modules["policy"],
-            modules["value"],
-            modules["encoder"],
+            modules,
             config.env_config.observation_space,
             shared_encoder=config.shared_encoder,
             tabulate=(i == 0 and tabulate),
@@ -183,9 +270,7 @@ def train_state_policy_value_population_factory(
         for i in range(config.population_size)
     ]
     state = create_train_state_policy_value(
-        modules["policy"],
-        modules["value"],
-        modules["encoder"],
+        modules,
         params_population,
         config,
         n_envs=config.env_config.n_envs * config.env_config.n_agents,

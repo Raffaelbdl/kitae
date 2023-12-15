@@ -1,6 +1,7 @@
 import functools
 from typing import Callable, Type
 
+import distrax as dx
 from einops import rearrange
 from flax import linen as nn
 from gymnasium import spaces
@@ -78,26 +79,10 @@ class VectorEncoder(nn.Module):
         return nn.tanh(x)
 
 
-class PolicyOutput(nn.Module):
-    num_outputs: int
-
+class PassThrough(nn.Module):
     @nn.compact
     def __call__(self, x: jax.Array):
-        return nn.Dense(
-            features=self.num_outputs,
-            kernel_init=nn.initializers.orthogonal(0.01),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-
-
-class ValueOutput(nn.Module):
-    @nn.compact
-    def __call__(self, x: jax.Array):
-        return nn.Dense(
-            features=1,
-            kernel_init=nn.initializers.orthogonal(1.0),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
+        return x
 
 
 def encoder_factory(
@@ -118,56 +103,7 @@ def encoder_factory(
         raise NotImplementedError
 
 
-def modules_factory(
-    observation_space: spaces.Space,
-    action_space: spaces.Space,
-    shared_encoder: bool,
-    *,
-    rearrange_pattern: str = "b h w c -> b h w c",
-    preprocess_fn: Callable = None,
-) -> dict[str, nn.Module]:
-    """Returns a dict of modules:
-    policy / value / encoder"""
-    encoder = encoder_factory(
-        observation_space,
-        rearrange_pattern=rearrange_pattern,
-        preprocess_fn=preprocess_fn,
-    )
-
-    num_actions = (
-        action_space.n
-        if isinstance(action_space, spaces.Discrete)
-        else action_space.shape[-1]
-    )
-
-    if shared_encoder:
-        return {
-            "policy": PolicyOutput(num_actions),
-            "value": ValueOutput(),
-            "encoder": encoder(),
-        }
-
-    class Policy(nn.Module):
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            x = encoder()(x)
-            return PolicyOutput(num_actions)(x)
-
-    class Value(nn.Module):
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            x = encoder()(x)
-            return ValueOutput()(x)
-
-    class PassThrough(nn.Module):
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            return x
-
-    return {"policy": Policy(), "value": Value(), "encoder": PassThrough()}
-
-
-def create_params(
+def init_params(
     key: jax.Array,
     module: nn.Module,
     input_shape: tuple[int],
