@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable
 
 from flax import linen as nn
@@ -7,37 +8,57 @@ import jax
 import ml_collections
 import optax
 
-from rl.modules.modules import modules_factory, create_params
+from rl.config import AlgoConfig
+from rl.modules.modules import init_params, encoder_factory, PassThrough
 from rl.modules.optimizer import linear_learning_rate_schedule
 
 from rl.types import Params
 
 
-def create_modules(
+class QValueDiscreteOutput(nn.Module):
+    num_outputs: int
+
+    @nn.compact
+    def __call__(self, x: jax.Array):
+        return nn.Dense(
+            features=self.num_outputs,
+            kernel_init=nn.initializers.orthogonal(1.0),
+            bias_init=nn.initializers.constant(0.0),
+        )(x)
+
+
+# I keep a dataclass so that I can reuse the
+# code for continuous action space Q learning
+@dataclass
+class QModules:
+    encoder: nn.Module
+    qvalue: nn.Module
+
+
+def create_q_modules(
     observation_space: spaces.Space,
     action_space: spaces.Discrete,
+    shared_encoder: bool,
     *,
-    rearrange_pattern: str,
-    preprocess_fn: Callable,
-) -> dict[str, nn.Module]:
-    modules = modules_factory(
+    rearrange_pattern: str = "b h w c -> b h w c",
+    preprocess_fn: Callable = None,
+) -> QModules:
+    encoder = encoder_factory(
         observation_space,
-        action_space,
-        False,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
-    return {"qvalue": modules["policy"]}
 
+    if shared_encoder:
+        return QModules(encoder=encoder, qvalue=QValueDiscreteOutput(action_space.n))
 
-def create_params_qvalue(
-    key: jax.Array,
-    qvalue: nn.Module,
-    observation_space: spaces.Space,
-    *,
-    tabulate: bool = False,
-) -> Params:
-    return create_params(key, qvalue, observation_space.shape, tabulate=tabulate)
+    class QValue(nn.Module):
+        @nn.compact
+        def __call__(self, x: jax.Array):
+            x = encoder()(x)
+            return QValueDiscreteOutput(action_space.n)(x)
+
+    return QModules(encoder=PassThrough(), qvalue=QValue())
 
 
 def create_train_state_qvalue(
@@ -65,27 +86,32 @@ def create_train_state_qvalue(
         optax.adam(learning_rate, eps=1e-5),
     )
 
-    return TrainState.create(apply_fn=qvalue.apply, params=params, tx=tx)
+    return TrainState.create(
+        apply_fn=qvalue.apply,
+        params=params,
+        tx=tx,
+    )
 
 
 def train_state_qvalue_factory(
     key: jax.Array,
-    config: ml_collections.ConfigDict,
+    config: AlgoConfig,
     *,
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> TrainState:
-    modules = create_modules(
+    qvalue = create_q_modules(
         config.env_cfg.observation_space,
         config.env_cfg.action_space,
+        False,
         rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
-    )
-    params = create_params_qvalue(
-        key, modules["qvalue"], config.env_cfg.observation_space, tabulate=tabulate
+    ).qvalue
+    params = init_params(
+        key, qvalue, config.env_cfg.observation_space.shape, tabulate=tabulate
     )
     state = create_train_state_qvalue(
-        modules["qvalue"], params, config, n_envs=config.env_cfg.n_envs
+        qvalue, params, config, n_envs=config.env_cfg.n_envs
     )
     return state

@@ -15,7 +15,8 @@ from rl.logging import Logger
 
 def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
     def single_one_process(action: jax.Array):
-        return int(action)
+        # return int(action)
+        return action
 
     def single_many_process(action: jax.Array):
         return np.array(action)
