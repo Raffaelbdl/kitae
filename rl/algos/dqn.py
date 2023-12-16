@@ -42,7 +42,7 @@ class DQNParams(AlgoParams):
 
 def loss_factory(train_state: TrainState) -> Callable:
     @jax.jit
-    def fn(params: Params, batch: tuple[jax.Array]):
+    def fn(params: Params, batch: tuple[jax.Array]) -> tuple[float, dict]:
         observations, actions, returns = batch
         all_qvalues = train_state.apply_fn({"params": params}, observations)
         qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
@@ -157,7 +157,7 @@ class DQN(Base):
             tabulate=tabulate,
         )
 
-    def select_action(self, observation: jax.Array) -> jax.Array:
+    def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (
             {a: self.nextkey() for a in observation.keys()}
             if self.parallel
