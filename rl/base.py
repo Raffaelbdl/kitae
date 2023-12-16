@@ -18,9 +18,9 @@ from rl.algos.general_fns import explore_general_factory
 from rl.algos.general_fns import process_experience_general_factory
 
 from rl.buffer import Buffer
+from rl.callbacks.callback import Callback
 from rl.save import Saver
-from rl.types import ActionType, ObsType, Params
-
+from rl.types import ActionType, ObsType, Params, Array
 
 from ml_collections import FrozenConfigDict, ConfigDict
 from rl.config import AlgoConfig
@@ -128,7 +128,7 @@ class Base(ABC, Seeded):
         self.saver = Saver(os.path.join("./results", self.run_name), self)
 
     @abstractmethod
-    def select_action(self, observation: ObsType) -> ActionType:
+    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
         """Exploits the policy to interact with the environment.
 
         Args:
@@ -140,7 +140,7 @@ class Base(ABC, Seeded):
         ...
 
     @abstractmethod
-    def explore(self, observation: ObsType) -> ActionType:
+    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
         """Uses the policy to explore the environment.
 
         Args:
@@ -177,7 +177,7 @@ class Base(ABC, Seeded):
         ...
 
     @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list) -> None:
+    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
         """Starts the training of the agent.
 
         Args:
@@ -188,7 +188,7 @@ class Base(ABC, Seeded):
         ...
 
     @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list) -> None:
+    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
         """Resumes the training of the agent from the last training step.
 
         Args:
