@@ -17,6 +17,7 @@ EnvLike = (
 import flax
 import jax
 
+Array = jax.Array
 DictArray = dict[Any, jax.Array]
 
 ActionType = TypeVar("ActionType")

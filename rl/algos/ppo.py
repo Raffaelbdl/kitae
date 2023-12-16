@@ -1,36 +1,43 @@
+"""Proximal Policy Optimization (PPO)"""
+
 from dataclasses import dataclass
 from typing import Callable
 
 import distrax as dx
-import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import ml_collections
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import OnPolicyBuffer, OnPolicyExp
-from rl.loss import loss_policy_ppo, loss_value_clip
-from rl.timesteps import calculate_gaes_targets
-from rl.train import train
+from rl.algos.general_fns import fn_parallel
 
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.callbacks.callback import Callback
+from rl.config import AlgoConfig, AlgoParams
 from rl.types import GymEnv, EnvPoolEnv
 
+from rl.buffer import OnPolicyBuffer, OnPolicyExp, stack_experiences
+from rl.distribution import get_log_probs
+from rl.loss import loss_policy_ppo, loss_value_clip
 from rl.modules.policy_value import train_state_policy_value_factory
 from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
-
-from rl.algos.general_fns import fn_parallel
-from rl.buffer import stack_experiences
-
-from rl.config import AlgoConfig, AlgoParams
-import distrax as dx
-
-from absl import logging
-from rl.distribution import get_log_probs
+from rl.timesteps import calculate_gaes_targets
+from rl.train import train
 
 
 @dataclass
 class PPOParams(AlgoParams):
+    """
+    Proximal Policy Optimization parameters.
+
+    Parameters:
+        gamma: The discount factor.
+        _lambda: The factor for Generalized Advantage Estimator.
+        clip_eps: The clipping range for update.
+        entropy_coef: The loss coefficient of the entropy loss.
+        value_coef: The loss coefficient of the value loss.
+        normalize:  If true, advantages are normalized.
+    """
+
     gamma: float
     _lambda: float
     clip_eps: float
@@ -46,7 +53,7 @@ def loss_factory(
     value_coef: float,
 ) -> Callable:
     @jax.jit
-    def fn(params: ParamsPolicyValue, batch: tuple[jax.Array]):
+    def fn(params: ParamsPolicyValue, batch: tuple[jax.Array]) -> tuple[float, dict]:
         observations, actions, log_probs_old, gaes, targets, values_old = batch
         hiddens = train_state.encoder_fn(
             {"params": params.params_encoder}, observations
@@ -104,7 +111,7 @@ def process_experience_factory(
         next_observations: jax.Array,
         dones: jax.Array,
         rewards: jax.Array,
-    ):
+    ) -> jax.Array:
         all_obs = jnp.concatenate([observations, next_observations[-1:]], axis=0)
         all_hiddens = train_state.encoder_fn({"params": params.params_encoder}, all_obs)
         all_values = train_state.value_fn({"params": params.params_value}, all_hiddens)
@@ -145,23 +152,12 @@ def process_experience_factory(
         actions = stacked.action
         log_probs = stacked.log_prob
 
-        logging.debug(
-            (
-                "Experiences shapes : \n"
-                + f"observations : {observations.shape} \n"
-                + f"actions : {actions.shape} \n"
-                + f"log_probs : {log_probs.shape} \n"
-                + f"gaes : {gaes.shape}"
-            )
-        )
         return observations, actions, log_probs, gaes, targets, values
 
     return fn
 
 
-def update_step_factory(
-    train_state: TrainStatePolicyValue, config: ml_collections.ConfigDict
-):
+def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
     loss_fn = loss_factory(
         train_state,
         config.algo_params.clip_eps,
@@ -198,6 +194,12 @@ def update_step_factory(
 
 
 class PPO(Base):
+    """
+    Proximal Policy Optimization (PPO)
+    Paper : https://arxiv.org/abs/1707.06347
+    Implementation details : https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/
+    """
+
     def __init__(
         self,
         config: AlgoConfig,
@@ -234,10 +236,10 @@ class PPO(Base):
 
         return action, log_prob
 
-    def should_update(self, step: int, buffer: OnPolicyBuffer) -> None:
+    def should_update(self, step: int, buffer: OnPolicyBuffer) -> bool:
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
-    def update(self, buffer: OnPolicyBuffer):
+    def update(self, buffer: OnPolicyBuffer) -> dict:
         def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
 
@@ -255,7 +257,9 @@ class PPO(Base):
         self.state, info = fn(self.state, self.nextkey(), sample)
         return info
 
-    def train(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+    def train(
+        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
+    ) -> None:
         return train(
             int(np.asarray(self.nextkey())[0]),
             self,
@@ -268,7 +272,9 @@ class PPO(Base):
             callbacks=callbacks,
         )
 
-    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+    def resume(
+        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
+    ) -> None:
         step = self.restore()
 
         return train(

@@ -1,36 +1,48 @@
+"""Deep Q-Network (DQN)"""
+
+from dataclasses import dataclass
 from typing import Callable
 
 from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
-import ml_collections
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import OffPolicyBuffer, OffPolicyExp
-from rl.loss import loss_mean_squared_error
-from rl.train import train
+from rl.algos.general_fns import fn_parallel
 
+from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.callbacks.callback import Callback
+from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
+from rl.buffer import OffPolicyBuffer, OffPolicyExp, stack_experiences
+from rl.loss import loss_mean_squared_error
 from rl.modules.qvalue import train_state_qvalue_factory
-from rl.algos.general_fns import fn_parallel
-from rl.buffer import stack_experiences
+from rl.train import train
 
 
 NO_EXPLORATION = 0.0
 
-from rl.config import AlgoConfig, AlgoParams
 
-
+@dataclass
 class DQNParams(AlgoParams):
-    def __init__(self, exploration: float, gamma: float, skip_steps: int):
-        super().__init__(exploration=exploration, gamma=gamma, skip_steps=skip_steps)
+    """
+    Deep Q-Network parameters
+
+    Parameters:
+        exploration: The exploration coefficient of the epsilon-greedy policy.
+        gamma: The discount factor.
+        skip_step: The numbers of steps skipped when training.
+    """
+
+    exploration: float
+    gamma: float
+    skip_steps: int
 
 
 def loss_factory(train_state: TrainState) -> Callable:
     @jax.jit
-    def fn(params: Params, batch: tuple[jax.Array]):
+    def fn(params: Params, batch: tuple[jax.Array]) -> tuple[float, dict]:
         observations, actions, returns = batch
         all_qvalues = train_state.apply_fn({"params": params}, observations)
         qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
@@ -103,9 +115,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(
-    train_state: TrainState, config: ml_collections.ConfigDict
-) -> Callable:
+def update_step_factory(train_state: TrainState, config: AlgoConfig) -> Callable:
     loss_fn = loss_factory(train_state)
 
     @jax.jit
@@ -120,6 +130,11 @@ def update_step_factory(
 
 
 class DQN(Base):
+    """
+    Deep Q-Network (DQN)
+    Paper : https://arxiv.org/abs/1312.5602
+    """
+
     def __init__(
         self,
         config: AlgoConfig,
@@ -142,7 +157,7 @@ class DQN(Base):
             tabulate=tabulate,
         )
 
-    def select_action(self, observation: jax.Array) -> jax.Array:
+    def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (
             {a: self.nextkey() for a in observation.keys()}
             if self.parallel
@@ -154,7 +169,7 @@ class DQN(Base):
         )
         return action, zeros
 
-    def explore(self, observation: jax.Array):
+    def explore(self, observation: jax.Array) -> jax.Array:
         keys = (
             {a: self.nextkey() for a in observation.keys()}
             if self.parallel
@@ -169,13 +184,13 @@ class DQN(Base):
         )
         return action, zeros
 
-    def should_update(self, step: int, buffer: OffPolicyBuffer) -> None:
+    def should_update(self, step: int, buffer: OffPolicyBuffer) -> bool:
         return (
             len(buffer) >= self.config.update_cfg.batch_size
             and step % self.algo_params.skip_steps == 0
         )
 
-    def update(self, buffer: OffPolicyBuffer):
+    def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: TrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state.params, sample)
             state, loss, info = self.update_step_fn(state, key, experiences)
@@ -185,7 +200,9 @@ class DQN(Base):
         self.state, info = fn(self.state, self.nextkey(), sample)
         return info
 
-    def train(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+    def train(
+        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
+    ) -> None:
         return train(
             int(np.asarray(self.nextkey())[0]),
             self,
@@ -198,7 +215,9 @@ class DQN(Base):
             callbacks=callbacks,
         )
 
-    def resume(self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list):
+    def resume(
+        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
+    ) -> None:
         step, self.state = self.saver.restore_latest_step(self.state)
 
         return train(
