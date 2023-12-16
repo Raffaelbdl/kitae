@@ -1,8 +1,11 @@
+"""Contains the wandb callback."""
+
 from typing import Any, Optional, Union, Dict, Sequence, List
 
 import flatdict
 
 try:
+    import wandb
     from wandb.sdk.lib.paths import StrPath
     from wandb.sdk.wandb_settings import Settings
 except ImportError:
@@ -12,6 +15,12 @@ from rl.callbacks.callback import Callback, CallbackData
 
 
 class WandbCallback(Callback):
+    """WandbCallback class
+
+    This callbacks logs information to Wandb after each update.
+    This callbacks finishes the wandb run at the end of the training.
+    """
+
     def __init__(
         self,
         job_type: Optional[str] = None,
@@ -41,10 +50,7 @@ class WandbCallback(Callback):
     ) -> None:
         Callback.__init__(self)
 
-        import wandb
-
-        self.wandb = wandb
-        self.wandb.init(
+        wandb.init(
             job_type=job_type,
             dir=dir,
             config=config,
@@ -72,7 +78,7 @@ class WandbCallback(Callback):
         )
 
     def on_update_end(self, callback_data: CallbackData):
-        self.wandb.log(dict(flatdict.FlatDict(callback_data.logs, delimiter="/")))
+        wandb.log(dict(flatdict.FlatDict(callback_data.logs, delimiter="/")))
 
     def on_train_end(self, callback_data: CallbackData):
-        self.wandb.finish()
+        wandb.finish()
