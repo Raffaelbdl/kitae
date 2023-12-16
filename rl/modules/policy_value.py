@@ -60,9 +60,13 @@ class PolicyNormalOutput(PolicyOutput):
 
 
 def policy_output_factory(action_space: spaces.Discrete) -> type[PolicyOutput]:
+    from dx_tabulate import add_representer
+
     if isinstance(action_space, spaces.Discrete):
+        add_representer(dx.Categorical)
         return PolicyCategoricalOutput
     elif isinstance(action_space, spaces.Box):
+        add_representer(dx.Normal)
         return PolicyNormalOutput
     else:
         raise NotImplementedError
