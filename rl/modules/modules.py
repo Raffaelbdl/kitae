@@ -106,17 +106,20 @@ def encoder_factory(
 def init_params(
     key: jax.Array,
     module: nn.Module,
-    input_shape: tuple[int],
+    input_shapes: tuple[int] | list[tuple[int]],
     tabulate: bool,
 ) -> Params:
-    dummy_inputs = jnp.ones((1,) + input_shape)
-    variables = module.init(key, dummy_inputs)
+    if not isinstance(input_shapes, list):
+        input_shapes = [input_shapes]
+
+    dummy_inputs = [jnp.ones((1,) + shape) for shape in input_shapes]
+    variables = module.init(key, *dummy_inputs)
 
     if tabulate:
         tabulate_fn = nn.tabulate(
             module, key, compute_flops=True, compute_vjp_flops=True
         )
-        print(tabulate_fn(dummy_inputs))
+        print(tabulate_fn(*dummy_inputs))
 
     if "params" in variables.keys():
         return variables["params"]
