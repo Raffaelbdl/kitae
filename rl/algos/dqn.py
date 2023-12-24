@@ -53,7 +53,7 @@ def loss_factory(train_state: TrainState) -> Callable:
     return fn
 
 
-# TODO use dx.Epsilon greedy to follow DDPG Policy-Qvalue
+# TODO use dx.Epsilon greedy to follow TD3 Policy-Qvalue
 def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable:
     @jax.jit
     def fn(
