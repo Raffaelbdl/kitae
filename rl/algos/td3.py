@@ -1,4 +1,4 @@
-"""Deep Deterministic Policy Gradient (DDPG)"""
+"""Deep Deterministic Policy Gradient (TD3)"""
 
 from dataclasses import dataclass
 import functools
@@ -11,6 +11,7 @@ from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 import numpy as np
+import optax
 
 from rl.algos.general_fns import fn_parallel
 
@@ -32,8 +33,12 @@ from dx_tabulate import add_distrax_representers
 add_distrax_representers()
 
 
+class TrainState(TrainState):
+    target_params: Params
+
+
 @dataclass
-class DDPGParams(AlgoParams):
+class TD3Params(AlgoParams):
     """
     Deep Deterministic Policy Gradient parameters
     """
@@ -49,15 +54,9 @@ class DDPGParams(AlgoParams):
 
 
 @chex.dataclass
-class ParamsDDPG:
-    params_policy: Params
-    params_qvalue: Params
-    params_target_qvalue: Params
-
-
-class DDPGTrainState(TrainState):
-    policy_fn: Callable = struct.field(pytree_node=False)
-    qvalue_fn: Callable = struct.field(pytree_node=False)
+class TD3TrainState:
+    policy_state: TrainState
+    qvalue_state: TrainState
 
 
 def train_state_ddpg_factory(
@@ -67,9 +66,8 @@ def train_state_ddpg_factory(
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> DDPGTrainState:
+) -> TD3TrainState:
     import flax.linen as nn
-    from optax import adam
     from rl.modules.modules import init_params
 
     key1, key2 = jax.random.split(key)
@@ -83,11 +81,15 @@ def train_state_ddpg_factory(
         def __call__(self, x: jax.Array):
             x = nn.relu(nn.Dense(256)(x))
             x = nn.relu(nn.Dense(256)(x))
-            locs = nn.tanh(nn.Dense(self.num_outputs)(x))
-            return dx.Normal(locs, jnp.ones_like(locs))
+            return nn.tanh(nn.Dense(self.num_outputs)(x))
 
     module_policy = Policy(action_shape[-1])
-    params_policy = init_params(key1, module_policy, observation_shape, tabulate)
+    policy_state = TrainState.create(
+        apply_fn=module_policy.apply,
+        params=init_params(key1, module_policy, observation_shape, tabulate),
+        target_params=init_params(key1, module_policy, observation_shape, False),
+        tx=optax.adam(config.update_cfg.learning_rate),
+    )
 
     class QValue(nn.Module):
         @nn.compact
@@ -101,152 +103,161 @@ def train_state_ddpg_factory(
             return qvalue_fn(x, a), qvalue_fn(x, a)
 
     module_qvalue = QValue()
-    params_qvalue = init_params(
-        key2, module_qvalue, [observation_shape, action_shape], tabulate
-    )
-
-    return DDPGTrainState.create(
-        apply_fn=None,
-        params=ParamsDDPG(
-            params_policy=params_policy,
-            params_qvalue=params_qvalue,
-            params_target_qvalue=params_qvalue,
+    qvalue_state = TrainState.create(
+        apply_fn=module_qvalue.apply,
+        params=init_params(
+            key2, module_qvalue, [observation_shape, action_shape], tabulate
         ),
-        tx=adam(config.update_cfg.learning_rate),
-        policy_fn=module_policy.apply,
-        qvalue_fn=module_qvalue.apply,
+        target_params=init_params(
+            key2, module_qvalue, [observation_shape, action_shape], False
+        ),
+        tx=optax.adam(config.update_cfg.learning_rate),
     )
 
+    return TD3TrainState(policy_state=policy_state, qvalue_state=qvalue_state)
 
-def explore_factory(train_state: DDPGTrainState, algo_params: DDPGParams) -> Callable:
-    @jax.jit
+
+def explore_factory(train_state: TD3TrainState, algo_params: TD3Params) -> Callable:
+    # @jax.jit
     def fn(
-        params: Params,
+        policy_state: TrainState,
         key: jax.Array,
         observations: jax.Array,
         action_noise: float,
     ):
-        locs = train_state.policy_fn({"params": params}, observations).loc
-        dists = dx.Normal(locs, action_noise * jnp.ones_like(locs))
-        outputs = dists.sample_and_log_prob(seed=key)
-        return outputs
+        actions = jax.jit(policy_state.apply_fn)(
+            {"params": policy_state.params}, observations
+        )
+        actions += jax.random.normal(key, actions.shape) * action_noise
+        actions = jnp.clip(actions, -1.0, 1.0)
+        return actions, jnp.zeros_like(actions)
 
     return fn
 
 
 def process_experience_factory(
-    train_state: DDPGTrainState,
-    algo_params: DDPGParams,
+    train_state: TD3TrainState,
+    algo_params: TD3Params,
     vectorized: bool,
     parallel: bool,
 ) -> Callable:
-    def compute_returns(
-        params: ParamsDDPG,
-        key: jax.Array,
-        next_observations: jax.Array,
-        rewards: jax.Array,
-        dones: jax.Array,
-    ) -> jax.Array:
-        next_actions = train_state.policy_fn(
-            {"params": params.params_policy}, next_observations
-        ).loc
-        noise = jnp.clip(
-            dx.Normal(0, algo_params.target_noise_std).sample(
-                seed=key, sample_shape=next_actions.shape
-            ),
-            -algo_params.target_noise_clip,
-            algo_params.target_noise_clip,
-        )
-        next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
-
-        next_q1, next_q2 = train_state.qvalue_fn(
-            {"params": params.params_target_qvalue}, next_observations, next_actions
-        )
-        next_q_min = jnp.minimum(next_q1, next_q2)
-
-        discounts = algo_params.gamma * (1.0 - dones[..., None])
-        return (rewards[..., None] + discounts * next_q_min,)
-
-    # TODO make this part decorator ?
-    returns_fn = compute_returns
-    if vectorized:
-        returns_fn = jax.vmap(returns_fn, in_axes=(None, 1, 1, 1), out_axes=1)
-    if parallel:
-        returns_fn = fn_parallel(returns_fn)
-
     @jax.jit
     def fn(
-        params: ParamsDDPG,
+        policy_state: TrainState,
+        qvalue_state: TrainState,
         key: jax.Array,
         sample: list[OffPolicyExp],
     ):
         stacked = stack_experiences(sample)
+        # stacked = sample
 
-        observations = stacked.observation
-        actions = stacked.action
-        (returns,) = returns_fn(
-            params,
-            key,
-            stacked.next_observation,
+        return (
+            stacked.observation,
+            stacked.action,
             stacked.reward,
             stacked.done,
+            stacked.next_observation,
         )
-
-        return observations, actions, returns
 
     return fn
 
 
-def update_step_factory(
-    train_state: TrainStatePolicyQvalue, config: AlgoConfig
-) -> Callable:
+def update_step_factory(train_state: TD3TrainState, config: AlgoConfig) -> Callable:
+    qvalue_apply = train_state.qvalue_state.apply_fn
+    policy_apply = train_state.policy_state.apply_fn
+
     @jax.jit
-    def update_qvalue_fn(state: DDPGTrainState, batch: tuple[jax.Array]):
-        def loss_fn(params: ParamsDDPG, observations, actions, targets):
-            q1, q2 = train_state.qvalue_fn(
-                {"params": params.params_qvalue}, observations, actions
-            )
+    def update_qvalue_fn(
+        policy_state: TrainState,
+        qvalue_state: TrainState,
+        key: jax.Array,
+        batch: tuple[jax.Array],
+    ):
+        observations, actions, rewards, dones, next_observations = batch
+
+        next_actions = policy_apply(
+            {"params": policy_state.target_params}, next_observations
+        )
+        noise = jnp.clip(
+            jax.random.normal(key, next_actions.shape)
+            * config.algo_params.target_noise_std,
+            -config.algo_params.target_noise_clip,
+            config.algo_params.target_noise_clip,
+        )
+        next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
+
+        next_q1, next_q2 = qvalue_apply(
+            {"params": qvalue_state.target_params}, next_observations, next_actions
+        )
+        next_q_min = jnp.minimum(next_q1, next_q2)
+
+        discounts = config.algo_params.gamma * (1.0 - dones[..., None])
+        targets = rewards[..., None] + discounts * next_q_min
+
+        def loss_fn(params: Params, observations, actions, targets):
+            q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
             loss_q1 = loss_mean_squared_error(q1, targets)
             loss_q2 = loss_mean_squared_error(q2, targets)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
-        observations, actions, targets = batch
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            state.params, observations, actions, targets
+            qvalue_state.params, observations, actions, targets
         )
-        state = state.apply_gradients(grads=grads)
-        return state, loss, info
+        qvalue_state = qvalue_state.apply_gradients(grads=grads)
+
+        return qvalue_state, loss, info
 
     @jax.jit
-    def update_policy_fn(state: DDPGTrainState, batch: tuple[jax.Array]):
-        def loss_fn(params: ParamsDDPG, observations, actions):
-            actions = train_state.policy_fn(
-                {"params": params.params_policy}, observations
-            ).loc
-            qvalues, _ = train_state.qvalue_fn(
-                {"params": state.params.params_qvalue}, observations, actions
+    def update_policy_fn(
+        policy_state: TrainState, qvalue_state: TrainState, batch: tuple[jax.Array]
+    ):
+        def loss_fn(params: Params, observations):
+            actions = policy_apply({"params": params}, observations)
+            qvalues, _ = qvalue_apply(
+                {"params": qvalue_state.params}, observations, actions
             )
             loss = -jnp.mean(qvalues)
             return loss, {"loss_policy": loss}
 
-        observations, actions, _ = batch
+        observations, _, _, _, _ = batch
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            state.params, observations, actions
+            policy_state.params, observations
         )
-        state = state.apply_gradients(grads=grads)
-        return state, loss, info
+        policy_state = policy_state.apply_gradients(grads=grads)
+
+        policy_state = policy_state.replace(
+            target_params=optax.incremental_update(
+                policy_state.params,
+                policy_state.target_params,
+                config.algo_params.tau,
+            )
+        )
+        qvalue_state = qvalue_state.replace(
+            target_params=optax.incremental_update(
+                qvalue_state.params,
+                qvalue_state.target_params,
+                config.algo_params.tau,
+            )
+        )
+
+        return (policy_state, qvalue_state), loss, info
 
     def update_step_fn(
-        state: DDPGTrainState,
+        policy_state: TrainState,
+        qvalue_state: TrainState,
         key: jax.Array,
         batch: tuple[jax.Array],
         step: int,
     ):
-        state, loss_qvalue, info_qvalue = update_qvalue_fn(state, batch)
+        qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
+            policy_state, qvalue_state, key, batch
+        )
 
         if step % config.algo_params.policy_update_frequency == 0:
-            state, loss_policy, info_policy = update_policy_fn(state, batch)
+            (policy_state, qvalue_state), loss_policy, info_policy = update_policy_fn(
+                policy_state, qvalue_state, batch
+            )
         else:
             loss_policy = 0.0
             info_policy = {}
@@ -254,20 +265,14 @@ def update_step_factory(
         info = info_qvalue | info_policy
         info["total_loss"] = loss_qvalue + loss_policy
 
-        state.params.params_target_qvalue = jax.tree_map(
-            lambda p, t: (1 - config.algo_params.tau) * t + config.algo_params.tau * p,
-            state.params.params_qvalue,
-            state.params.params_target_qvalue,
-        )
-
-        return state, info
+        return qvalue_state, policy_state, info
 
     return update_step_fn
 
 
-class DDPG(Base):
+class TD3(Base):
     """
-    Deep Deterministic Policy Gradient (DDPG)
+    Deep Deterministic Policy Gradient (TD3)
     Paper : https://arxiv.org/abs/1509.02971
     """
 
@@ -291,6 +296,7 @@ class DDPG(Base):
             run_name=run_name,
             tabulate=tabulate,
         )
+        self.step = 0
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (
@@ -299,9 +305,7 @@ class DDPG(Base):
             else self.nextkey()
         )
 
-        action, zeros = self.explore_fn(
-            self.state.params.params_policy, keys, observation, 0.0
-        )
+        action, zeros = self.explore_fn(self.state.policy_state, keys, observation, 0.0)
         return action, zeros
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
@@ -312,11 +316,16 @@ class DDPG(Base):
         )
 
         action, log_prob = self.explore_fn(
-            self.state.params.params_policy,
+            self.state.policy_state,
             keys,
             observation,
             self.algo_params.action_noise,
         )
+        if self.step < self.algo_params.start_step:
+            action = jax.random.uniform(
+                self.nextkey(), action.shape, minval=-1.0, maxval=1.0
+            )
+            log_prob = jnp.zeros_like(action)
         return action, log_prob
 
     def should_update(self, step: int, buffer: Buffer) -> bool:
@@ -328,10 +337,14 @@ class DDPG(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: TrainStatePolicyQvalue, key: jax.Array, sample: tuple):
+        def fn(state: TD3TrainState, key: jax.Array, sample: tuple):
             key1, key2 = jax.random.split(key)
-            experiences = self.process_experience_fn(state.params, key1, sample)
-            state, info = self.update_step_fn(state, key2, experiences, self.step)
+            experiences = self.process_experience_fn(
+                state.policy_state, state.qvalue_state, key1, sample
+            )
+            state.qvalue_state, state.policy_state, info = self.update_step_fn(
+                state.policy_state, state.qvalue_state, key2, experiences, self.step
+            )
             return state, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)

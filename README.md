@@ -69,7 +69,7 @@ Current roadmap to reach V0.1.0 :
 - [ ] Implement other algorithms
     - [ ] PPO in continous action space
     - [ ] SAC
-    - [ ] DDPG
+    - [ ] TD3
 - [x] Automate the multi-agents versions of every algorithms
 - [ ] Move the populations to another library
 - [ ] Benchmark the performance of the algorithms
