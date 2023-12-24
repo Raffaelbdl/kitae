@@ -53,10 +53,8 @@ def loss_factory(train_state: TrainState) -> Callable:
     return fn
 
 
-def explore_factory(
-    train_state: TrainState,
-    algo_params: DQNParams,
-) -> Callable:
+# TODO use dx.Epsilon greedy to follow TD3 Policy-Qvalue
+def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable:
     @jax.jit
     def fn(
         params: Params, key: jax.Array, observations: jax.Array, exploration: float
@@ -169,7 +167,7 @@ class DQN(Base):
         )
         return action, zeros
 
-    def explore(self, observation: jax.Array) -> jax.Array:
+    def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (
             {a: self.nextkey() for a in observation.keys()}
             if self.parallel
