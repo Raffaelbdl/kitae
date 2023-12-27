@@ -15,7 +15,7 @@ from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import GymEnv, EnvPoolEnv
 
-from rl.buffer import OnPolicyBuffer, OnPolicyExp, stack_experiences
+from rl.buffer import OnPolicyBuffer, Experience, stack_experiences
 from rl.distribution import get_log_probs
 from rl.loss import loss_policy_ppo, loss_value_clip
 from rl.modules.policy_value import train_state_policy_value_factory
@@ -100,29 +100,28 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: TrainStatePolicyValue,
-    algo_params: PPOParams,
-    vectorized: bool,
-    parallel: bool,
+    train_state: TrainStatePolicyValue, algo_params: PPOParams
 ):
-    def compute_values_gaes(
-        params: ParamsPolicyValue,
-        observations: jax.Array,
-        next_observations: jax.Array,
-        dones: jax.Array,
-        rewards: jax.Array,
-    ) -> jax.Array:
-        all_obs = jnp.concatenate([observations, next_observations[-1:]], axis=0)
-        all_hiddens = train_state.encoder_fn({"params": params.params_encoder}, all_obs)
-        all_values = train_state.value_fn({"params": params.params_value}, all_hiddens)
+    encoder_apply = train_state.encoder_fn
+    value_apply = train_state.value_fn
+
+    @jax.jit
+    def fn(ppo_state: TrainStatePolicyValue, key: jax.Array, experience: Experience):
+        all_obs = jnp.concatenate(
+            [experience.observation, experience.next_observation[-1:]], axis=0
+        )
+        all_hiddens = encoder_apply(
+            {"params": ppo_state.params.params_encoder}, all_obs
+        )
+        all_values = value_apply({"params": ppo_state.params.params_value}, all_hiddens)
 
         values = all_values[:-1]
         next_values = all_values[1:]
 
-        not_dones = 1.0 - dones[..., None]
+        not_dones = 1.0 - experience.done[..., None]
         discounts = algo_params.gamma * not_dones
 
-        rewards = rewards[..., None]
+        rewards = experience.reward[..., None]
         gaes, targets = calculate_gaes_targets(
             values,
             next_values,
@@ -132,27 +131,14 @@ def process_experience_factory(
             algo_params.normalize,
         )
 
-        return gaes, targets, values
-
-    gaes_fn = compute_values_gaes
-    if vectorized:
-        gaes_fn = jax.vmap(gaes_fn, in_axes=(None, 1, 1, 1, 1), out_axes=1)
-    if parallel:
-        gaes_fn = fn_parallel(gaes_fn)
-
-    @jax.jit
-    def fn(params: ParamsPolicyValue, sample: list[OnPolicyExp]):
-        stacked = stack_experiences(sample)
-
-        observations = stacked.observation
-        gaes, targets, values = gaes_fn(
-            params, observations, stacked.next_observation, stacked.done, stacked.reward
+        return (
+            experience.observation,
+            experience.action,
+            experience.log_prob,
+            gaes,
+            targets,
+            values,
         )
-
-        actions = stacked.action
-        log_probs = stacked.log_prob
-
-        return observations, actions, log_probs, gaes, targets, values
 
     return fn
 
@@ -241,7 +227,7 @@ class PPO(Base):
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
         def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state.params, sample)
+            experiences = self.process_experience_fn(state, key, sample)
 
             loss = 0.0
             for epoch in range(self.config.update_cfg.n_epochs):

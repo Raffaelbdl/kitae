@@ -5,43 +5,30 @@ import functools
 from typing import Callable
 
 import chex
-import distrax as dx
-import flax.struct as struct
-from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-
-from rl.algos.general_fns import fn_parallel
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Array, Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import Buffer, OffPolicyBuffer, OffPolicyExp, stack_experiences
+from rl.buffer import Buffer, OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
-from rl.modules.qvalue import (
-    TrainStatePolicyQvalue,
-    ParamsPolicyQValue,
-)
+
 from rl.train import train
-
-from dx_tabulate import add_distrax_representers
-
-add_distrax_representers()
+from rl.timesteps import compute_td_targets
 
 
-class TrainState(TrainState):
-    target_params: Params
+from rl.modules.modules import TrainState
+from rl.modules.policy import PolicyNormalExternalStd
 
 
 @dataclass
 class TD3Params(AlgoParams):
-    """
-    Deep Deterministic Policy Gradient parameters
-    """
+    """TD3 parameters"""
 
     gamma: float
     skip_steps: int
@@ -68,39 +55,50 @@ def train_state_ddpg_factory(
     tabulate: bool = False,
 ) -> TD3TrainState:
     import flax.linen as nn
+    from rl.modules.encoder import encoder_factory
     from rl.modules.modules import init_params
 
     key1, key2 = jax.random.split(key)
     observation_shape = config.env_cfg.observation_space.shape
     action_shape = config.env_cfg.action_space.shape
+    action_scale = (
+        config.env_cfg.action_space.high - config.env_cfg.action_space.low
+    ) / 2.0
+    action_bias = (
+        config.env_cfg.action_space.high + config.env_cfg.action_space.low
+    ) / 2.0
 
     class Policy(nn.Module):
-        num_outputs: int
+        def setup(self) -> None:
+            self.encoder = encoder_factory(config.env_cfg.observation_space)()
+            self.output = PolicyNormalExternalStd(
+                action_shape[-1], action_scale, action_bias
+            )
 
-        @nn.compact
-        def __call__(self, x: jax.Array):
-            x = nn.relu(nn.Dense(256)(x))
-            x = nn.relu(nn.Dense(256)(x))
-            return nn.tanh(nn.Dense(self.num_outputs)(x))
+        def __call__(self, x: jax.Array, policy_noise: float):
+            return self.output(self.encoder(x), policy_noise)
 
-    module_policy = Policy(action_shape[-1])
+    module_policy = Policy()
     policy_state = TrainState.create(
         apply_fn=module_policy.apply,
-        params=init_params(key1, module_policy, observation_shape, tabulate),
-        target_params=init_params(key1, module_policy, observation_shape, False),
+        params=init_params(key1, module_policy, [observation_shape, ()], tabulate),
+        target_params=init_params(key1, module_policy, [observation_shape, ()], False),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    class QValue(nn.Module):
-        @nn.compact
-        def __call__(self, x: jax.Array, a: jax.Array):
-            def qvalue_fn(x, a):
-                x = jnp.concatenate([x, a], axis=-1)
-                x = nn.relu(nn.Dense(256)(x))
-                x = nn.relu(nn.Dense(256)(x))
-                return nn.Dense(1)(x)
+    from rl.modules.qvalue import qvalue_factory
 
-            return qvalue_fn(x, a), qvalue_fn(x, a)
+    class QValue(nn.Module):
+        def setup(self) -> None:
+            self.q1 = qvalue_factory(
+                config.env_cfg.observation_space, config.env_cfg.action_space
+            )()
+            self.q2 = qvalue_factory(
+                config.env_cfg.observation_space, config.env_cfg.action_space
+            )()
+
+        def __call__(self, x: jax.Array, a: jax.Array):
+            return self.q1(x, a), self.q2(x, a)
 
     module_qvalue = QValue()
     qvalue_state = TrainState.create(
@@ -118,46 +116,58 @@ def train_state_ddpg_factory(
 
 
 def explore_factory(train_state: TD3TrainState, algo_params: TD3Params) -> Callable:
-    # @jax.jit
+    policy_apply = train_state.policy_state.apply_fn
+
+    @jax.jit
     def fn(
         policy_state: TrainState,
         key: jax.Array,
         observations: jax.Array,
         action_noise: float,
     ):
-        actions = jax.jit(policy_state.apply_fn)(
-            {"params": policy_state.params}, observations
-        )
-        actions += jax.random.normal(key, actions.shape) * action_noise
+        actions, log_probs = policy_apply(
+            {"params": policy_state.params}, observations, action_noise
+        ).sample_and_log_prob(seed=key)
+        # actions += jax.random.normal(key, actions.shape) * action_noise
         actions = jnp.clip(actions, -1.0, 1.0)
-        return actions, jnp.zeros_like(actions)
+        return actions, log_probs
 
     return fn
 
 
 def process_experience_factory(
-    train_state: TD3TrainState,
-    algo_params: TD3Params,
-    vectorized: bool,
-    parallel: bool,
+    train_state: TD3TrainState, algo_params: TD3Params
 ) -> Callable:
-    @jax.jit
-    def fn(
-        policy_state: TrainState,
-        qvalue_state: TrainState,
-        key: jax.Array,
-        sample: list[OffPolicyExp],
-    ):
-        stacked = stack_experiences(sample)
-        # stacked = sample
+    policy_apply = train_state.policy_state.apply_fn
+    qvalue_apply = train_state.qvalue_state.apply_fn
 
-        return (
-            stacked.observation,
-            stacked.action,
-            stacked.reward,
-            stacked.done,
-            stacked.next_observation,
+    @jax.jit
+    def fn(td3_state: TD3TrainState, key: jax.Array, experience: Experience):
+        next_actions = policy_apply(
+            {"params": td3_state.policy_state.target_params},
+            experience.next_observation,
+            0.0,
+        ).sample(seed=0)
+        noise = jnp.clip(
+            jax.random.normal(key, next_actions.shape) * algo_params.target_noise_std,
+            -algo_params.target_noise_clip,
+            algo_params.target_noise_clip,
         )
+        next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
+
+        next_q1, next_q2 = qvalue_apply(
+            {"params": td3_state.qvalue_state.target_params},
+            experience.next_observation,
+            next_actions,
+        )
+        next_q_min = jnp.minimum(next_q1, next_q2)
+
+        discounts = algo_params.gamma * (1.0 - experience.done[..., None])
+        targets = compute_td_targets(
+            experience.reward[..., None], discounts, next_q_min
+        )
+
+        return (experience.observation, experience.action, targets)
 
     return fn
 
@@ -167,32 +177,8 @@ def update_step_factory(train_state: TD3TrainState, config: AlgoConfig) -> Calla
     policy_apply = train_state.policy_state.apply_fn
 
     @jax.jit
-    def update_qvalue_fn(
-        policy_state: TrainState,
-        qvalue_state: TrainState,
-        key: jax.Array,
-        batch: tuple[jax.Array],
-    ):
-        observations, actions, rewards, dones, next_observations = batch
-
-        next_actions = policy_apply(
-            {"params": policy_state.target_params}, next_observations
-        )
-        noise = jnp.clip(
-            jax.random.normal(key, next_actions.shape)
-            * config.algo_params.target_noise_std,
-            -config.algo_params.target_noise_clip,
-            config.algo_params.target_noise_clip,
-        )
-        next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
-
-        next_q1, next_q2 = qvalue_apply(
-            {"params": qvalue_state.target_params}, next_observations, next_actions
-        )
-        next_q_min = jnp.minimum(next_q1, next_q2)
-
-        discounts = config.algo_params.gamma * (1.0 - dones[..., None])
-        targets = rewards[..., None] + discounts * next_q_min
+    def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
+        observations, actions, targets = batch
 
         def loss_fn(params: Params, observations, actions, targets):
             q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
@@ -213,14 +199,14 @@ def update_step_factory(train_state: TD3TrainState, config: AlgoConfig) -> Calla
         policy_state: TrainState, qvalue_state: TrainState, batch: tuple[jax.Array]
     ):
         def loss_fn(params: Params, observations):
-            actions = policy_apply({"params": params}, observations)
+            actions = policy_apply({"params": params}, observations, 0.0).sample(seed=0)
             qvalues, _ = qvalue_apply(
                 {"params": qvalue_state.params}, observations, actions
             )
             loss = -jnp.mean(qvalues)
             return loss, {"loss_policy": loss}
 
-        observations, _, _, _, _ = batch
+        observations, _, _ = batch
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params, observations
         )
@@ -246,13 +232,10 @@ def update_step_factory(train_state: TD3TrainState, config: AlgoConfig) -> Calla
     def update_step_fn(
         policy_state: TrainState,
         qvalue_state: TrainState,
-        key: jax.Array,
         batch: tuple[jax.Array],
         step: int,
     ):
-        qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
-            policy_state, qvalue_state, key, batch
-        )
+        qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(qvalue_state, batch)
 
         if step % config.algo_params.policy_update_frequency == 0:
             (policy_state, qvalue_state), loss_policy, info_policy = update_policy_fn(
@@ -338,12 +321,9 @@ class TD3(Base):
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: TD3TrainState, key: jax.Array, sample: tuple):
-            key1, key2 = jax.random.split(key)
-            experiences = self.process_experience_fn(
-                state.policy_state, state.qvalue_state, key1, sample
-            )
+            experiences = self.process_experience_fn(state, key, sample)
             state.qvalue_state, state.policy_state, info = self.update_step_fn(
-                state.policy_state, state.qvalue_state, key2, experiences, self.step
+                state.policy_state, state.qvalue_state, experiences, self.step
             )
             return state, info
 
