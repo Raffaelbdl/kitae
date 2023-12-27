@@ -8,18 +8,19 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl.algos.general_fns import fn_parallel
-
 from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.buffer import OnPolicyBuffer, Experience
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import GymEnv, EnvPoolEnv
 
-from rl.buffer import OnPolicyBuffer, Experience, stack_experiences
 from rl.distribution import get_log_probs
 from rl.loss import loss_policy_ppo, loss_value_clip
-from rl.modules.policy_value import train_state_policy_value_factory
-from rl.modules.policy_value import TrainStatePolicyValue, ParamsPolicyValue
+from rl.modules.policy_value import (
+    train_state_policy_value_factory,
+    TrainStatePolicyValue,
+    ParamsPolicyValue,
+)
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
 
@@ -46,52 +47,18 @@ class PPOParams(AlgoParams):
     normalize: bool
 
 
-def loss_factory(
-    train_state: TrainStatePolicyValue,
-    clip_eps: float,
-    entropy_coef: float,
-    value_coef: float,
-) -> Callable:
-    @jax.jit
-    def fn(params: ParamsPolicyValue, batch: tuple[jax.Array]) -> tuple[float, dict]:
-        observations, actions, log_probs_old, gaes, targets, values_old = batch
-        hiddens = train_state.encoder_fn(
-            {"params": params.params_encoder}, observations
-        )
-
-        dists: dx.Categorical = train_state.policy_fn(
-            {"params": params.params_policy}, hiddens
-        )
-        log_probs, log_probs_old = get_log_probs(dists, actions, log_probs_old)
-
-        loss_policy, info_policy = loss_policy_ppo(
-            dists, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
-        )
-
-        values = train_state.value_fn({"params": params.params_value}, hiddens)
-        loss_value, info_value = loss_value_clip(values, targets, values_old, clip_eps)
-
-        loss = loss_policy + value_coef * loss_value
-        info = info_policy | info_value
-        info["total_loss"] = loss
-
-        return loss, info
-
-    return fn
-
-
 def explore_factory(
-    train_state: TrainStatePolicyValue,
-    algo_params: PPOParams,
+    train_state: TrainStatePolicyValue, algo_params: PPOParams
 ) -> Callable:
+    encoder_apply = train_state.encoder_fn
+    policy_apply = train_state.policy_fn
+
     @jax.jit
     def fn(
         params: ParamsPolicyValue, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
-        hiddens = train_state.encoder_fn(
-            {"params": params.params_encoder}, observations
-        )
-        dists = train_state.policy_fn({"params": params.params_policy}, hiddens)
+        hiddens = encoder_apply({"params": params.params_encoder}, observations)
+        dists = policy_apply({"params": params.params_policy}, hiddens)
         outputs = dists.sample_and_log_prob(seed=key)
 
         return outputs
@@ -144,12 +111,37 @@ def process_experience_factory(
 
 
 def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
-    loss_fn = loss_factory(
-        train_state,
-        config.algo_params.clip_eps,
-        config.algo_params.entropy_coef,
-        config.algo_params.value_coef,
-    )
+    encoder_apply = train_state.encoder_fn
+    policy_apply = train_state.policy_fn
+    value_apply = train_state.value_fn
+
+    def loss_fn(
+        params: ParamsPolicyValue, batch: tuple[jax.Array]
+    ) -> tuple[float, dict]:
+        observations, actions, log_probs_old, gaes, targets, values_old = batch
+        hiddens = encoder_apply({"params": params.params_encoder}, observations)
+
+        dists = policy_apply({"params": params.params_policy}, hiddens)
+        log_probs, log_probs_old = get_log_probs(dists, actions, log_probs_old)
+        loss_policy, info_policy = loss_policy_ppo(
+            dists,
+            log_probs,
+            log_probs_old,
+            gaes,
+            config.algo_params.clip_eps,
+            config.algo_params.entropy_coef,
+        )
+
+        values = value_apply({"params": params.params_value}, hiddens)
+        loss_value, info_value = loss_value_clip(
+            values, targets, values_old, config.algo_params.clip_eps
+        )
+
+        loss = loss_policy + config.algo_params.value_coef * loss_value
+        info = info_policy | info_value
+        info["total_loss"] = loss
+
+        return loss, info
 
     @jax.jit
     def fn(state: TrainStatePolicyValue, key: jax.Array, experiences: tuple[jax.Array]):
