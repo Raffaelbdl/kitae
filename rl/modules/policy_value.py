@@ -13,61 +13,22 @@ import ml_collections
 import optax
 
 from rl.config import AlgoConfig
-from rl.modules.modules import init_params, encoder_factory, PassThrough
+from rl.modules.modules import init_params, PassThrough
+from rl.modules.encoder import encoder_factory
 from rl.modules.optimizer import linear_learning_rate_schedule
 
 from rl.types import Params
+from dx_tabulate import add_representer
+from rl.modules.policy import Policy, PolicyCategorical, PolicyNormal
 
 
-class PolicyOutput(nn.Module):
-    num_outputs: int
-
-    @nn.compact
-    def __call__(self, x: jax.Array) -> dx.Distribution:
-        ...
-
-
-class PolicyCategoricalOutput(PolicyOutput):
-    num_outputs: int
-
-    @nn.compact
-    def __call__(self, x: jax.Array) -> dx.Distribution:
-        logits = nn.Dense(
-            features=self.num_outputs,
-            kernel_init=nn.initializers.orthogonal(0.01),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-
-        return dx.Categorical(logits)
-
-
-class PolicyNormalOutput(PolicyOutput):
-    num_outputs: int
-
-    @nn.compact
-    def __call__(self, x: jax.Array) -> dx.Distribution:
-        loc = nn.Dense(
-            features=self.num_outputs,
-            kernel_init=nn.initializers.orthogonal(0.01),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-        log_scale = jnp.broadcast_to(
-            self.param("log_std", nn.initializers.zeros, (1, self.num_outputs)),
-            loc.shape,
-        )
-
-        return dx.Normal(loc, jnp.exp(log_scale))
-
-
-def policy_output_factory(action_space: spaces.Discrete) -> type[PolicyOutput]:
-    from dx_tabulate import add_representer
-
+def policy_output_factory(action_space: spaces.Discrete) -> type[Policy]:
     if isinstance(action_space, spaces.Discrete):
         add_representer(dx.Categorical)
-        return PolicyCategoricalOutput
+        return PolicyCategorical
     elif isinstance(action_space, spaces.Box):
         add_representer(dx.Normal)
-        return PolicyNormalOutput
+        return PolicyNormal
     else:
         raise NotImplementedError
 
