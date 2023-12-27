@@ -2,7 +2,7 @@ import jax
 import numpy as np
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import OnPolicyBuffer, OnPolicyExp, OffPolicyBuffer
+from rl.buffer import OnPolicyBuffer, Experience, OffPolicyBuffer
 from rl.save import Saver, SaverContext
 
 from rl.types import EnvLike
@@ -185,7 +185,7 @@ def train(
                 next_observation, info = termination
 
             buffer.add(
-                OnPolicyExp(
+                Experience(
                     observation=observation,
                     action=action,
                     reward=reward,
@@ -350,7 +350,7 @@ def train_population(
                 next_observations.append(next_observation)
 
                 buffers[i].add(
-                    OnPolicyExp(
+                    Experience(
                         observation=observations[i],
                         action=actions[i],
                         reward=reward,

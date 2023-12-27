@@ -5,15 +5,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-
-OffPolicyExp = namedtuple(
-    "OffPolicyExp", ["observation", "action", "reward", "done", "next_observation"]
-)
-OnPolicyExp = namedtuple(
-    "OnPolicyExp",
+Experience = namedtuple(
+    "Experience",
     ["observation", "action", "reward", "done", "next_observation", "log_prob"],
 )
-Experience = OffPolicyExp | OnPolicyExp
 
 
 def array_of_name(experiences: list[Experience], name: str) -> np.ndarray:
@@ -47,11 +42,11 @@ class OffPolicyBuffer(Buffer):
         Buffer.__init__(self, seed=seed, max_buffer_size=max_buffer_size)
 
         if max_buffer_size > 0:
-            self.buffer: deque[OffPolicyExp] = deque(maxlen=max_buffer_size)
+            self.buffer: deque[Experience] = deque(maxlen=max_buffer_size)
         else:
-            self.buffer: list[OffPolicyExp] = []
+            self.buffer: list[Experience] = []
 
-    def sample(self, batch_size: int) -> list[OffPolicyExp]:
+    def sample(self, batch_size: int) -> list[Experience]:
         indices = self.rng.permutation(len(self.buffer))[:batch_size]
         return [self.buffer[i] for i in indices]
 
@@ -62,6 +57,6 @@ class OnPolicyBuffer(Buffer):
 
         self.buffer = []
 
-    def sample(self, batch_size: int) -> list[OnPolicyExp]:
+    def sample(self, batch_size: int) -> list[Experience]:
         sample, self.buffer = self.buffer, []
         return sample
