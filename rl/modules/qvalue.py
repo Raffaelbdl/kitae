@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Type
 
 import chex
 import distrax as dx
@@ -13,9 +13,10 @@ import ml_collections
 import optax
 
 from rl.config import AlgoConfig
-from rl.modules.modules import init_params, encoder_factory, PassThrough
+from rl.modules.modules import init_params, PassThrough
+from rl.modules.encoder import encoder_factory
 from rl.modules.optimizer import linear_learning_rate_schedule
-from rl.modules.policy import PolicyStandardNormalOutput
+from rl.modules.policy import PolicyNormalExternalStd
 from rl.types import Params
 
 
@@ -32,6 +33,8 @@ class QValueDiscreteOutput(nn.Module):
 
 
 class QValueContinousOutput(nn.Module):
+    observation_space: spaces.Space
+
     @nn.compact
     def __call__(self, x: jax.Array, a: jax.Array):
         x = jnp.concatenate([x, a], axis=-1)
@@ -171,14 +174,22 @@ def create_policy_q_modules(
         return QModules(
             encoder=encoder(),
             qvalue=DoubleQValueContinuousOutput(),
-            policy=PolicyStandardNormalOutput(action_space.shape[-1]),
+            policy=PolicyNormalExternalStd(
+                action_space.shape[-1],
+                (action_space.high - action_space.low) / 2.0,
+                (action_space.high + action_space.low) / 2.0,
+            ),
         )
 
     class Policy(nn.Module):
         @nn.compact
         def __call__(self, x: jax.Array):
             x = encoder()(x)
-            return PolicyStandardNormalOutput(action_space.shape[-1])(x)
+            return PolicyNormalExternalStd(
+                action_space.shape[-1],
+                (action_space.high - action_space.low) / 2.0,
+                (action_space.high + action_space.low) / 2.0,
+            )(x)
 
     class QValue(nn.Module):
         @nn.compact
@@ -299,3 +310,53 @@ def train_state_policy_qvalue_factory(
         modules, params, config, n_envs=config.env_cfg.n_envs * config.env_cfg.n_agents
     )
     return state
+
+
+def qvalue_factory(
+    observation_space: spaces.Space,
+    action_space: spaces.Space,
+    *,
+    rearrange_pattern: str = "b h w c -> b h w c",
+    preprocess_fn: Callable = None,
+) -> Type[nn.Module]:
+    encoder = encoder_factory(
+        observation_space,
+        rearrange_pattern=rearrange_pattern,
+        preprocess_fn=preprocess_fn,
+    )
+
+    if isinstance(action_space, spaces.Discrete):
+
+        class QValue(nn.Module):
+            def setup(self) -> None:
+                self.encoder = encoder()
+
+            @nn.compact
+            def __call__(self, x: jax.Array) -> jax.Array:
+                x = self.encoder(x)
+                return nn.Dense(action_space.n)(x)
+
+    elif isinstance(action_space, spaces.Box):
+
+        class QValue(nn.Module):
+            def setup(self) -> None:
+                self.encoder = encoder()
+
+            @nn.compact
+            def __call__(self, x: jax.Array, a: jax.Array) -> jax.Array:
+                if len(observation_space.shape) == 1:
+                    x = self.encoder(jnp.concatenate([x, a], axis=-1))
+
+                elif len(observation_space.shape) == 3:
+                    x = self.encoder(x)
+                    x = jnp.concatenate([x, a], axis=-1)
+
+                else:
+                    raise NotImplementedError
+
+                return nn.Dense(1)(x)
+
+    else:
+        raise NotImplementedError
+
+    return QValue
