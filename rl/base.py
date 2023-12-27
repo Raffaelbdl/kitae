@@ -111,8 +111,6 @@ class Base(ABC, Seeded):
             process_experience_factory(
                 self.state,
                 self.config.algo_params,
-                self.vectorized,
-                self.parallel,
             ),
             self.vectorized,
             self.parallel,
