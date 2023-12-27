@@ -47,3 +47,11 @@ def calculate_gaes_targets(
         gaes = gaes - jnp.mean(gaes) / (jnp.std(gaes) + 1e-8)
 
     return gaes, targets
+
+
+def compute_td_targets(
+    rewards: jax.Array, discounts: jax.Array, next_values: jax.Array
+):
+    chex.assert_equal_shape([rewards, discounts, next_values])
+    chex.assert_rank([rewards, discounts, next_values], 2)
+    return rewards + discounts * next_values
