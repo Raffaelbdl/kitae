@@ -128,7 +128,6 @@ def explore_factory(train_state: TD3TrainState, algo_params: TD3Params) -> Calla
         actions, log_probs = policy_apply(
             {"params": policy_state.params}, observations, action_noise
         ).sample_and_log_prob(seed=key)
-        # actions += jax.random.normal(key, actions.shape) * action_noise
         actions = jnp.clip(actions, -1.0, 1.0)
         return actions, log_probs
 
