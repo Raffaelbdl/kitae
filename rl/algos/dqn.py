@@ -1,8 +1,11 @@
 """Deep Q-Network (DQN)"""
 
 from dataclasses import dataclass
+import functools
 from typing import Callable
 
+import chex
+import distrax as dx
 from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
@@ -15,10 +18,11 @@ from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import OffPolicyBuffer, OffPolicyExp, stack_experiences
+from rl.buffer import OffPolicyBuffer, Experience, stack_experiences
 from rl.loss import loss_mean_squared_error
 from rl.modules.qvalue import train_state_qvalue_factory
 from rl.train import train
+from rl.timesteps import compute_td_targets
 
 
 NO_EXPLORATION = 0.0
@@ -53,62 +57,40 @@ def loss_factory(train_state: TrainState) -> Callable:
     return fn
 
 
-# TODO use dx.Epsilon greedy to follow TD3 Policy-Qvalue
 def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable:
     @jax.jit
     def fn(
         params: Params, key: jax.Array, observations: jax.Array, exploration: float
     ) -> jax.Array:
         all_qvalues = train_state.apply_fn({"params": params}, observations)
-        greedy_action = jnp.argmax(all_qvalues, axis=-1)
-        key1, key2 = jax.random.split(key)
-        eps = jax.random.uniform(key1, greedy_action.shape)
-        random_action = jax.random.randint(
-            key2, greedy_action.shape, 0, all_qvalues.shape[-1]
-        )
+        actions, log_probs = dx.EpsilonGreedy(
+            all_qvalues, exploration
+        ).sample_and_log_prob(seed=key)
 
-        actions = jnp.where(eps <= exploration, random_action, greedy_action)
-
-        return actions, jnp.zeros_like(actions)
+        return actions, log_probs
 
     return fn
 
 
 def process_experience_factory(
-    train_state: TrainState,
-    algo_params: DQNParams,
-    vectorized: bool,
-    parallel: bool,
+    train_state: TrainState, algo_params: DQNParams
 ) -> Callable:
-    def compute_returns(
-        params: Params,
-        next_observations: jax.Array,
-        rewards: jax.Array,
-        dones: jax.Array,
-    ) -> jax.Array:
-        all_next_qvalues = train_state.apply_fn({"params": params}, next_observations)
-        next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
-
-        discounts = algo_params.gamma * (1.0 - dones[..., None])
-        return (rewards[..., None] + discounts * next_qvalues,)
-
-    returns_fn = compute_returns
-    if vectorized:
-        returns_fn = jax.vmap(returns_fn, in_axes=(None, 1, 1, 1), out_axes=1)
-    if parallel:
-        returns_fn = fn_parallel(returns_fn)
+    qvalue_apply = train_state.apply_fn
 
     @jax.jit
-    def fn(params: Params, sample: list[OffPolicyExp]):
-        stacked = stack_experiences(sample)
-
-        observations = stacked.observation
-        actions = jax.tree_map(lambda x: x[..., None], stacked.action)
-        (returns,) = returns_fn(
-            params, stacked.next_observation, stacked.reward, stacked.done
+    def fn(dqn_state: TrainState, key: jax.Array, experience: Experience):
+        all_next_qvalues = qvalue_apply(
+            {"params": dqn_state.params}, experience.next_observation
         )
+        next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
-        return observations, actions, returns
+        discounts = algo_params.gamma * (1.0 - experience.done[..., None])
+        returns = compute_td_targets(
+            experience.reward[..., None], discounts, next_qvalues
+        )
+        actions = experience.action[..., None]
+
+        return experience.observation, actions, returns
 
     return fn
 
@@ -180,7 +162,7 @@ class DQN(Base):
             observation,
             exploration=self.algo_params.exploration,
         )
-        return action, zeros
+        return jax.device_get(action), zeros
 
     def should_update(self, step: int, buffer: OffPolicyBuffer) -> bool:
         return (
@@ -190,8 +172,9 @@ class DQN(Base):
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: TrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state.params, sample)
-            state, loss, info = self.update_step_fn(state, key, experiences)
+            key1, key2 = jax.random.split(key, 2)
+            experiences = self.process_experience_fn(state, key1, sample)
+            state, loss, info = self.update_step_fn(state, key2, experiences)
             return state, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)

@@ -4,12 +4,35 @@ from typing import Callable, Type
 import distrax as dx
 from einops import rearrange
 from flax import linen as nn
+from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
 from jax import numpy as jnp
 import numpy as np
 
 from rl.types import Params
+
+
+class TrainState(TrainState):
+    target_params: Params
+
+
+class PassThrough(nn.Module):
+    @nn.compact
+    def __call__(self, x: jax.Array):
+        return x
+
+
+class MLP(nn.Module):
+    layers: list[int]
+    activation: Callable
+    final_activation: Callable
+
+    @nn.compact
+    def __call__(self, x: jax.Array) -> jax.Array:
+        for l in self.layers[:-1]:
+            x = self.activation(nn.Dense(l)(x))
+        return self.final_activation(nn.Dense(self.layers[-1])(x))
 
 
 def conv_layer(
@@ -27,80 +50,6 @@ def conv_layer(
         kernel_init=nn.initializers.orthogonal(kernel_init_std),
         bias_init=nn.initializers.constant(bias_init_cst),
     )
-
-
-class VisionEncoder(nn.Module):
-    rearrange_pattern: str
-    preprocess_fn: Callable
-
-    @nn.compact
-    def __call__(self, x: jax.Array):
-        x = x.astype(jnp.float32)
-        x = rearrange(x, self.rearrange_pattern)
-        if self.preprocess_fn is not None:
-            x = self.preprocess_fn(x)
-
-        x = conv_layer(32, 8, 4)(x)
-        x = nn.relu(x)
-        x = conv_layer(64, 4, 2)(x)
-        x = nn.relu(x)
-        x = conv_layer(64, 3, 1)(x)
-        x = nn.relu(x)
-
-        x = jnp.reshape(x, (x.shape[0], -1))
-        x = nn.Dense(
-            features=512,
-            kernel_init=nn.initializers.orthogonal(2.0),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-        return nn.relu(x)
-
-
-class VectorEncoder(nn.Module):
-    preprocess_fn: Callable
-
-    @nn.compact
-    def __call__(self, x: jax.Array):
-        x = x.astype(jnp.float32)
-        if self.preprocess_fn is not None:
-            x = self.preprocess_fn(x)
-
-        x = nn.Dense(
-            features=64,
-            kernel_init=nn.initializers.orthogonal(np.sqrt(2.0)),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-        x = nn.tanh(x)
-        x = nn.Dense(
-            features=64,
-            kernel_init=nn.initializers.orthogonal(np.sqrt(2.0)),
-            bias_init=nn.initializers.constant(0.0),
-        )(x)
-        return nn.tanh(x)
-
-
-class PassThrough(nn.Module):
-    @nn.compact
-    def __call__(self, x: jax.Array):
-        return x
-
-
-def encoder_factory(
-    observation_space: spaces.Space,
-    *,
-    rearrange_pattern: str = "b h w c -> b h w c",
-    preprocess_fn: Callable = None,
-) -> Type[nn.Module]:
-    if len(observation_space.shape) == 1:
-        return functools.partial(VectorEncoder, preprocess_fn=preprocess_fn)
-    elif len(observation_space.shape) == 3:
-        return functools.partial(
-            VisionEncoder,
-            rearrange_pattern=rearrange_pattern,
-            preprocess_fn=preprocess_fn,
-        )
-    else:
-        raise NotImplementedError
 
 
 def init_params(
