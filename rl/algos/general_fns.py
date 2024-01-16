@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, Sequence
+from typing import Callable, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -54,13 +54,16 @@ from rl.buffer import Experience, stack_experiences
 
 
 def process_experience_general_factory(
-    process_experience_fn: Callable, vectorized: bool, parallel: bool
+    process_experience_fn: Callable,
+    vectorized: bool,
+    parallel: bool,
+    experience_type: NamedTuple = Experience,
 ):
-    def fn(state: TrainState, key: jax.Array, experience: Experience):
+    def fn(state: TrainState, key: jax.Array, experience: experience_type):
         experience = stack_experiences(experience)
 
         def _process_experience_fn(key, *experience):
-            return process_experience_fn(state, key, Experience(*experience))
+            return process_experience_fn(state, key, experience_type(*experience))
 
         if parallel and vectorized:
             keys = {}

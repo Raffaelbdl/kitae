@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 import os
-from typing import Any, Callable
+from typing import Any, Callable, NamedTuple
 
 import chex
 import cloudpickle
@@ -17,7 +17,7 @@ from jrd_extensions import Seeded
 from rl.algos.general_fns import explore_general_factory
 from rl.algos.general_fns import process_experience_general_factory
 
-from rl.buffer import Buffer
+from rl.buffer import Buffer, Experience
 from rl.callbacks.callback import Callback
 from rl.save import Saver
 from rl.types import ActionType, ObsType, Params, Array
@@ -82,6 +82,7 @@ class Base(ABC, Seeded):
         preprocess_fn: Callable = None,
         run_name: str = None,
         tabulate: bool = False,
+        experience_type: NamedTuple = Experience,
     ):
         Seeded.__init__(self, config.seed)
         self.config = config
@@ -114,6 +115,7 @@ class Base(ABC, Seeded):
             ),
             self.vectorized,
             self.parallel,
+            experience_type,
         )
 
         self.update_step_fn = update_step_factory(self.state, self.config)
