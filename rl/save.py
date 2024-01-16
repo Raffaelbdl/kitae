@@ -1,6 +1,5 @@
 from contextlib import AbstractContextManager
-import json
-import os
+from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING
 
@@ -8,14 +7,26 @@ import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
 import yaml
-import json
 
 if TYPE_CHECKING:
     from rl.base import Base
 
 
 class Saver:
-    def __init__(self, dir: str, base: "Base") -> None:
+    """Saver class for agents.
+
+    Handles saving during training and restoring from checkpoints.
+    """
+
+    def __init__(self, dir: str | Path, base: "Base") -> None:
+        """Initializes a Saver instance for an agent.
+
+        Args:
+            dir: A string or path-like path to the saving directory.
+            base: The parent agent.
+        """
+        dir = Path(dir)
+
         self.ckptr = orbax.checkpoint.PyTreeCheckpointer()
         self.options = orbax.checkpoint.CheckpointManagerOptions(
             max_to_keep=None, create=True
@@ -26,16 +37,16 @@ class Saver:
 
         self.save_base_data(dir, base)
 
-    def save_base_data(self, dir: str, base: "Base") -> None:
+    def save_base_data(self, dir: Path, base: "Base") -> None:
         config_dict = base.config.to_dict()
         env_config = config_dict.pop("env_cfg")
 
-        config_path = os.path.join(dir, "config")
-        with open(config_path, "w") as f:
+        config_path = dir.joinpath("config")
+        with config_path.open("w") as f:
             yaml.dump(config_dict, f)
 
-        extra_path = os.path.join(dir, "extra")
-        with open(extra_path, "wb") as f:
+        extra_path = dir.joinpath("extra")
+        with extra_path.open("wb") as f:
             cloudpickle.dump(
                 {
                     "env_config": env_config,
@@ -52,7 +63,9 @@ class Saver:
         save_args = orbax_utils.save_args_from_target(ckpt)
         self.ckpt_manager.save(step, ckpt, save_kwargs={"save_args": save_args})
 
-    def restore_latest_step(self, base_train_state: train_state.TrainState):
+    def restore_latest_step(
+        self, base_train_state: train_state.TrainState
+    ) -> tuple[int, train_state.TrainState]:
         step = self.ckpt_manager.latest_step()
         return (
             step,

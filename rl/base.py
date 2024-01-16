@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 import os
+from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
 import chex
@@ -125,7 +126,9 @@ class Base(ABC, Seeded):
         self.run_name = run_name
         if self.run_name is None:
             self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
-        self.saver = Saver(os.path.join("./results", self.run_name), self)
+        self.saver = Saver(
+            Path(os.path.join("./results", self.run_name)).absolute(), self
+        )
 
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
@@ -208,7 +211,7 @@ class Base(ABC, Seeded):
         return latest_step
 
     @classmethod
-    def unserialize(cls, data_dir: str):
+    def unserialize(cls, data_dir: str | Path):
         """Creates an instance of the agent from a training directory.
 
         Args:
@@ -219,18 +222,21 @@ class Base(ABC, Seeded):
 
         # TODO : Raise if training directory does not correspond to class
         """
-        config_path = os.path.join(data_dir, "config")
+        path = data_dir if isinstance(data_dir, Path) else Path(data_dir)
+
+        config_path = Path.joinpath(path, "config")
         with open(config_path, "r") as f:
             config_dict = yaml.load(f, yaml.SafeLoader)
         config = ConfigDict(config_dict)
 
-        extra_path = os.path.join(data_dir, "extra")
+        extra_path = Path.joinpath(path, "extra")
         with open(extra_path, "rb") as f:
             extra = cloudpickle.load(f)
 
         config.env_cfg = extra.pop("env_config")
+        extra["run_name"] = path.parts[-1]
 
-        return cls(seed=config.seed, config=config, **extra)
+        return cls(config=config, **extra)
 
     def deploy_agent(self, batched: bool) -> DeployedJit:
         """Creates a jittable instance of the agent.
