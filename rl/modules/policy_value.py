@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Callable
 
 import chex
 import distrax as dx
@@ -8,11 +8,9 @@ from flax import linen as nn
 from flax.training import train_state
 from gymnasium import spaces
 import jax
-import jax.numpy as jnp
 import ml_collections
 import optax
 
-from rl.config import AlgoConfig
 from rl.modules.modules import init_params, PassThrough
 from rl.modules.encoder import encoder_factory
 from rl.modules.optimizer import linear_learning_rate_schedule
@@ -220,39 +218,4 @@ def train_state_policy_value_factory(
         config,
         n_envs=config.env_cfg.n_envs * config.env_cfg.n_agents,
     )
-    return state
-
-
-def train_state_policy_value_population_factory(
-    key: jax.Array,
-    config: ml_collections,
-    *,
-    rearrange_pattern: str,
-    preprocess_fn: Callable,
-    tabulate: bool = False,
-) -> TrainStatePolicyValue:
-    modules = create_policy_value_modules(
-        config.env_config.observation_space,
-        config.env_config.action_space,
-        config.shared_encoder,
-        rearrange_pattern=rearrange_pattern,
-        preprocess_fn=preprocess_fn,
-    )
-    params_population = [
-        create_params_policy_value(
-            key,
-            modules,
-            config.env_config.observation_space,
-            shared_encoder=config.shared_encoder,
-            tabulate=(i == 0 and tabulate),
-        )
-        for i in range(config.population_size)
-    ]
-    state = create_train_state_policy_value(
-        modules,
-        params_population,
-        config,
-        n_envs=config.env_config.n_envs * config.env_config.n_agents,
-    )
-
     return state

@@ -71,7 +71,7 @@ Current roadmap to reach V0.1.0 :
     - [ ] SAC
     - [x] TD3
 - [x] Automate the multi-agents versions of every algorithms
-- [ ] Move the populations to another library
+- [x] Move the populations to another library
 - [ ] Benchmark the performance of the algorithms
 - [x] Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
 - [ ] Add docstrings

@@ -39,7 +39,6 @@ def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
         "mean_entropy": jnp.mean(entropy),
         "kl_divergence": kl_divergence,
         "entropy": entropy,
-        # "dist": dist, cannot be output, but needed for population training
     }
 
     return loss_policy + entropy_coef * loss_entropy, infos

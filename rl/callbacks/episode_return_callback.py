@@ -10,8 +10,6 @@ class EpisodeReturnCallback(Callback):
 
     This callbacks keep tracks of the previous episodes returns during training.
     It logs an average episode return.
-
-    # TODO remove population when moving out of the repo.
     """
 
     def __init__(self, *, population_size: int = 1, buffer_length: int = 20) -> None:
