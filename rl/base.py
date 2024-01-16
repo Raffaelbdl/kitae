@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 import os
+from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
 import chex
@@ -125,7 +126,9 @@ class Base(ABC, Seeded):
         self.run_name = run_name
         if self.run_name is None:
             self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
-        self.saver = Saver(os.path.join("./results", self.run_name), self)
+        self.saver = Saver(
+            Path(os.path.join("./results", self.run_name)).absolute(), self
+        )
 
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
@@ -230,7 +233,7 @@ class Base(ABC, Seeded):
 
         config.env_cfg = extra.pop("env_config")
 
-        return cls(seed=config.seed, config=config, **extra)
+        return cls(config=config, **extra)
 
     def deploy_agent(self, batched: bool) -> DeployedJit:
         """Creates a jittable instance of the agent.
