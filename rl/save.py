@@ -1,5 +1,4 @@
 from contextlib import AbstractContextManager
-import os
 from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING
@@ -8,14 +7,24 @@ import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
 import yaml
-import json
 
 if TYPE_CHECKING:
     from rl.base import Base
 
 
 class Saver:
+    """Saver class for agents.
+
+    Handles saving during training and restoring from checkpoints.
+    """
+
     def __init__(self, dir: str | Path, base: "Base") -> None:
+        """Initializes a Saver instance for an agent.
+
+        Args:
+            dir: A string or path-like path to the saving directory.
+            base: The parent agent.
+        """
         dir = Path(dir)
 
         self.ckptr = orbax.checkpoint.PyTreeCheckpointer()
@@ -54,7 +63,9 @@ class Saver:
         save_args = orbax_utils.save_args_from_target(ckpt)
         self.ckpt_manager.save(step, ckpt, save_kwargs={"save_args": save_args})
 
-    def restore_latest_step(self, base_train_state: train_state.TrainState):
+    def restore_latest_step(
+        self, base_train_state: train_state.TrainState
+    ) -> tuple[int, train_state.TrainState]:
         step = self.ckpt_manager.latest_step()
         return (
             step,
