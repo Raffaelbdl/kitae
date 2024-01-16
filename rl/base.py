@@ -211,7 +211,7 @@ class Base(ABC, Seeded):
         return latest_step
 
     @classmethod
-    def unserialize(cls, data_dir: str):
+    def unserialize(cls, data_dir: str | Path):
         """Creates an instance of the agent from a training directory.
 
         Args:
@@ -222,16 +222,19 @@ class Base(ABC, Seeded):
 
         # TODO : Raise if training directory does not correspond to class
         """
-        config_path = os.path.join(data_dir, "config")
+        path = data_dir if isinstance(data_dir, Path) else Path(data_dir)
+
+        config_path = Path.joinpath(path, "config")
         with open(config_path, "r") as f:
             config_dict = yaml.load(f, yaml.SafeLoader)
         config = ConfigDict(config_dict)
 
-        extra_path = os.path.join(data_dir, "extra")
+        extra_path = Path.joinpath(path, "extra")
         with open(extra_path, "rb") as f:
             extra = cloudpickle.load(f)
 
         config.env_cfg = extra.pop("env_config")
+        extra["run_name"] = path.parts[-1]
 
         return cls(config=config, **extra)
 
