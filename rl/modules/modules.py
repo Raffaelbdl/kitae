@@ -1,11 +1,7 @@
-import functools
-from typing import Callable, Type
+from typing import Callable, Iterable
 
-import distrax as dx
-from einops import rearrange
 from flax import linen as nn
 from flax.training.train_state import TrainState
-from gymnasium import spaces
 import jax
 from jax import numpy as jnp
 import numpy as np
@@ -19,7 +15,7 @@ class TrainState(TrainState):
 
 class PassThrough(nn.Module):
     @nn.compact
-    def __call__(self, x: jax.Array):
+    def __call__(self, *x: Iterable[jax.Array]):
         return x
 
 
