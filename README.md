@@ -68,7 +68,7 @@ algo.train(env, algo.config.train_cfg.n_env_steps, callbacks=[])
 Current roadmap to reach V0.1.0 :
 - [ ] Implement other algorithms
     - [x] PPO in continous action space
-    - [ ] SAC
+    - [x] SAC
     - [x] TD3
 - [x] Automate the multi-agents versions of every algorithms
 - [x] Move the populations to another library
