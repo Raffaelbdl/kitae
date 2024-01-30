@@ -1,10 +1,8 @@
 """Deep Deterministic Policy Gradient (TD3)"""
 
 from dataclasses import dataclass
-import functools
 from typing import Callable
 
-import chex
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -13,7 +11,7 @@ import optax
 from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
-from rl.types import Array, Params, GymEnv, EnvPoolEnv
+from rl.types import Params, GymEnv, EnvPoolEnv
 
 from rl.buffer import Buffer, OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
@@ -21,10 +19,12 @@ from rl.loss import loss_mean_squared_error
 from rl.train import train
 from rl.timesteps import compute_td_targets
 
+import flax.linen as nn
+from rl.modules.encoder import encoder_factory
+from rl.modules.modules import init_params
 
-from rl.modules.modules import TrainState
+from rl.modules.train_state import PolicyQValueTrainState, TrainState
 from rl.modules.policy import PolicyNormalExternalStd
-from rl.modules.policy_qvalue import TrainStatePolicyQValue
 
 
 @dataclass
@@ -48,10 +48,7 @@ def train_state_ddpg_factory(
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> TrainStatePolicyQValue:
-    import flax.linen as nn
-    from rl.modules.encoder import encoder_factory
-    from rl.modules.modules import init_params
+) -> PolicyQValueTrainState:
 
     key1, key2 = jax.random.split(key)
     observation_shape = config.env_cfg.observation_space.shape
@@ -107,11 +104,11 @@ def train_state_ddpg_factory(
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    return TrainStatePolicyQValue(policy_state=policy_state, qvalue_state=qvalue_state)
+    return PolicyQValueTrainState(policy_state=policy_state, qvalue_state=qvalue_state)
 
 
 def explore_factory(
-    train_state: TrainStatePolicyQValue, algo_params: TD3Params
+    train_state: PolicyQValueTrainState, algo_params: TD3Params
 ) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
 
@@ -132,13 +129,17 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: TrainStatePolicyQValue, algo_params: TD3Params
+    train_state: PolicyQValueTrainState, algo_params: TD3Params
 ) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
     qvalue_apply = train_state.qvalue_state.apply_fn
 
     @jax.jit
-    def fn(td3_state: TrainStatePolicyQValue, key: jax.Array, experience: Experience):
+    def fn(
+        td3_state: PolicyQValueTrainState,
+        key: jax.Array,
+        experience: Experience,
+    ):
         next_actions = policy_apply(
             {"params": td3_state.policy_state.target_params},
             experience.next_observation,
@@ -169,7 +170,7 @@ def process_experience_factory(
 
 
 def update_step_factory(
-    train_state: TrainStatePolicyQValue, config: AlgoConfig
+    train_state: PolicyQValueTrainState, config: AlgoConfig
 ) -> Callable:
     qvalue_apply = train_state.qvalue_state.apply_fn
     policy_apply = train_state.policy_state.apply_fn
@@ -318,7 +319,7 @@ class TD3(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: TrainStatePolicyQValue, key: jax.Array, sample: tuple):
+        def fn(state: PolicyQValueTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
             state.qvalue_state, state.policy_state, info = self.update_step_fn(
                 state.policy_state, state.qvalue_state, experiences, self.step

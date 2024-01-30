@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Type
+from typing import Callable, Type, Iterable
 
 import chex
-import distrax as dx
 from flax import linen as nn
 from flax import struct
 from flax.training.train_state import TrainState
@@ -360,3 +359,15 @@ def qvalue_factory(
         raise NotImplementedError
 
     return QValue
+
+
+def make_double_q_value(q1: nn.Module, q2: nn.Module) -> nn.Module:
+    class DoubleQValue(nn.Module):
+        def setup(self) -> None:
+            self.q1 = q1
+            self.q2 = q2
+
+        def __call__(self, *arrays: Iterable[jax.Array]) -> tuple[jax.Array, jax.Array]:
+            return self.q1(*arrays), self.q2(*arrays)
+
+    return DoubleQValue()

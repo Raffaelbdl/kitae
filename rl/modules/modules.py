@@ -1,16 +1,11 @@
 from typing import Callable, Iterable
 
-from flax import linen as nn
-from flax.training.train_state import TrainState
+import flax.linen as nn
 import jax
-from jax import numpy as jnp
+import jax.numpy as jnp
 import numpy as np
 
 from rl.types import Params
-
-
-class TrainState(TrainState):
-    target_params: Params
 
 
 class PassThrough(nn.Module):
@@ -69,3 +64,18 @@ def init_params(
     if "params" in variables.keys():
         return variables["params"]
     return {}
+
+
+class IndependentVariable(nn.Module):
+    """Class for independent learnable variables.
+
+    Used in SAC as the temperature coefficient.
+    """
+
+    name: str
+    init_fn: Callable
+    shape: tuple[int]
+
+    @nn.compact
+    def __call__(self) -> jax.Array:
+        return self.param(self.name, self.init_fn, self.shape)
