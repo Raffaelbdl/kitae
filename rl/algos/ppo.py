@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from typing import Callable
 
-import distrax as dx
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -18,11 +17,13 @@ from rl.distribution import get_log_probs
 from rl.loss import loss_policy_ppo, loss_value_clip
 from rl.modules.policy_value import (
     train_state_policy_value_factory,
-    TrainStatePolicyValue,
     ParamsPolicyValue,
 )
 from rl.timesteps import calculate_gaes_targets
 from rl.train import train
+
+
+from rl.modules.train_state import PolicyValueTrainState
 
 
 @dataclass
@@ -48,7 +49,7 @@ class PPOParams(AlgoParams):
 
 
 def explore_factory(
-    train_state: TrainStatePolicyValue, algo_params: PPOParams
+    train_state: PolicyValueTrainState, algo_params: PPOParams
 ) -> Callable:
     encoder_apply = train_state.encoder_fn
     policy_apply = train_state.policy_fn
@@ -58,7 +59,7 @@ def explore_factory(
         params: ParamsPolicyValue, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = encoder_apply({"params": params.params_encoder}, observations)
-        dists = policy_apply({"params": params.params_policy}, hiddens)
+        dists = policy_apply({"params": params.params_policy}, *hiddens)
         outputs = dists.sample_and_log_prob(seed=key)
 
         return outputs
@@ -67,20 +68,22 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: TrainStatePolicyValue, algo_params: PPOParams
+    train_state: PolicyValueTrainState, algo_params: PPOParams
 ):
     encoder_apply = train_state.encoder_fn
     value_apply = train_state.value_fn
 
     @jax.jit
-    def fn(ppo_state: TrainStatePolicyValue, key: jax.Array, experience: Experience):
+    def fn(ppo_state: PolicyValueTrainState, key: jax.Array, experience: Experience):
         all_obs = jnp.concatenate(
             [experience.observation, experience.next_observation[-1:]], axis=0
         )
         all_hiddens = encoder_apply(
             {"params": ppo_state.params.params_encoder}, all_obs
         )
-        all_values = value_apply({"params": ppo_state.params.params_value}, all_hiddens)
+        all_values = value_apply(
+            {"params": ppo_state.params.params_value}, *all_hiddens
+        )
 
         values = all_values[:-1]
         next_values = all_values[1:]
@@ -110,7 +113,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
+def update_step_factory(train_state: PolicyValueTrainState, config: AlgoConfig):
     encoder_apply = train_state.encoder_fn
     policy_apply = train_state.policy_fn
     value_apply = train_state.value_fn
@@ -121,7 +124,7 @@ def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
         observations, actions, log_probs_old, gaes, targets, values_old = batch
         hiddens = encoder_apply({"params": params.params_encoder}, observations)
 
-        dists = policy_apply({"params": params.params_policy}, hiddens)
+        dists = policy_apply({"params": params.params_policy}, *hiddens)
         log_probs, log_probs_old = get_log_probs(dists, actions, log_probs_old)
         loss_policy, info_policy = loss_policy_ppo(
             dists,
@@ -132,7 +135,7 @@ def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
             config.algo_params.entropy_coef,
         )
 
-        values = value_apply({"params": params.params_value}, hiddens)
+        values = value_apply({"params": params.params_value}, *hiddens)
         loss_value, info_value = loss_value_clip(
             values, targets, values_old, config.algo_params.clip_eps
         )
@@ -144,7 +147,7 @@ def update_step_factory(train_state: TrainStatePolicyValue, config: AlgoConfig):
         return loss, info
 
     @jax.jit
-    def fn(state: TrainStatePolicyValue, key: jax.Array, experiences: tuple[jax.Array]):
+    def fn(state: PolicyValueTrainState, key: jax.Array, experiences: tuple[jax.Array]):
         num_elems = experiences[0].shape[0]
         iterations = num_elems // config.update_cfg.batch_size
         inds = jax.random.permutation(key, num_elems)[
@@ -218,7 +221,7 @@ class PPO(Base):
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
-        def fn(state: TrainStatePolicyValue, key: jax.Array, sample: tuple):
+        def fn(state: PolicyValueTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
 
             loss = 0.0

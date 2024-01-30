@@ -6,6 +6,7 @@ from typing import Callable
 
 import chex
 import distrax as dx
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -14,7 +15,7 @@ import optax
 from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
-from rl.types import Array, Params, GymEnv, EnvPoolEnv
+from rl.types import Params, GymEnv, EnvPoolEnv
 
 from rl.buffer import Buffer, OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
@@ -23,9 +24,16 @@ from rl.train import train
 from rl.timesteps import compute_td_targets
 
 
-from rl.modules.modules import TrainState
-from rl.modules.policy import PolicyNormalExternalStd, PolicyTanhNormal
-from rl.modules.policy_qvalue import TrainStatePolicyQValueTemperature
+from rl.modules.encoder import encoder_factory
+from rl.modules.modules import init_params, IndependentVariable
+from rl.modules.policy import make_policy, PolicyTanhNormal
+from rl.modules.train_state import PolicyQValueTrainState, TrainState
+from rl.modules.qvalue import make_double_q_value, qvalue_factory
+
+
+@chex.dataclass
+class SACTrainState(PolicyQValueTrainState):
+    temperature_state: TrainState
 
 
 @dataclass
@@ -50,92 +58,61 @@ def train_state_sac_factory(
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> TrainStatePolicyQValueTemperature:
-    import flax.linen as nn
-    from rl.modules.encoder import encoder_factory
-    from rl.modules.modules import init_params
+) -> SACTrainState:
 
     key1, key2, key3 = jax.random.split(key, 3)
     observation_shape = config.env_cfg.observation_space.shape
     action_shape = config.env_cfg.action_space.shape
 
-    class Policy(nn.Module):
-        def setup(self) -> None:
-            self.encoder = encoder_factory(config.env_cfg.observation_space)()
-            self.output = PolicyTanhNormal(
-                action_shape[-1],
-                config.algo_params.log_std_min,
-                config.algo_params.log_std_max,
-            )
-
-        def __call__(self, x: jax.Array) -> dx.Distribution:
-            return self.output(self.encoder(x))
-
-    module_policy = Policy()
+    policy = make_policy(
+        encoder_factory(config.env_cfg.observation_space)(),
+        PolicyTanhNormal(
+            action_shape[-1],
+            config.algo_params.log_std_min,
+            config.algo_params.log_std_max,
+        ),
+    )
     policy_state = TrainState.create(
-        apply_fn=module_policy.apply,
-        params=init_params(key1, module_policy, [observation_shape], tabulate),
-        target_params=init_params(key1, module_policy, [observation_shape], False),
+        apply_fn=policy.apply,
+        params=init_params(key1, policy, [observation_shape], tabulate),
+        target_params=init_params(key1, policy, [observation_shape], False),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    from rl.modules.qvalue import qvalue_factory
-
-    class QValue(nn.Module):
-        def setup(self) -> None:
-            self.q1 = qvalue_factory(
-                config.env_cfg.observation_space, config.env_cfg.action_space
-            )()
-            self.q2 = qvalue_factory(
-                config.env_cfg.observation_space, config.env_cfg.action_space
-            )()
-
-        def __call__(self, x: jax.Array, a: jax.Array):
-            return self.q1(x, a), self.q2(x, a)
-
-    module_qvalue = QValue()
+    qvalue = make_double_q_value(
+        qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
+        qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
+    )
     qvalue_state = TrainState.create(
-        apply_fn=module_qvalue.apply,
-        params=init_params(
-            key2, module_qvalue, [observation_shape, action_shape], tabulate
-        ),
+        apply_fn=qvalue.apply,
+        params=init_params(key2, qvalue, [observation_shape, action_shape], tabulate),
         target_params=init_params(
-            key2, module_qvalue, [observation_shape, action_shape], False
+            key2, qvalue, [observation_shape, action_shape], False
         ),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    class Temperature(nn.Module):
-        initial_temperature: float
-
-        @nn.compact
-        def __call__(self) -> jax.Array:
-            log_temp = self.param(
-                "log_temp",
-                nn.initializers.constant(jnp.log(self.initial_temperature)),
-                (),
-            )
-            return jnp.exp(log_temp)
-
-    module_temperature = Temperature(config.algo_params.initial_temperature)
-    temperature_params = module_temperature.init(key3)["params"]
+    temperature = IndependentVariable(
+        name="log_temperature",
+        init_fn=nn.initializers.constant(
+            jnp.log(config.algo_params.initial_temperature)
+        ),
+        shape=(),
+    )
     temperature_state = TrainState.create(
-        apply_fn=module_temperature.apply,
-        params=temperature_params,
-        target_params=temperature_params,
+        apply_fn=temperature.apply,
+        params=init_params(key3, temperature, [], tabulate),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    return TrainStatePolicyQValueTemperature(
+    return SACTrainState(
         policy_state=policy_state,
         qvalue_state=qvalue_state,
         temperature_state=temperature_state,
     )
 
 
-def explore_factory(
-    train_state: TrainStatePolicyQValueTemperature, algo_params: SACParams
-) -> Callable:
+def explore_factory(train_state: SACTrainState, algo_params: SACParams) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
 
     @jax.jit
@@ -154,14 +131,14 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: TrainStatePolicyQValueTemperature, algo_params: SACParams
+    train_state: SACTrainState, algo_params: SACParams
 ) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
     qvalue_apply = train_state.qvalue_state.apply_fn
 
     @jax.jit
     def fn(
-        sac_state: TrainStatePolicyQValueTemperature,
+        sac_state: SACTrainState,
         key: jax.Array,
         experience: Experience,
     ):
@@ -193,9 +170,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(
-    train_state: TrainStatePolicyQValueTemperature, config: AlgoConfig
-) -> Callable:
+def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Callable:
     qvalue_apply = train_state.qvalue_state.apply_fn
     policy_apply = train_state.policy_state.apply_fn
     temperature_apply = train_state.temperature_state.apply_fn
@@ -352,7 +327,7 @@ class SAC(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: TrainStatePolicyQValueTemperature, key: jax.Array, sample: tuple):
+        def fn(state: SACTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
             (
                 state.qvalue_state,

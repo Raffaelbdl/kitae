@@ -1,29 +1,28 @@
 """Deep Q-Network (DQN)"""
 
 from dataclasses import dataclass
-import functools
 from typing import Callable
 
-import chex
 import distrax as dx
-from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 import numpy as np
+import optax
 
-from rl.algos.general_fns import fn_parallel
 
 from rl.base import Base, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import OffPolicyBuffer, Experience, stack_experiences
+from rl.buffer import OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
-from rl.modules.qvalue import train_state_qvalue_factory
 from rl.train import train
 from rl.timesteps import compute_td_targets
 
+from rl.modules.modules import init_params
+from rl.modules.train_state import TrainState
+from rl.modules.qvalue import qvalue_factory
 
 NO_EXPLORATION = 0.0
 
@@ -42,6 +41,27 @@ class DQNParams(AlgoParams):
     exploration: float
     gamma: float
     skip_steps: int
+
+
+def train_state_dqn_factory(
+    key: jax.Array,
+    config: AlgoConfig,
+    *,
+    rearrange_pattern: str,
+    preprocess_fn: Callable,
+    tabulate: bool = False,
+) -> TrainState:
+    observation_shape = config.env_cfg.observation_space.shape
+
+    qvalue = qvalue_factory(
+        config.env_cfg.observation_space, config.env_cfg.action_space
+    )()
+    return TrainState.create(
+        apply_fn=qvalue.apply,
+        params=init_params(key, qvalue, [observation_shape], tabulate),
+        target_params=init_params(key, qvalue, [observation_shape], False),
+        tx=optax.adam(config.update_cfg.learning_rate),
+    )
 
 
 def loss_factory(train_state: TrainState) -> Callable:
@@ -127,7 +147,7 @@ class DQN(Base):
         Base.__init__(
             self,
             config=config,
-            train_state_factory=train_state_qvalue_factory,
+            train_state_factory=train_state_dqn_factory,
             explore_factory=explore_factory,
             process_experience_factory=process_experience_factory,
             update_step_factory=update_step_factory,
