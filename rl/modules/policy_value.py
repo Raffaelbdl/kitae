@@ -3,9 +3,7 @@ from typing import Callable
 
 import chex
 import distrax as dx
-from flax import struct
 from flax import linen as nn
-from flax.training import train_state
 from gymnasium import spaces
 import jax
 import ml_collections
@@ -17,10 +15,12 @@ from rl.modules.optimizer import linear_learning_rate_schedule
 
 from rl.types import Params
 from dx_tabulate import add_representer
-from rl.modules.policy import Policy, PolicyCategorical, PolicyNormal
+from rl.modules.policy import PolicyOutput, PolicyCategorical, PolicyNormal
+
+from rl.modules.train_state import PolicyValueTrainState
 
 
-def policy_output_factory(action_space: spaces.Discrete) -> type[Policy]:
+def policy_output_factory(action_space: spaces.Discrete) -> type[PolicyOutput]:
     if isinstance(action_space, spaces.Discrete):
         add_representer(dx.Categorical)
         return PolicyCategorical
@@ -53,26 +53,6 @@ class ParamsPolicyValue:
     params_encoder: Params
     params_policy: Params
     params_value: Params
-
-
-class TrainStatePolicyValue(train_state.TrainState):
-    """Custom TrainState with additional apply_fns.
-
-    Contrary to off-policy algorithms, on-policy algorithms often require
-    shared encoders and simultaneous updates of policy and value modules.
-    This class extends TrainState by storing all parameters in a single
-    PyTree and by providing additional functions for each module call.
-
-    Attributes:
-        encoder_fn: A Callable for the encoder module.
-            If the encoder is not shared, it is usually the `PassThrough` module.
-        policy_fn: A Callable for the policy module.
-        value_fn: A Callable for the value module.
-    """
-
-    encoder_fn: Callable = struct.field(pytree_node=False)
-    policy_fn: Callable = struct.field(pytree_node=False)
-    value_fn: Callable = struct.field(pytree_node=False)
 
 
 def create_policy_value_modules(
@@ -161,7 +141,7 @@ def create_train_state_policy_value(
     config: ml_collections.ConfigDict,
     *,
     n_envs: int = 1,
-) -> TrainStatePolicyValue:
+) -> PolicyValueTrainState:
     learning_rate = config.update_cfg.learning_rate
 
     if config.update_cfg.learning_rate_annealing:
@@ -180,7 +160,7 @@ def create_train_state_policy_value(
         optax.adam(learning_rate, eps=1e-5),
     )
 
-    return TrainStatePolicyValue.create(
+    return PolicyValueTrainState.create(
         apply_fn=None,
         params=params,
         tx=tx,
@@ -197,7 +177,7 @@ def train_state_policy_value_factory(
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> TrainStatePolicyValue:
+) -> PolicyValueTrainState:
     modules = create_policy_value_modules(
         config.env_cfg.observation_space,
         config.env_cfg.action_space,
