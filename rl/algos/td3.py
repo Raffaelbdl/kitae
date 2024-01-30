@@ -177,7 +177,6 @@ def update_step_factory(
 
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
-        observations, actions, targets = batch
 
         def loss_fn(params: Params, observations, actions, targets):
             q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
@@ -185,6 +184,8 @@ def update_step_factory(
             loss_q2 = loss_mean_squared_error(q2, targets)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
+
+        observations, actions, targets = batch
 
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             qvalue_state.params, observations, actions, targets
@@ -195,7 +196,9 @@ def update_step_factory(
 
     @jax.jit
     def update_policy_fn(
-        policy_state: TrainState, qvalue_state: TrainState, batch: tuple[jax.Array]
+        policy_state: TrainState,
+        qvalue_state: TrainState,
+        batch: tuple[jax.Array],
     ):
         def loss_fn(params: Params, observations):
             actions = policy_apply({"params": params}, observations, 0.0).sample(seed=0)
@@ -206,6 +209,7 @@ def update_step_factory(
             return loss, {"loss_policy": loss}
 
         observations, _, _ = batch
+
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params, observations
         )
@@ -229,16 +233,17 @@ def update_step_factory(
         return (policy_state, qvalue_state), loss, info
 
     def update_step_fn(
-        policy_state: TrainState,
-        qvalue_state: TrainState,
+        state: PolicyQValueTrainState,
         batch: tuple[jax.Array],
         step: int,
     ):
-        qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(qvalue_state, batch)
+        state.qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
+            state.qvalue_state, batch
+        )
 
         if step % config.algo_params.policy_update_frequency == 0:
-            (policy_state, qvalue_state), loss_policy, info_policy = update_policy_fn(
-                policy_state, qvalue_state, batch
+            (state.policy_state, state.qvalue_state), loss_policy, info_policy = (
+                update_policy_fn(state.policy_state, state.qvalue_state, batch)
             )
         else:
             loss_policy = 0.0
@@ -247,7 +252,7 @@ def update_step_factory(
         info = info_qvalue | info_policy
         info["total_loss"] = loss_qvalue + loss_policy
 
-        return qvalue_state, policy_state, info
+        return state, info
 
     return update_step_fn
 
@@ -321,10 +326,7 @@ class TD3(Base):
     def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: PolicyQValueTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
-            state.qvalue_state, state.policy_state, info = self.update_step_fn(
-                state.policy_state, state.qvalue_state, experiences, self.step
-            )
-            return state, info
+            return self.update_step_fn(state, experiences, self.step)
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
         self.state, info = fn(self.state, self.nextkey(), sample)

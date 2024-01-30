@@ -64,19 +64,6 @@ def train_state_dqn_factory(
     )
 
 
-def loss_factory(train_state: TrainState) -> Callable:
-    @jax.jit
-    def fn(params: Params, batch: tuple[jax.Array]) -> tuple[float, dict]:
-        observations, actions, returns = batch
-        all_qvalues = train_state.apply_fn({"params": params}, observations)
-        qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
-
-        loss = loss_mean_squared_error(qvalues, returns)
-        return loss, {"loss_qvalue": loss}
-
-    return fn
-
-
 def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable:
     @jax.jit
     def fn(
@@ -116,17 +103,36 @@ def process_experience_factory(
 
 
 def update_step_factory(train_state: TrainState, config: AlgoConfig) -> Callable:
-    loss_fn = loss_factory(train_state)
 
     @jax.jit
-    def fn(state: TrainState, key: jax.Array, batch: tuple[jax.Array]):
-        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            state.params, batch=batch
-        )
-        state = state.apply_gradients(grads=grads)
-        return state, loss, info
+    def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
 
-    return fn
+        def loss_fn(params: Params, observations, actions, returns):
+            all_qvalues = train_state.apply_fn({"params": params}, observations)
+            qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
+            loss = loss_mean_squared_error(qvalues, returns)
+            return loss, {"loss_qvalue": loss}
+
+        observations, actions, returns = batch
+
+        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+            qvalue_state.params,
+            observations=observations,
+            actions=actions,
+            returns=returns,
+        )
+        qvalue_state = qvalue_state.apply_gradients(grads=grads)
+
+        return qvalue_state, loss, info
+
+    def update_step_fn(state: TrainState, batch: tuple[jax.Array]):
+        state, loss_qvalue, info_qvalue = update_qvalue_fn(state, batch)
+        info = info_qvalue
+        info["total_loss"] = loss_qvalue
+
+        return state, info
+
+    return update_step_fn
 
 
 class DQN(Base):
@@ -192,9 +198,8 @@ class DQN(Base):
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: TrainState, key: jax.Array, sample: tuple):
-            key1, key2 = jax.random.split(key, 2)
-            experiences = self.process_experience_fn(state, key1, sample)
-            state, loss, info = self.update_step_fn(state, key2, experiences)
+            experiences = self.process_experience_fn(state, key, sample)
+            state, info = self.update_step_fn(state, experiences)
             return state, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)

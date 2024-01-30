@@ -177,7 +177,6 @@ def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Calla
 
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
-        observations, actions, targets = batch
 
         def loss_fn(params: Params, observations, actions, targets):
             q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
@@ -185,6 +184,8 @@ def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Calla
             loss_q2 = loss_mean_squared_error(q2, targets)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
+
+        observations, actions, targets = batch
 
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             qvalue_state.params, observations, actions, targets
@@ -213,6 +214,7 @@ def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Calla
             return loss, {"loss_policy": loss, "entropy": -jnp.mean(log_probs)}
 
         observations, _, _ = batch
+
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params, observations
         )
@@ -237,37 +239,39 @@ def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Calla
 
     @jax.jit
     def update_temperature_fn(temperature_state: TrainState, entropy: float):
-        def loss_fn(params: Params):
+        def loss_fn(params: Params, entropy: float):
             temperature = temperature_apply({"params": params})
             loss = temperature * jnp.mean(entropy - config.algo_params.target_entropy)
             return loss, {"temperature_loss": loss, "temperature": temperature}
 
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            temperature_state.params
+            temperature_state.params, entropy
         )
         temperature_state = temperature_state.apply_gradients(grads=grads)
         return temperature_state, loss, info
 
     def update_step_fn(
-        policy_state: TrainState,
-        qvalue_state: TrainState,
-        temperature_state: TrainState,
+        state: SACTrainState,
         batch: tuple[jax.Array],
     ):
-        qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(qvalue_state, batch)
-
-        (policy_state, qvalue_state), loss_policy, info_policy = update_policy_fn(
-            policy_state, qvalue_state, temperature_state, batch
+        state.qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
+            state.qvalue_state, batch
         )
 
-        temperature_state, loss_temperature, info_temperature = update_temperature_fn(
-            temperature_state, info_policy["entropy"]
+        (state.policy_state, state.qvalue_state), loss_policy, info_policy = (
+            update_policy_fn(
+                state.policy_state, state.qvalue_state, state.temperature_state, batch
+            )
+        )
+
+        state.temperature_state, loss_temperature, info_temperature = (
+            update_temperature_fn(state.temperature_state, info_policy["entropy"])
         )
 
         info = info_qvalue | info_policy | info_temperature
         info["total_loss"] = loss_qvalue + loss_policy + loss_temperature
 
-        return qvalue_state, policy_state, temperature_state, info
+        return state, info
 
     return update_step_fn
 
@@ -329,18 +333,7 @@ class SAC(Base):
     def update(self, buffer: OffPolicyBuffer) -> dict:
         def fn(state: SACTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
-            (
-                state.qvalue_state,
-                state.policy_state,
-                state.temperature_state,
-                info,
-            ) = self.update_step_fn(
-                state.policy_state,
-                state.qvalue_state,
-                state.temperature_state,
-                experiences,
-            )
-            return state, info
+            return self.update_step_fn(state, experiences)
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
         self.state, info = fn(self.state, self.nextkey(), sample)
