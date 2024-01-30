@@ -18,11 +18,12 @@ pip install --upgrade git+https://github.com/Raffaelbdl/flax_rl
 ```
 
 ## Overview
-FLAX_RL is a simple RL library with the goal of making it easy to use agents after training. To achieve that goal, all agents observe the `Base` abstract class implementation.
 
-FLAX_RL also aims at making it easier to use agents in single or multi-agents setups. It also aims at simplifying parallelized training. 
+FLAX_RL is designed as a polyvalent RL library. The goal is to make agents creation easier, as well as training and evaluating. 
 
-For research purposes, please use the original implementations for comparaison. 
+FLAX_RL's goals is also to make it easier to use agents in single or multi-agent setups, as well as vectorized environments.
+
+For research purposes, please use the original implementations for comparison. 
 
 
 ## Example Usage
@@ -65,14 +66,12 @@ algo.train(env, algo.config.train_cfg.n_env_steps, callbacks=[])
 ```
 
 ## Roadmap
-Current roadmap to reach V0.1.0 :
-- [ ] Implement other algorithms
-    - [x] PPO in continous action space
+
+This project is still a work in progress. The current version is v0.1.0:
+- [x] Implementation of state-of-the-art algorithms:
+    - [x] PPO 
     - [x] SAC
     - [x] TD3
-- [x] Automate the multi-agents versions of every algorithms
-- [x] Move the populations to another library
-- [ ] Benchmark the performance of the algorithms
-- [x] Make a reliable config system with comprehensive saving and loading for simpler loading of individual agents when not training
-- [ ] Add docstrings
+- [x] Automatic adaptation to multi-agent (self-play) and vectorial environments. 
+- [x] Training loops, callbacks etc..
 
