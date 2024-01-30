@@ -113,7 +113,9 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(train_state: PolicyValueTrainState, config: AlgoConfig):
+def update_step_factory(
+    train_state: PolicyValueTrainState, config: AlgoConfig
+) -> Callable:
     encoder_apply = train_state.encoder_fn
     policy_apply = train_state.policy_fn
     value_apply = train_state.value_fn
