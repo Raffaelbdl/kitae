@@ -6,15 +6,14 @@ from jax import numpy as jnp
 from dx_tabulate import add_representer
 
 
-class Policy(nn.Module):
+class PolicyOutput(nn.Module):
     num_outputs: int
 
     @nn.compact
-    def __call__(self, x: jax.Array) -> dx.Distribution:
-        ...
+    def __call__(self, x: jax.Array) -> dx.Distribution: ...
 
 
-class PolicyCategorical(Policy):
+class PolicyCategorical(PolicyOutput):
     num_outputs: int
 
     @nn.compact
@@ -28,7 +27,7 @@ class PolicyCategorical(Policy):
         return dx.Categorical(logits)
 
 
-class PolicyNormal(Policy):
+class PolicyNormal(PolicyOutput):
     num_outputs: int
 
     def setup(self) -> None:
@@ -49,7 +48,7 @@ class PolicyNormal(Policy):
         return dx.Normal(loc, jnp.exp(log_scale))
 
 
-class PolicyNormalExternalStd(Policy):
+class PolicyNormalExternalStd(PolicyOutput):
     num_outputs: int
     action_scale: jax.Array
     action_bias: jax.Array
@@ -69,7 +68,7 @@ class PolicyNormalExternalStd(Policy):
         return dx.Normal(loc, policy_noise)
 
 
-class PolicyTanhNormal(Policy):
+class PolicyTanhNormal(PolicyOutput):
     num_outputs: int
     log_std_min: float
     log_std_max: float
@@ -95,3 +94,15 @@ class PolicyTanhNormal(Policy):
         # return dx.Transformed(base_dist, dx.Tanh())
         base_dist = dx.Normal(loc, jnp.exp(log_scale))
         return dx.Transformed(base_dist, dx.Tanh())
+
+
+def make_policy(encoder: nn.Module, policy_output: PolicyOutput) -> nn.Module:
+    class Policy(nn.Module):
+        def setup(self) -> None:
+            self.encoder = encoder
+            self.output = policy_output
+
+        def __call__(self, x: jax.Array) -> dx.Distribution:
+            return self.output(self.encoder(x))
+
+    return Policy()
