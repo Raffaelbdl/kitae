@@ -1,10 +1,24 @@
+from datetime import datetime
 import functools
+import os
+from pathlib import Path
 from typing import Callable, NamedTuple
+
 
 import jax
 import jax.numpy as jnp
+from jrd_extensions import Seeded
 
+
+from rl.base import Base, DeployedJit
 from rl.types import Params
+
+from rl.buffer import Experience, stack_experiences
+from rl.config import AlgoConfig
+from rl.modules.train_state import TrainState
+from rl.save import Saver
+
+Factory = Callable[..., Callable]
 
 
 def fn_parallel(fn: Callable) -> Callable:
@@ -27,7 +41,9 @@ def fn_parallel(fn: Callable) -> Callable:
 
 # TODO works but not for the good reasons
 # the first input is no longer params !!
-def explore_general_factory(explore_fn: Callable, batched: bool, parallel: bool):
+def explore_general_factory(
+    explore_fn: Callable, batched: bool, parallel: bool
+) -> Callable:
     def input_fn(inputs):
         if not batched:
             return jax.tree_map(lambda x: jnp.expand_dims(x, axis=0), inputs)
@@ -47,10 +63,6 @@ def explore_general_factory(explore_fn: Callable, batched: bool, parallel: bool)
         return outputs
 
     return jax.jit(fn)
-
-
-from flax.training.train_state import TrainState
-from rl.buffer import Experience, stack_experiences
 
 
 def process_experience_general_factory(
@@ -116,3 +128,74 @@ def process_experience_general_factory(
             return process_experience_fn(state, key, experience)
 
     return jax.jit(fn)
+
+
+class AlgoFactory:
+    @staticmethod
+    def intialize(
+        self: Base,
+        config: AlgoConfig,
+        train_state_factory: Callable[..., TrainState],
+        explore_factory: Factory,
+        process_experience_factory: Factory,
+        update_step_factory: Factory,
+        *,
+        rearrange_pattern: str = "b h w c -> b h w c",
+        preprocess_fn: Callable = None,
+        run_name: str | None = None,
+        tabulate: bool = False,
+        experience_type: NamedTuple = Experience,
+    ) -> None:
+        Seeded.__init__(self, config.seed)
+        self.config = config
+
+        self.rearrange_pattern = rearrange_pattern
+        self.preprocess_fn = preprocess_fn
+        self.tabulate = tabulate
+
+        self.vectorized = self.config.env_cfg.n_envs > 1
+        self.parallel = self.config.env_cfg.n_agents > 1
+
+        self.state = train_state_factory(
+            self.nextkey(),
+            self.config,
+            rearrange_pattern=rearrange_pattern,
+            preprocess_fn=preprocess_fn,
+            tabulate=tabulate,
+        )
+
+        self.explore_fn = explore_general_factory(
+            explore_factory(self.state, self.config.algo_params),
+            self.vectorized,
+            self.parallel,
+        )
+        self.process_experience_fn = process_experience_general_factory(
+            process_experience_factory(
+                self.state,
+                self.config.algo_params,
+            ),
+            self.vectorized,
+            self.parallel,
+            experience_type,
+        )
+        self.update_step_fn = update_step_factory(self.state, self.config)
+
+        self.explore_factory = explore_factory
+
+        self.run_name = run_name
+        if self.run_name is None:
+            self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+        self.saver = Saver(
+            Path(os.path.join("./results", self.run_name)).absolute(), self
+        )
+
+    @staticmethod
+    def deploy_agent(self: Base, batched: bool) -> DeployedJit:
+        return DeployedJit(
+            params=self.state.policy_state.params,
+            select_action=explore_general_factory(
+                self.explore_factory(self.state, self.config),
+                batched=batched,
+                parallel=False,
+            ),
+        )
