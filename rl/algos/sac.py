@@ -1,7 +1,6 @@
 """Soft Actor Critic (SAC)"""
 
 from dataclasses import dataclass
-import functools
 from typing import Callable
 
 import chex
