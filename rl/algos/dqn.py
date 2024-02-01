@@ -20,6 +20,7 @@ from rl.loss import loss_mean_squared_error
 from rl.train import train
 from rl.timesteps import compute_td_targets
 
+from rl.algos.factory import AlgoFactory
 from rl.modules.modules import init_params
 from rl.modules.train_state import TrainState
 from rl.modules.qvalue import qvalue_factory
@@ -150,17 +151,18 @@ class DQN(Base):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        Base.__init__(
+        AlgoFactory.intialize(
             self,
-            config=config,
-            train_state_factory=train_state_dqn_factory,
-            explore_factory=explore_factory,
-            process_experience_factory=process_experience_factory,
-            update_step_factory=update_step_factory,
+            config,
+            train_state_dqn_factory,
+            explore_factory,
+            process_experience_factory,
+            update_step_factory,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
             run_name=run_name,
             tabulate=tabulate,
+            experience_type=Experience,
         )
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:

@@ -11,12 +11,9 @@ import chex
 import cloudpickle
 import yaml
 from flax import struct
-from flax.training.train_state import TrainState
 
 from jrd_extensions import Seeded
 
-from rl.algos.general_fns import explore_general_factory
-from rl.algos.general_fns import process_experience_general_factory
 
 from rl.buffer import Buffer, Experience
 from rl.callbacks.callback import Callback
@@ -71,65 +68,6 @@ class DeployedJit:
 
 
 class Base(ABC, Seeded):
-    def __init__(
-        self,
-        config: AlgoConfig,
-        train_state_factory: Callable,
-        explore_factory: Callable,
-        process_experience_factory: Callable,
-        update_step_factory: Callable,
-        *,
-        rearrange_pattern: str = "b h w c -> b h w c",
-        preprocess_fn: Callable = None,
-        run_name: str = None,
-        tabulate: bool = False,
-        experience_type: NamedTuple = Experience,
-    ):
-        Seeded.__init__(self, config.seed)
-        self.config = config
-        self.algo_params = FrozenConfigDict(config.algo_params)
-
-        self.rearrange_pattern = rearrange_pattern
-        self.preprocess_fn = preprocess_fn
-        self.tabulate = tabulate
-
-        self.vectorized = self.config.env_cfg.n_envs > 1
-        self.parallel = self.config.env_cfg.n_agents > 1
-
-        self.state: TrainState = train_state_factory(
-            self.nextkey(),
-            self.config,
-            rearrange_pattern=rearrange_pattern,
-            preprocess_fn=preprocess_fn,
-            tabulate=tabulate,
-        )
-
-        self.explore_fn: Callable = explore_general_factory(
-            explore_factory(self.state, self.config.algo_params),
-            self.vectorized,
-            self.parallel,
-        )
-        self.process_experience_fn: Callable = process_experience_general_factory(
-            process_experience_factory(
-                self.state,
-                self.config.algo_params,
-            ),
-            self.vectorized,
-            self.parallel,
-            experience_type,
-        )
-
-        self.update_step_fn = update_step_factory(self.state, self.config)
-
-        self.explore_factory = explore_factory
-
-        self.run_name = run_name
-        if self.run_name is None:
-            self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
-        self.saver = Saver(
-            Path(os.path.join("./results", self.run_name)).absolute(), self
-        )
-
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
         """Exploits the policy to interact with the environment.
@@ -237,21 +175,3 @@ class Base(ABC, Seeded):
         extra["run_name"] = path.parts[-1]
 
         return cls(config=config, **extra)
-
-    def deploy_agent(self, batched: bool) -> DeployedJit:
-        """Creates a jittable instance of the agent.
-
-        Args:
-            batched: A boolean determining if the observation inputs will be batched.
-
-        Returns:
-            A DeployedJit instance of the agent.
-        """
-        return DeployedJit(
-            params=self.state.params,
-            select_action=explore_general_factory(
-                self.explore_factory(self.state, self.config),
-                batched=batched,
-                parallel=False,
-            ),
-        )

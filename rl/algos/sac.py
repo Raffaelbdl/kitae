@@ -22,7 +22,7 @@ from rl.loss import loss_mean_squared_error
 from rl.train import train
 from rl.timesteps import compute_td_targets
 
-
+from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import init_params, IndependentVariable
 from rl.modules.policy import make_policy, PolicyTanhNormal
@@ -287,7 +287,8 @@ class SAC(Base):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        super().__init__(
+        AlgoFactory.intialize(
+            self,
             config,
             train_state_sac_factory,
             explore_factory,
@@ -297,7 +298,9 @@ class SAC(Base):
             preprocess_fn=preprocess_fn,
             run_name=run_name,
             tabulate=tabulate,
+            experience_type=Experience,
         )
+
         self.step = 0
         self.config.algo_params.target_entropy = (
             -self.config.env_cfg.action_space.shape[-1] / 2
