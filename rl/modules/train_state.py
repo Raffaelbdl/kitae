@@ -12,7 +12,7 @@ class TrainState(train_state.TrainState):
 
 
 @chex.dataclass
-class PolicyValueTrainState_:
+class PolicyValueTrainState:
     policy_state: TrainState
     value_state: TrainState
     encoder_state: TrainState
