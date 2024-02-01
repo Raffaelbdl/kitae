@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Callable
 
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -19,10 +20,10 @@ from rl.loss import loss_mean_squared_error
 from rl.train import train
 from rl.timesteps import compute_td_targets
 
-import flax.linen as nn
+
+from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import init_params
-
 from rl.modules.train_state import PolicyQValueTrainState, TrainState
 from rl.modules.policy import PolicyNormalExternalStd
 
@@ -272,7 +273,8 @@ class TD3(Base):
         run_name: str = None,
         tabulate: bool = False,
     ):
-        super().__init__(
+        AlgoFactory.intialize(
+            self,
             config,
             train_state_ddpg_factory,
             explore_factory,
@@ -282,8 +284,11 @@ class TD3(Base):
             preprocess_fn=preprocess_fn,
             run_name=run_name,
             tabulate=tabulate,
+            experience_type=Experience,
         )
+
         self.step = 0
+        self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (
