@@ -28,7 +28,7 @@ from rl.modules.encoder import encoder_factory
 from rl.modules.modules import PassThrough, init_params
 from rl.modules.optimizer import linear_learning_rate_schedule
 from rl.modules.policy_value import policy_output_factory, ValueOutput
-from rl.modules.train_state import PolicyValueTrainState_, TrainState
+from rl.modules.train_state import PolicyValueTrainState, TrainState
 
 
 @dataclass
@@ -60,7 +60,7 @@ def train_state_ppo_factory(
     rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> PolicyValueTrainState_:
+) -> PolicyValueTrainState:
 
     key1, key2, key3 = jax.random.split(key, 3)
     observation_shape = config.env_cfg.observation_space.shape
@@ -122,17 +122,17 @@ def train_state_ppo_factory(
         tx=tx,
     )
 
-    return PolicyValueTrainState_(
+    return PolicyValueTrainState(
         policy_state=policy_state, value_state=value_state, encoder_state=encoder_state
     )
 
 
 def explore_factory(
-    train_state: PolicyValueTrainState_, algo_params: PPOParams
+    train_state: PolicyValueTrainState, algo_params: PPOParams
 ) -> Callable:
     @jax.jit
     def fn(
-        ppo_state: PolicyValueTrainState_, key: jax.Array, observations: jax.Array
+        ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = ppo_state.encoder_state.apply_fn(
             {"params": ppo_state.encoder_state.params}, observations
@@ -148,10 +148,10 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: PolicyValueTrainState_, algo_params: PPOParams
+    train_state: PolicyValueTrainState, algo_params: PPOParams
 ) -> Callable:
     @jax.jit
-    def fn(ppo_state: PolicyValueTrainState_, key: jax.Array, experience: Experience):
+    def fn(ppo_state: PolicyValueTrainState, key: jax.Array, experience: Experience):
         all_obs = jnp.concatenate(
             [experience.observation, experience.next_observation[-1:]], axis=0
         )
@@ -193,12 +193,12 @@ def process_experience_factory(
 
 
 def update_step_factory(
-    train_state: PolicyValueTrainState_, config: AlgoConfig
+    train_state: PolicyValueTrainState, config: AlgoConfig
 ) -> Callable:
     algo_params = config.algo_params
 
     def update_policy_value_fn(
-        ppo_state: PolicyValueTrainState_, batch: tuple[jax.Array, ...]
+        ppo_state: PolicyValueTrainState, batch: tuple[jax.Array, ...]
     ):
         def loss_policy_value_fn(
             params: dict[str, Params],
@@ -268,7 +268,7 @@ def update_step_factory(
 
     @jax.jit
     def update_step_fn(
-        ppo_state: PolicyValueTrainState_,
+        ppo_state: PolicyValueTrainState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ):
@@ -343,7 +343,7 @@ class PPO(Base):
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
-        def fn(state: PolicyValueTrainState_, key: jax.Array, sample: tuple):
+        def fn(state: PolicyValueTrainState, key: jax.Array, sample: tuple):
             experiences = self.process_experience_fn(state, key, sample)
 
             loss = 0.0
