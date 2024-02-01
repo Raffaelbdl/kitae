@@ -288,6 +288,7 @@ class TD3(Base):
         )
 
         self.step = 0
+        self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (

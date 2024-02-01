@@ -164,6 +164,7 @@ class DQN(Base):
             tabulate=tabulate,
             experience_type=Experience,
         )
+        self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = (

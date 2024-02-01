@@ -305,6 +305,7 @@ class SAC(Base):
         self.config.algo_params.target_entropy = (
             -self.config.env_cfg.action_space.shape[-1] / 2
         )
+        self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         return self.explore(observation)
