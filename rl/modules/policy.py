@@ -1,5 +1,6 @@
 import distrax as dx
 from flax import linen as nn
+from gymnasium.spaces import Box, Discrete
 import jax
 from jax import numpy as jnp
 
@@ -106,3 +107,14 @@ def make_policy(encoder: nn.Module, policy_output: PolicyOutput) -> nn.Module:
             return self.output(self.encoder(x))
 
     return Policy()
+
+
+def policy_output_factory(action_space: Discrete) -> type[PolicyOutput]:
+    if isinstance(action_space, Discrete):
+        add_representer(dx.Categorical)
+        return PolicyCategorical
+    elif isinstance(action_space, Box):
+        add_representer(dx.Normal)
+        return PolicyNormal
+    else:
+        raise NotImplementedError

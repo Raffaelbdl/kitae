@@ -27,8 +27,9 @@ from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import PassThrough, init_params
 from rl.modules.optimizer import linear_learning_rate_schedule
-from rl.modules.policy_value import policy_output_factory, ValueOutput
+from rl.modules.policy import policy_output_factory
 from rl.modules.train_state import PolicyValueTrainState, TrainState
+from rl.modules.value import ValueOutput
 
 
 @dataclass
