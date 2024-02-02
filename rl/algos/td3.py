@@ -25,7 +25,8 @@ from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import init_params
 from rl.modules.train_state import PolicyQValueTrainState, TrainState
-from rl.modules.policy import PolicyNormalExternalStd
+from rl.modules.policy import make_policy, PolicyNormalExternalStd
+from rl.modules.qvalue import make_double_q_value, qvalue_factory
 
 
 @dataclass
@@ -71,36 +72,23 @@ def train_state_ddpg_factory(
         def __call__(self, x: jax.Array, policy_noise: float):
             return self.output(self.encoder(x), policy_noise)
 
-    module_policy = Policy()
+    policy = Policy()
     policy_state = TrainState.create(
-        apply_fn=module_policy.apply,
-        params=init_params(key1, module_policy, [observation_shape, ()], tabulate),
-        target_params=init_params(key1, module_policy, [observation_shape, ()], False),
+        apply_fn=policy.apply,
+        params=init_params(key1, policy, [observation_shape, ()], tabulate),
+        target_params=init_params(key1, policy, [observation_shape, ()], False),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    from rl.modules.qvalue import qvalue_factory
-
-    class QValue(nn.Module):
-        def setup(self) -> None:
-            self.q1 = qvalue_factory(
-                config.env_cfg.observation_space, config.env_cfg.action_space
-            )()
-            self.q2 = qvalue_factory(
-                config.env_cfg.observation_space, config.env_cfg.action_space
-            )()
-
-        def __call__(self, x: jax.Array, a: jax.Array):
-            return self.q1(x, a), self.q2(x, a)
-
-    module_qvalue = QValue()
+    qvalue = make_double_q_value(
+        qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
+        qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
+    )
     qvalue_state = TrainState.create(
-        apply_fn=module_qvalue.apply,
-        params=init_params(
-            key2, module_qvalue, [observation_shape, action_shape], tabulate
-        ),
+        apply_fn=qvalue.apply,
+        params=init_params(key2, qvalue, [observation_shape, action_shape], tabulate),
         target_params=init_params(
-            key2, module_qvalue, [observation_shape, action_shape], False
+            key2, qvalue, [observation_shape, action_shape], False
         ),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
