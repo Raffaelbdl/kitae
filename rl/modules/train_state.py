@@ -1,7 +1,4 @@
-from typing import Callable
-
 import chex
-from flax import struct
 from flax.training import train_state
 
 from rl.types import Params
