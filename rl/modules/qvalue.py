@@ -1,22 +1,11 @@
-from dataclasses import dataclass
 from typing import Callable, Type, Iterable
 
-import chex
 from flax import linen as nn
-from flax import struct
-from flax.training.train_state import TrainState
 from gymnasium import spaces
 import jax
 import jax.numpy as jnp
-import ml_collections
-import optax
 
-from rl.config import AlgoConfig
-from rl.modules.modules import init_params, PassThrough
 from rl.modules.encoder import encoder_factory
-from rl.modules.optimizer import linear_learning_rate_schedule
-from rl.modules.policy import PolicyNormalExternalStd
-from rl.types import Params
 
 
 class QValueDiscreteOutput(nn.Module):
