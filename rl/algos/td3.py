@@ -118,10 +118,11 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: PolicyQValueTrainState, algo_params: TD3Params
+    train_state: PolicyQValueTrainState, config: AlgoConfig
 ) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
     qvalue_apply = train_state.qvalue_state.apply_fn
+    algo_params = config.algo_params
 
     @jax.jit
     def fn(
@@ -197,7 +198,7 @@ def update_step_factory(
             loss = -jnp.mean(qvalues)
             return loss, {"loss_policy": loss}
 
-        observations, _, _ = batch
+        observations, _, _, _ = batch
 
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params, observations
@@ -223,14 +224,14 @@ def update_step_factory(
 
     def update_step_fn(
         state: PolicyQValueTrainState,
+        key: jax.Array,
         batch: tuple[jax.Array],
-        step: int,
     ):
         state.qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
-            state.qvalue_state, batch
+            state.qvalue_state, batch[:-1]
         )
-
-        if step % config.algo_params.policy_update_frequency == 0:
+        update_policy = batch[-1]
+        if update_policy == 0:
             (state.policy_state, state.qvalue_state), loss_policy, info_policy = (
                 update_policy_fn(state.policy_state, state.qvalue_state, batch)
             )
@@ -317,12 +318,18 @@ class TD3(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: PolicyQValueTrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state, key, sample)
-            return self.update_step_fn(state, experiences, self.step)
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
-        self.state, info = fn(self.state, self.nextkey(), sample)
+        experiences = self.process_experience_pipeline(
+            self.experience_transforms(self.state), self.nextkey(), sample
+        )
+        update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
+        update_modules, info = self.update_pipeline_fn(
+            self.update_modules(self.state),
+            self.nextkey(),
+            (*experiences, update_policy),
+        )
+        self.state = update_modules[0].state
         return info
 
     def train(

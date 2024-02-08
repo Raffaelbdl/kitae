@@ -130,10 +130,11 @@ def explore_factory(train_state: SACTrainState, algo_params: SACParams) -> Calla
 
 
 def process_experience_factory(
-    train_state: SACTrainState, algo_params: SACParams
+    train_state: SACTrainState, config: AlgoConfig
 ) -> Callable:
     policy_apply = train_state.policy_state.apply_fn
     qvalue_apply = train_state.qvalue_state.apply_fn
+    algo_params = config.algo_params
 
     @jax.jit
     def fn(
@@ -251,6 +252,7 @@ def update_step_factory(train_state: SACTrainState, config: AlgoConfig) -> Calla
 
     def update_step_fn(
         state: SACTrainState,
+        key: jax.Array,
         batch: tuple[jax.Array],
     ):
         state.qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
@@ -334,12 +336,15 @@ class SAC(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: SACTrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state, key, sample)
-            return self.update_step_fn(state, experiences)
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
-        self.state, info = fn(self.state, self.nextkey(), sample)
+        experiences = self.process_experience_pipeline(
+            self.experience_transforms(self.state), self.nextkey(), sample
+        )
+        update_modules, info = self.update_pipeline_fn(
+            self.update_modules(self.state), self.nextkey(), experiences
+        )
+        self.state = update_modules[0].state
         return info
 
     def train(

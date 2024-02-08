@@ -282,7 +282,7 @@ def update_step_factory(
             : iterations * config.update_cfg.batch_size
         ]
 
-        experiences = jax.tree_util.tree_map(
+        batches = jax.tree_util.tree_map(
             lambda x: x[inds].reshape(
                 (iterations, config.update_cfg.batch_size) + x.shape[1:]
             ),
@@ -290,7 +290,7 @@ def update_step_factory(
         )
 
         loss = 0.0
-        for batch in zip(*experiences):
+        for batch in zip(*batches):
             ppo_state, l, info = update_policy_value_fn(ppo_state, batch)
             loss += l
         loss /= iterations
@@ -348,25 +348,17 @@ class PPO(Base):
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
-        def fn(
-            update_modules: list[UpdateModule],  # udpates modules here !
-            key: jax.Array,
-            batch: Experience,
-        ):
-            for epoch in range(self.config.update_cfg.n_epochs):
-                key, _key = jax.random.split(key)
-                update_modules, info = self.update_pipeline_fn(
-                    update_modules, _key, batch
-                )
-            return update_modules, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
         experiences = self.process_experience_pipeline(
             self.experience_transforms(self.state), self.nextkey(), sample
         )
-        update_modules, info = fn(
-            self.update_modules(self.state), self.nextkey(), experiences
-        )
+        update_modules = self.update_modules(self.state)
+
+        for epoch in range(self.config.update_cfg.n_epochs):
+            update_modules, info = self.update_pipeline_fn(
+                update_modules, self.nextkey(), experiences
+            )
         self.state = update_modules[0].state
 
         return info
