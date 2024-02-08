@@ -67,7 +67,48 @@ class DeployedJit:
     select_action: Callable = struct.field(pytree_node=False)
 
 
+from rl.algos.pipelines.experience_pipeline import ExperienceTransform
+from rl.algos.pipelines.update_pipeline import UpdateModule
+from rl.algos.pipelines.intrinsic_reward import IntrinsicRewardModule
+
+
 class Base(ABC, Seeded):
+    intrinsic_reward_module: IntrinsicRewardModule = None
+
+    def experience_transforms(self, state) -> list[ExperienceTransform]:
+        transforms = []
+
+        if self.intrinsic_reward_module:
+            transforms.append(
+                ExperienceTransform(
+                    process_experience_fn=self.intrinsic_reward_module.process_experience_fn,
+                    state=self.intrinsic_reward_module.state,
+                )
+            )
+
+        transforms.append(
+            ExperienceTransform(
+                process_experience_fn=self.process_experience_fn, state=state
+            )
+        )
+
+        return transforms
+
+    def update_modules(self, state) -> list[UpdateModule]:
+        modules = []
+
+        if self.intrinsic_reward_module:
+            modules.append(
+                UpdateModule(
+                    update_fn=self.intrinsic_reward_module.update_fn,
+                    state=self.intrinsic_reward_module.state,
+                )
+            )
+
+        modules.append(UpdateModule(update_fn=self.update_step_fn, state=state))
+
+        return modules
+
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
         """Exploits the policy to interact with the environment.

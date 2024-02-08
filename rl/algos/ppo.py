@@ -128,9 +128,7 @@ def train_state_ppo_factory(
     )
 
 
-def explore_factory(
-    train_state: PolicyValueTrainState, algo_params: PPOParams
-) -> Callable:
+def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(
         ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
@@ -148,9 +146,9 @@ def explore_factory(
     return fn
 
 
-def process_experience_factory(
-    train_state: PolicyValueTrainState, algo_params: PPOParams
-) -> Callable:
+def process_experience_factory(config: AlgoConfig) -> Callable:
+    algo_params = config.algo_params
+
     @jax.jit
     def fn(ppo_state: PolicyValueTrainState, key: jax.Array, experience: Experience):
         all_obs = jnp.concatenate(
@@ -193,9 +191,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(
-    train_state: PolicyValueTrainState, config: AlgoConfig
-) -> Callable:
+def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     def update_policy_value_fn(
@@ -279,7 +275,7 @@ def update_step_factory(
             : iterations * config.update_cfg.batch_size
         ]
 
-        experiences = jax.tree_util.tree_map(
+        batches = jax.tree_util.tree_map(
             lambda x: x[inds].reshape(
                 (iterations, config.update_cfg.batch_size) + x.shape[1:]
             ),
@@ -287,12 +283,12 @@ def update_step_factory(
         )
 
         loss = 0.0
-        for batch in zip(*experiences):
+        for batch in zip(*batches):
             ppo_state, l, info = update_policy_value_fn(ppo_state, batch)
             loss += l
         loss /= iterations
 
-        return ppo_state, loss, info
+        return ppo_state, info
 
     return update_step_fn
 
@@ -345,21 +341,19 @@ class PPO(Base):
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
-        def fn(state: PolicyValueTrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state, key, sample)
-
-            loss = 0.0
-            for epoch in range(self.config.update_cfg.n_epochs):
-                key, _k = jax.random.split(key)
-                state, l, info = self.update_step_fn(state, _k, experiences)
-                loss += l
-
-            loss /= self.config.update_cfg.n_epochs
-            info["total_loss"] = loss
-            return state, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
-        self.state, info = fn(self.state, self.nextkey(), sample)
+        experiences = self.process_experience_pipeline(
+            self.experience_transforms(self.state), self.nextkey(), sample
+        )
+        update_modules = self.update_modules(self.state)
+
+        for epoch in range(self.config.update_cfg.n_epochs):
+            update_modules, info = self.update_pipeline_fn(
+                update_modules, self.nextkey(), experiences
+            )
+        self.state = update_modules[0].state
+
         return info
 
     def train(
