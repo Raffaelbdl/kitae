@@ -21,8 +21,6 @@ class QValueDiscreteOutput(nn.Module):
 
 
 class QValueContinousOutput(nn.Module):
-    observation_space: spaces.Space
-
     @nn.compact
     def __call__(self, x: jax.Array, a: jax.Array):
         x = jnp.concatenate([x, a], axis=-1)
