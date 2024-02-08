@@ -24,6 +24,7 @@ from rl.timesteps import calculate_gaes_targets
 from rl.train import train
 
 from rl.algos.factory import AlgoFactory
+from rl.algos.pipelines.update_pipeline import UpdateModule
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import PassThrough, init_params
 from rl.modules.optimizer import linear_learning_rate_schedule
@@ -149,8 +150,10 @@ def explore_factory(
 
 
 def process_experience_factory(
-    train_state: PolicyValueTrainState, algo_params: PPOParams
+    train_state: PolicyValueTrainState, config: AlgoConfig
 ) -> Callable:
+    algo_params = config.algo_params
+
     @jax.jit
     def fn(ppo_state: PolicyValueTrainState, key: jax.Array, experience: Experience):
         all_obs = jnp.concatenate(
@@ -292,7 +295,7 @@ def update_step_factory(
             loss += l
         loss /= iterations
 
-        return ppo_state, loss, info
+        return ppo_state, info
 
     return update_step_fn
 
@@ -345,21 +348,27 @@ class PPO(Base):
         return len(buffer) >= self.config.update_cfg.max_buffer_size
 
     def update(self, buffer: OnPolicyBuffer) -> dict:
-        def fn(state: PolicyValueTrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state, key, sample)
-
-            loss = 0.0
+        def fn(
+            update_modules: list[UpdateModule],  # udpates modules here !
+            key: jax.Array,
+            batch: Experience,
+        ):
             for epoch in range(self.config.update_cfg.n_epochs):
-                key, _k = jax.random.split(key)
-                state, l, info = self.update_step_fn(state, _k, experiences)
-                loss += l
-
-            loss /= self.config.update_cfg.n_epochs
-            info["total_loss"] = loss
-            return state, info
+                key, _key = jax.random.split(key)
+                update_modules, info = self.update_pipeline_fn(
+                    update_modules, _key, batch
+                )
+            return update_modules, info
 
         sample = buffer.sample(self.config.update_cfg.batch_size)
-        self.state, info = fn(self.state, self.nextkey(), sample)
+        experiences = self.process_experience_pipeline(
+            self.experience_transforms(self.state), self.nextkey(), sample
+        )
+        update_modules, info = fn(
+            self.update_modules(self.state), self.nextkey(), experiences
+        )
+        self.state = update_modules[0].state
+
         return info
 
     def train(

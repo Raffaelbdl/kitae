@@ -13,6 +13,11 @@ from jrd_extensions import Seeded
 from rl.base import Base, DeployedJit
 from rl.types import Params
 
+from rl.algos.pipelines.experience_pipeline import (
+    ExperienceTransform,
+    process_experience_pipeline_factory,
+)
+from rl.algos.pipelines.update_pipeline import update_pipeline_fn
 from rl.buffer import Experience, stack_experiences
 from rl.config import AlgoConfig
 from rl.modules.train_state import TrainState
@@ -169,15 +174,15 @@ class AlgoFactory:
             self.vectorized,
             self.parallel,
         )
-        self.process_experience_fn = process_experience_general_factory(
-            process_experience_factory(
-                self.state,
-                self.config.algo_params,
-            ),
-            self.vectorized,
-            self.parallel,
-            experience_type,
+
+        self.process_experience_pipeline = jax.jit(
+            process_experience_pipeline_factory(
+                self.vectorized, self.parallel, experience_type
+            )
         )
+        self.process_experience_fn = process_experience_factory(self.state, self.config)
+
+        self.update_pipeline_fn = jax.jit(update_pipeline_fn)
         self.update_step_fn = update_step_factory(self.state, self.config)
 
         self.explore_factory = explore_factory

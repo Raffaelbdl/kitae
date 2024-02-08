@@ -67,7 +67,22 @@ class DeployedJit:
     select_action: Callable = struct.field(pytree_node=False)
 
 
+from rl.algos.pipelines.experience_pipeline import ExperienceTransform
+from rl.algos.pipelines.update_pipeline import UpdateModule
+
+
 class Base(ABC, Seeded):
+
+    def experience_transforms(self, state) -> list:
+        return [
+            ExperienceTransform(
+                process_experience_fn=self.process_experience_fn, state=state
+            )
+        ]
+
+    def update_modules(self, state) -> list:
+        return [UpdateModule(update_fn=self.update_step_fn, state=state)]
+
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
         """Exploits the policy to interact with the environment.
