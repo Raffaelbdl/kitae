@@ -65,12 +65,17 @@ def train_state_dqn_factory(
     )
 
 
-def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable:
+def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(
-        params: Params, key: jax.Array, observations: jax.Array, exploration: float
+        qvalue_state: TrainState,
+        key: jax.Array,
+        observations: jax.Array,
+        exploration: float,
     ) -> jax.Array:
-        all_qvalues = train_state.apply_fn({"params": params}, observations)
+        all_qvalues = qvalue_state.apply_fn(
+            {"params": qvalue_state.params}, observations
+        )
         actions, log_probs = dx.EpsilonGreedy(
             all_qvalues, exploration
         ).sample_and_log_prob(seed=key)
@@ -80,14 +85,12 @@ def explore_factory(train_state: TrainState, algo_params: DQNParams) -> Callable
     return fn
 
 
-def process_experience_factory(
-    train_state: TrainState, algo_params: DQNParams
-) -> Callable:
-    qvalue_apply = train_state.apply_fn
+def process_experience_factory(config: AlgoConfig) -> Callable:
+    algo_params = config.algo_params
 
     @jax.jit
     def fn(dqn_state: TrainState, key: jax.Array, experience: Experience):
-        all_next_qvalues = qvalue_apply(
+        all_next_qvalues = dqn_state.apply_fn(
             {"params": dqn_state.params}, experience.next_observation
         )
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
@@ -103,13 +106,13 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(train_state: TrainState, config: AlgoConfig) -> Callable:
+def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
 
         def loss_fn(params: Params, observations, actions, returns):
-            all_qvalues = train_state.apply_fn({"params": params}, observations)
+            all_qvalues = qvalue_state.apply_fn({"params": params}, observations)
             qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
             loss = loss_mean_squared_error(qvalues, returns)
             return loss, {"loss_qvalue": loss}
@@ -200,13 +203,14 @@ class DQN(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-        def fn(state: TrainState, key: jax.Array, sample: tuple):
-            experiences = self.process_experience_fn(state, key, sample)
-            state, info = self.update_step_fn(state, experiences)
-            return state, info
-
         sample = buffer.sample(self.config.update_cfg.batch_size)
-        self.state, info = fn(self.state, self.nextkey(), sample)
+        experiences = self.process_experience_pipeline(
+            self.experience_transforms(self.state), self.nextkey(), sample
+        )
+        update_modules, info = self.update_pipeline_fn(
+            self.update_modules(self.state), self.nextkey(), experiences
+        )
+        self.state = update_modules[0].state
         return info
 
     def train(

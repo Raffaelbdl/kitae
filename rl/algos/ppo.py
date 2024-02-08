@@ -24,7 +24,6 @@ from rl.timesteps import calculate_gaes_targets
 from rl.train import train
 
 from rl.algos.factory import AlgoFactory
-from rl.algos.pipelines.update_pipeline import UpdateModule
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import PassThrough, init_params
 from rl.modules.optimizer import linear_learning_rate_schedule
@@ -129,9 +128,7 @@ def train_state_ppo_factory(
     )
 
 
-def explore_factory(
-    train_state: PolicyValueTrainState, algo_params: PPOParams
-) -> Callable:
+def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(
         ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
@@ -149,9 +146,7 @@ def explore_factory(
     return fn
 
 
-def process_experience_factory(
-    train_state: PolicyValueTrainState, config: AlgoConfig
-) -> Callable:
+def process_experience_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     @jax.jit
@@ -196,9 +191,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(
-    train_state: PolicyValueTrainState, config: AlgoConfig
-) -> Callable:
+def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     def update_policy_value_fn(

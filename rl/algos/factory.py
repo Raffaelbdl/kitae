@@ -170,7 +170,7 @@ class AlgoFactory:
         )
 
         self.explore_fn = explore_general_factory(
-            explore_factory(self.state, self.config.algo_params),
+            explore_factory(self.config.algo_params),
             self.vectorized,
             self.parallel,
         )
@@ -180,10 +180,10 @@ class AlgoFactory:
                 self.vectorized, self.parallel, experience_type
             )
         )
-        self.process_experience_fn = process_experience_factory(self.state, self.config)
+        self.process_experience_fn = process_experience_factory(self.config)
 
         self.update_pipeline_fn = update_pipeline_fn
-        self.update_step_fn = update_step_factory(self.state, self.config)
+        self.update_step_fn = update_step_factory(self.config)
 
         self.explore_factory = explore_factory
 

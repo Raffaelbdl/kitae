@@ -96,10 +96,7 @@ def train_state_ddpg_factory(
     return PolicyQValueTrainState(policy_state=policy_state, qvalue_state=qvalue_state)
 
 
-def explore_factory(
-    train_state: PolicyQValueTrainState, algo_params: TD3Params
-) -> Callable:
-    policy_apply = train_state.policy_state.apply_fn
+def explore_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def fn(
@@ -108,7 +105,7 @@ def explore_factory(
         observations: jax.Array,
         action_noise: float,
     ):
-        actions, log_probs = policy_apply(
+        actions, log_probs = policy_state.apply_fn(
             {"params": policy_state.params}, observations, action_noise
         ).sample_and_log_prob(seed=key)
         actions = jnp.clip(actions, -1.0, 1.0)
@@ -117,11 +114,7 @@ def explore_factory(
     return fn
 
 
-def process_experience_factory(
-    train_state: PolicyQValueTrainState, config: AlgoConfig
-) -> Callable:
-    policy_apply = train_state.policy_state.apply_fn
-    qvalue_apply = train_state.qvalue_state.apply_fn
+def process_experience_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     @jax.jit
@@ -130,7 +123,7 @@ def process_experience_factory(
         key: jax.Array,
         experience: Experience,
     ):
-        next_actions = policy_apply(
+        next_actions = td3_state.policy_state.apply_fn(
             {"params": td3_state.policy_state.target_params},
             experience.next_observation,
             0.0,
@@ -142,7 +135,7 @@ def process_experience_factory(
         )
         next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
 
-        next_q1, next_q2 = qvalue_apply(
+        next_q1, next_q2 = td3_state.qvalue_state.apply_fn(
             {"params": td3_state.qvalue_state.target_params},
             experience.next_observation,
             next_actions,
@@ -159,11 +152,7 @@ def process_experience_factory(
     return fn
 
 
-def update_step_factory(
-    train_state: PolicyQValueTrainState, config: AlgoConfig
-) -> Callable:
-    qvalue_apply = train_state.qvalue_state.apply_fn
-    policy_apply = train_state.policy_state.apply_fn
+def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
@@ -191,8 +180,10 @@ def update_step_factory(
         batch: tuple[jax.Array],
     ):
         def loss_fn(params: Params, observations):
-            actions = policy_apply({"params": params}, observations, 0.0).sample(seed=0)
-            qvalues, _ = qvalue_apply(
+            actions = policy_state.apply_fn(
+                {"params": params}, observations, 0.0
+            ).sample(seed=0)
+            qvalues, _ = qvalue_state.apply_fn(
                 {"params": qvalue_state.params}, observations, actions
             )
             loss = -jnp.mean(qvalues)
@@ -318,7 +309,6 @@ class TD3(Base):
         )
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
-
         sample = buffer.sample(self.config.update_cfg.batch_size)
         experiences = self.process_experience_pipeline(
             self.experience_transforms(self.state), self.nextkey(), sample
