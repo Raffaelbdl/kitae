@@ -346,13 +346,14 @@ class PPO(Base):
         experiences = self.process_experience_pipeline(
             self.experience_transforms(self.state), self.nextkey(), sample
         )
-        update_modules = self.update_modules(self.state)
+        update_modules = self.make_update_modules(self.state)
 
         for epoch in range(self.config.update_cfg.n_epochs):
             update_modules, info = self.update_pipeline_fn(
                 update_modules, self.nextkey(), experiences
             )
-        self.state = update_modules[0].state
+
+        self.apply_updates(update_modules)
 
         return info
 

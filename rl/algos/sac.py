@@ -324,7 +324,7 @@ class SAC(Base):
         update_modules, info = self.update_pipeline_fn(
             self.update_modules(self.state), self.nextkey(), experiences
         )
-        self.state = update_modules[0].state
+        self.apply_updates(update_modules)
         return info
 
     def train(

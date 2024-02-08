@@ -319,7 +319,7 @@ class TD3(Base):
             self.nextkey(),
             (*experiences, update_policy),
         )
-        self.state = update_modules[0].state
+        self.apply_updates(update_modules)
         return info
 
     def train(
