@@ -94,10 +94,12 @@ class Base(ABC, Seeded):
 
         return transforms
 
-    def update_modules(self, state) -> list[UpdateModule]:
+    def make_update_modules(self, state) -> list[UpdateModule]:
         modules = []
+        self.modules_to_state = {}
 
         if self.intrinsic_reward_module:
+            self.modules_to_state[len(modules)] = "intrinsic_reward_module"
             modules.append(
                 UpdateModule(
                     update_fn=self.intrinsic_reward_module.update_fn,
@@ -105,9 +107,19 @@ class Base(ABC, Seeded):
                 )
             )
 
+        self.modules_to_state[len(modules)] = "state"
         modules.append(UpdateModule(update_fn=self.update_step_fn, state=state))
 
         return modules
+
+    def apply_updates(self, update_modules: list[UpdateModule]):
+        for i in range(len(update_modules)):
+            if self.modules_to_state[i] == "intrinsic_reward_module":
+                self.intrinsic_reward_module = self.intrinsic_reward_module.replace(
+                    update_modules[i].state
+                )
+            elif self.modules_to_state[i] == "state":
+                self.state = update_modules[i].state
 
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:

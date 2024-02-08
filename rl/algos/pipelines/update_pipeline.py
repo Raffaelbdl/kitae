@@ -1,9 +1,7 @@
-from typing import Callable, NamedTuple
+from typing import Callable
 
 from flax import struct
 import jax
-
-from rl.modules.train_state import TrainState
 
 
 class UpdateModule(struct.PyTreeNode):
