@@ -116,7 +116,7 @@ class Base(ABC, Seeded):
         for i in range(len(update_modules)):
             if self.modules_to_state[i] == "intrinsic_reward_module":
                 self.intrinsic_reward_module = self.intrinsic_reward_module.replace(
-                    update_modules[i].state
+                    state=update_modules[i].state
                 )
             elif self.modules_to_state[i] == "state":
                 self.state = update_modules[i].state

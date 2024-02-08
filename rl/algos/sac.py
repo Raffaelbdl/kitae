@@ -322,7 +322,7 @@ class SAC(Base):
             self.experience_transforms(self.state), self.nextkey(), sample
         )
         update_modules, info = self.update_pipeline_fn(
-            self.update_modules(self.state), self.nextkey(), experiences
+            self.make_update_modules(self.state), self.nextkey(), experiences
         )
         self.apply_updates(update_modules)
         return info

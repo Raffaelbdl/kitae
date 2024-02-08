@@ -315,7 +315,7 @@ class TD3(Base):
         )
         update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
         update_modules, info = self.update_pipeline_fn(
-            self.update_modules(self.state),
+            self.make_update_modules(self.state),
             self.nextkey(),
             (*experiences, update_policy),
         )
