@@ -182,7 +182,7 @@ class AlgoFactory:
         )
         self.process_experience_fn = process_experience_factory(self.state, self.config)
 
-        self.update_pipeline_fn = jax.jit(update_pipeline_fn)
+        self.update_pipeline_fn = update_pipeline_fn
         self.update_step_fn = update_step_factory(self.state, self.config)
 
         self.explore_factory = explore_factory
