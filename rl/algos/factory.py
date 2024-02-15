@@ -10,14 +10,12 @@ import jax.numpy as jnp
 from jrd_extensions import Seeded
 
 
-from rl.base import Base, DeployedJit
+from rl.base import Agent
 from rl.types import Params
 
-from rl.algos.pipelines.experience_pipeline import (
-    ExperienceTransform,
-    process_experience_pipeline_factory,
-)
-from rl.algos.pipelines.update_pipeline import update_pipeline_fn
+from rl.algos.pipelines.experience_pipeline import process_experience_pipeline_factory
+from rl.algos.pipelines import PipelineModule
+from rl.algos.pipelines.update_pipeline import update_pipeline
 from rl.buffer import Experience, stack_experiences
 from rl.config import AlgoConfig
 from rl.modules.train_state import TrainState
@@ -138,7 +136,7 @@ def process_experience_general_factory(
 class AlgoFactory:
     @staticmethod
     def intialize(
-        self: Base,
+        self: Agent,
         config: AlgoConfig,
         train_state_factory: Callable[..., TrainState],
         explore_factory: Factory,
@@ -156,17 +154,23 @@ class AlgoFactory:
 
         self.rearrange_pattern = rearrange_pattern
         self.preprocess_fn = preprocess_fn
-        self.tabulate = tabulate
 
         self.vectorized = self.config.env_cfg.n_envs > 1
         self.parallel = self.config.env_cfg.n_agents > 1
 
-        self.state = train_state_factory(
+        state = train_state_factory(
             self.nextkey(),
             self.config,
             rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
             tabulate=tabulate,
+        )
+        process_experience_fn = process_experience_factory(self.config)
+        update_fn = update_step_factory(self.config)
+        self.main_pipeline_module = PipelineModule(
+            state=state,
+            process_experience_fn=process_experience_fn,
+            update_fn=update_fn,
         )
 
         self.explore_fn = explore_general_factory(
@@ -180,27 +184,14 @@ class AlgoFactory:
                 self.vectorized, self.parallel, experience_type
             )
         )
-        self.process_experience_fn = process_experience_factory(self.config)
 
-        self.update_pipeline_fn = update_pipeline_fn
-        self.update_step_fn = update_step_factory(self.config)
+        self.update_pipeline = update_pipeline
 
         self.explore_factory = explore_factory
 
         self.run_name = run_name
-        if self.run_name is None:
+        if run_name is None:
             self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
         self.saver = Saver(
             Path(os.path.join("./results", self.run_name)).absolute(), self
-        )
-
-    @staticmethod
-    def deploy_agent(self: Base, batched: bool) -> DeployedJit:
-        return DeployedJit(
-            params=self.state.policy_state.params,
-            select_action=explore_general_factory(
-                self.explore_factory(self.state, self.config),
-                batched=batched,
-                parallel=False,
-            ),
         )
