@@ -2,7 +2,7 @@ from datetime import datetime
 import functools
 import os
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 
 
 import jax
@@ -42,26 +42,24 @@ def fn_parallel(fn: Callable) -> Callable:
     return _fn
 
 
-# TODO works but not for the good reasons
-# the first input is no longer params !!
 def explore_general_factory(
-    explore_fn: Callable, batched: bool, parallel: bool
+    explore_fn: Callable, vectorized: bool, parallel: bool
 ) -> Callable:
     def input_fn(inputs):
-        if not batched:
+        if not vectorized:
             return jax.tree_map(lambda x: jnp.expand_dims(x, axis=0), inputs)
         return inputs
 
     explore_fn = fn_parallel(explore_fn) if parallel else explore_fn
 
     def output_fn(outputs):
-        if not batched:
+        if not vectorized:
             return jax.tree_map(lambda x: jnp.squeeze(x, axis=0), outputs)
         return outputs
 
-    def fn(params: Params, key, *trees, **hyperparams):
+    def fn(state: Any, key: jax.Array, *trees, **hyperparams):
         inputs = input_fn(trees)
-        results = explore_fn(params, key, *inputs, **hyperparams)
+        results = explore_fn(state, key, *inputs, **hyperparams)
         outputs = output_fn(results)
         return outputs
 
