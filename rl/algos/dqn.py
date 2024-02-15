@@ -130,7 +130,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         return qvalue_state, loss, info
 
-    def update_step_fn(state: TrainState, batch: tuple[jax.Array]):
+    def update_step_fn(state: TrainState, key: jax.Array, batch: tuple[jax.Array]):
         state, loss_qvalue, info_qvalue = update_qvalue_fn(state, batch)
         info = info_qvalue
         info["total_loss"] = loss_qvalue
@@ -178,7 +178,7 @@ class DQN(OffPolicyAgent):
         )
 
         action, zeros = self.explore_fn(
-            self.state.params, keys, observation, exploration=NO_EXPLORATION
+            self.state, keys, observation, exploration=NO_EXPLORATION
         )
         return action, zeros
 
@@ -190,7 +190,7 @@ class DQN(OffPolicyAgent):
         )
 
         action, zeros = self.explore_fn(
-            self.state.params,
+            self.state,
             keys,
             observation,
             exploration=self.algo_params.exploration,
