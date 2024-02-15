@@ -10,12 +10,12 @@ import numpy as np
 import optax
 
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import OffPolicyBuffer, Experience
+from rl.buffer import Experience
 from rl.loss import loss_mean_squared_error
 from rl.train import train
 from rl.timesteps import compute_td_targets
@@ -42,6 +42,7 @@ class DQNParams(AlgoParams):
     exploration: float
     gamma: float
     skip_steps: int
+    start_step: int = -1
 
 
 def train_state_dqn_factory(
@@ -139,7 +140,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class DQN(Base):
+class DQN(OffPolicyAgent):
     """
     Deep Q-Network (DQN)
     Paper : https://arxiv.org/abs/1312.5602
@@ -195,23 +196,6 @@ class DQN(Base):
             exploration=self.algo_params.exploration,
         )
         return jax.device_get(action), zeros
-
-    def should_update(self, step: int, buffer: OffPolicyBuffer) -> bool:
-        return (
-            len(buffer) >= self.config.update_cfg.batch_size
-            and step % self.algo_params.skip_steps == 0
-        )
-
-    def update(self, buffer: OffPolicyBuffer) -> dict:
-        sample = buffer.sample(self.config.update_cfg.batch_size)
-        experiences = self.process_experience_pipeline(
-            self.experience_transforms(self.state), self.nextkey(), sample
-        )
-        update_modules, info = self.update_pipeline_fn(
-            self.make_update_modules(self.state), self.nextkey(), experiences
-        )
-        self.apply_updates(update_modules)
-        return info
 
     def train(
         self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]

@@ -11,12 +11,12 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
-from rl.types import GymEnv, EnvPoolEnv, Params
+from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import OnPolicyBuffer, Experience
+from rl.buffer import Experience
 from rl.distribution import get_log_probs
 from rl.loss import loss_policy_ppo, loss_value_clip
 from rl.timesteps import calculate_gaes_targets
@@ -293,7 +293,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class PPO(Base):
+class PPO(OnPolicyAgent):
     """
     Proximal Policy Optimization (PPO)
     Paper : https://arxiv.org/abs/1707.06347
@@ -327,6 +327,7 @@ class PPO(Base):
         return self.explore(observation)
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
+        # TODO remove this and put it in the factory !
         keys = (
             {a: self.nextkey() for a in observation.keys()}
             if self.parallel
@@ -335,27 +336,7 @@ class PPO(Base):
 
         action, log_prob = self.explore_fn(self.state, keys, observation)
 
-        return action, log_prob
-
-    def should_update(self, step: int, buffer: OnPolicyBuffer) -> bool:
-        return len(buffer) >= self.config.update_cfg.max_buffer_size
-
-    def update(self, buffer: OnPolicyBuffer) -> dict:
-
-        sample = buffer.sample(self.config.update_cfg.batch_size)
-        experiences = self.process_experience_pipeline(
-            self.experience_transforms(self.state), self.nextkey(), sample
-        )
-        update_modules = self.make_update_modules(self.state)
-
-        for epoch in range(self.config.update_cfg.n_epochs):
-            update_modules, info = self.update_pipeline_fn(
-                update_modules, self.nextkey(), experiences
-            )
-
-        self.apply_updates(update_modules)
-
-        return info
+        return np.array(action), log_prob
 
     def train(
         self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
