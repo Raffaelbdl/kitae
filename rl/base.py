@@ -377,7 +377,6 @@ class Agent(ABC, Seeded):
             )
 
         self.apply_updates(update_modules)
-        print(info["dummy_loss"])
 
         return info
 
