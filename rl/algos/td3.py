@@ -9,12 +9,12 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import Buffer, OffPolicyBuffer, Experience
+from rl.buffer import OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
 
 from rl.train import train
@@ -25,7 +25,7 @@ from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
 from rl.modules.modules import init_params
 from rl.modules.train_state import PolicyQValueTrainState, TrainState
-from rl.modules.policy import make_policy, PolicyNormalExternalStd
+from rl.modules.policy import PolicyNormalExternalStd
 from rl.modules.qvalue import make_double_q_value, qvalue_factory
 
 
@@ -238,7 +238,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class TD3(Base):
+class TD3(OffPolicyAgent):
     """
     Deep Deterministic Policy Gradient (TD3)
     Paper : https://arxiv.org/abs/1509.02971
@@ -267,7 +267,6 @@ class TD3(Base):
             experience_type=Experience,
         )
 
-        self.step = 0
         self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
@@ -300,26 +299,21 @@ class TD3(Base):
             log_prob = jnp.zeros_like(action)
         return action, log_prob
 
-    def should_update(self, step: int, buffer: Buffer) -> bool:
-        self.step = step
-        return (
-            len(buffer) >= self.config.update_cfg.batch_size
-            and step % self.algo_params.skip_steps == 0
-            and step >= self.algo_params.start_step
-        )
-
     def update(self, buffer: OffPolicyBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         experiences = self.process_experience_pipeline(
-            self.experience_transforms(self.state), self.nextkey(), sample
+            self.load_experience_transforms(), self.nextkey(), sample
         )
+        update_modules = self.load_update_modules()
+
         update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
-        update_modules, info = self.update_pipeline_fn(
-            self.make_update_modules(self.state),
-            self.nextkey(),
-            (*experiences, update_policy),
-        )
+        for epoch in range(self.config.update_cfg.n_epochs):
+            update_modules, info = self.update_pipeline(
+                update_modules, self.nextkey(), (*experiences, update_policy)
+            )
+
         self.apply_updates(update_modules)
+
         return info
 
     def train(

@@ -9,7 +9,7 @@ class UpdateModule(struct.PyTreeNode):
     state: struct.PyTreeNode = struct.field(pytree_node=True)
 
 
-def update_pipeline_fn(
+def update_pipeline(
     update_modules: list[UpdateModule],
     key: jax.Array,
     batch: tuple,

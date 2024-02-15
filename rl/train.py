@@ -200,7 +200,7 @@ def train(
                 logger.update(base.update(buffer))
                 callback.on_update_end(callbacks, CallbackData(logs=logger.get_logs()))
 
-            s.update(step, base.state)
+            s.update(step, base.state_dict)
 
             observation = next_observation
 

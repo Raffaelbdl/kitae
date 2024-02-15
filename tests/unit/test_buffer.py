@@ -1,11 +1,11 @@
 import jax.numpy as jnp
 
-from rl.buffer import stack_experiences, OnPolicyExp
+from rl.buffer import stack_experiences, Experience
 
 
 def test_stack_experiences():
     experiences = [
-        OnPolicyExp(
+        Experience(
             observation=jnp.zeros((5,)),
             action=jnp.zeros(()),
             reward=jnp.zeros(()),
@@ -13,7 +13,7 @@ def test_stack_experiences():
             next_observation=jnp.zeros((5,)),
             log_prob=jnp.zeros(()),
         ),
-        OnPolicyExp(
+        Experience(
             observation=jnp.ones((5,)),
             action=jnp.ones(()),
             reward=jnp.ones(()),
@@ -21,7 +21,7 @@ def test_stack_experiences():
             next_observation=jnp.ones((5,)),
             log_prob=jnp.ones(()),
         ),
-        OnPolicyExp(
+        Experience(
             observation=2 * jnp.ones((5,)),
             action=2 * jnp.ones(()),
             reward=2 * jnp.ones(()),
@@ -45,7 +45,7 @@ def test_stack_experiences():
     ).all()
 
     experiences = [
-        OnPolicyExp(
+        Experience(
             observation=jnp.zeros((4, 5)),
             action=jnp.zeros((4,)),
             reward=jnp.zeros((4,)),
@@ -53,7 +53,7 @@ def test_stack_experiences():
             next_observation=jnp.zeros((4, 5)),
             log_prob=jnp.zeros((4,)),
         ),
-        OnPolicyExp(
+        Experience(
             observation=jnp.ones((4, 5)),
             action=jnp.ones((4,)),
             reward=jnp.ones((4,)),
@@ -61,7 +61,7 @@ def test_stack_experiences():
             next_observation=jnp.ones((4, 5)),
             log_prob=jnp.ones((4,)),
         ),
-        OnPolicyExp(
+        Experience(
             observation=2 * jnp.ones((4, 5)),
             action=2 * jnp.ones((4,)),
             reward=2 * jnp.ones((4,)),

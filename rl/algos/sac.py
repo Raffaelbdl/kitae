@@ -4,23 +4,22 @@ from dataclasses import dataclass
 from typing import Callable
 
 import chex
-import distrax as dx
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
+from rl.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
+from rl.buffer import Experience
 from rl.callbacks.callback import Callback
 from rl.config import AlgoConfig, AlgoParams
 from rl.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import Buffer, OffPolicyBuffer, Experience
 from rl.loss import loss_mean_squared_error
+from rl.timesteps import compute_td_targets
 
 from rl.train import train
-from rl.timesteps import compute_td_targets
 
 from rl.algos.factory import AlgoFactory
 from rl.modules.encoder import encoder_factory
@@ -257,7 +256,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class SAC(Base):
+class SAC(OffPolicyAgent):
     """Sof Actor Crtic (SAC)"""
 
     def __init__(
@@ -283,7 +282,6 @@ class SAC(Base):
             experience_type=Experience,
         )
 
-        self.step = 0
         self.config.algo_params.target_entropy = (
             -self.config.env_cfg.action_space.shape[-1] / 2
         )
@@ -306,26 +304,6 @@ class SAC(Base):
             )
             log_prob = jnp.zeros_like(action)
         return action, log_prob
-
-    def should_update(self, step: int, buffer: Buffer) -> bool:
-        self.step = step
-        return (
-            len(buffer) >= self.config.update_cfg.batch_size
-            and step % self.algo_params.skip_steps == 0
-            and step >= self.algo_params.start_step
-        )
-
-    def update(self, buffer: OffPolicyBuffer) -> dict:
-
-        sample = buffer.sample(self.config.update_cfg.batch_size)
-        experiences = self.process_experience_pipeline(
-            self.experience_transforms(self.state), self.nextkey(), sample
-        )
-        update_modules, info = self.update_pipeline_fn(
-            self.make_update_modules(self.state), self.nextkey(), experiences
-        )
-        self.apply_updates(update_modules)
-        return info
 
     def train(
         self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
