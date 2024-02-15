@@ -1,7 +1,7 @@
 from contextlib import AbstractContextManager
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import cloudpickle
 from flax.training import orbax_utils, train_state
@@ -9,7 +9,7 @@ import orbax.checkpoint
 import yaml
 
 if TYPE_CHECKING:
-    from rl.base import Base
+    from rl.base import Agent
 
 
 class Saver:
@@ -18,7 +18,7 @@ class Saver:
     Handles saving during training and restoring from checkpoints.
     """
 
-    def __init__(self, dir: str | Path, base: "Base") -> None:
+    def __init__(self, dir: str | Path, base: "Agent") -> None:
         """Initializes a Saver instance for an agent.
 
         Args:
@@ -37,7 +37,7 @@ class Saver:
 
         self.save_base_data(dir, base)
 
-    def save_base_data(self, dir: Path, base: "Base") -> None:
+    def save_base_data(self, dir: Path, base: "Agent") -> None:
         config_dict = base.config.to_dict()
         env_config = config_dict.pop("env_cfg")
 
@@ -53,23 +53,22 @@ class Saver:
                     "run_name": base.run_name,
                     "rearrange_pattern": base.rearrange_pattern,
                     "preprocess_fn": base.preprocess_fn,
-                    "tabulate": base.tabulate,
+                    # "tabulate": base.tabulate,
                 },
                 f,
             )
 
-    def save(self, step: int, state: train_state.TrainState):
-        ckpt = {"model": state}
+    def save(self, step: int, ckpt: dict[str, Any]):
         save_args = orbax_utils.save_args_from_target(ckpt)
         self.ckpt_manager.save(step, ckpt, save_kwargs={"save_args": save_args})
 
     def restore_latest_step(
-        self, base_train_state: train_state.TrainState
-    ) -> tuple[int, train_state.TrainState]:
+        self, base_state_dict: dict[str, Any]
+    ) -> tuple[int, dict[str, Any]]:
         step = self.ckpt_manager.latest_step()
         return (
             step,
-            self.ckpt_manager.restore(step, items={"model": base_train_state})["model"],
+            self.ckpt_manager.restore(step, items=base_state_dict),
         )
 
 
