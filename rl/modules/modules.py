@@ -53,7 +53,7 @@ def init_params(
         input_shapes = [input_shapes]
 
     dummy_inputs = [jnp.ones((1,) + shape) for shape in input_shapes]
-    variables = module.init(key, *dummy_inputs)
+    params = module.init(key, *dummy_inputs)
 
     if tabulate:
         tabulate_fn = nn.tabulate(
@@ -61,9 +61,7 @@ def init_params(
         )
         print(tabulate_fn(*dummy_inputs))
 
-    if "params" in variables.keys():
-        return variables["params"]
-    return {}
+    return params
 
 
 class IndependentVariable(nn.Module):

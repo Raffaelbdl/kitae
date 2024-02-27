@@ -108,17 +108,17 @@ def train_state_ppo_factory(
     )
 
     policy_state = TrainState.create(
-        apply_fn=policy.apply,
+        apply_fn=jax.jit(policy.apply),
         params=init_params(key1, policy, [input_shape], tabulate),
         tx=tx,
     )
     value_state = TrainState.create(
-        apply_fn=value.apply,
+        apply_fn=jax.jit(value.apply),
         params=init_params(key2, value, [input_shape], tabulate),
         tx=tx,
     )
     encoder_state = TrainState.create(
-        apply_fn=encoder.apply,
+        apply_fn=jax.jit(encoder.apply),
         params=init_params(key3, encoder, [observation_shape], tabulate),
         tx=tx,
     )
@@ -134,12 +134,12 @@ def explore_factory(config: AlgoConfig) -> Callable:
         ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = ppo_state.encoder_state.apply_fn(
-            {"params": ppo_state.encoder_state.params}, observations
+            ppo_state.encoder_state.params, observations
         )
         if not isinstance(hiddens, tuple):
             hiddens = (hiddens,)
         dists: dx.Distribution = ppo_state.policy_state.apply_fn(
-            {"params": ppo_state.policy_state.params}, *hiddens
+            ppo_state.policy_state.params, *hiddens
         )
         return dists.sample_and_log_prob(seed=key)
 
@@ -155,12 +155,12 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
             [experience.observation, experience.next_observation[-1:]], axis=0
         )
         all_hiddens = ppo_state.encoder_state.apply_fn(
-            {"params": ppo_state.encoder_state.params}, all_obs
+            ppo_state.encoder_state.params, all_obs
         )
         if not isinstance(all_hiddens, tuple):
             all_hiddens = (all_hiddens,)
         all_values = ppo_state.value_state.apply_fn(
-            {"params": ppo_state.value_state.params}, *all_hiddens
+            ppo_state.value_state.params, *all_hiddens
         )
 
         values = all_values[:-1]
@@ -197,36 +197,25 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     def update_policy_value_fn(
         ppo_state: PolicyValueTrainState, batch: tuple[jax.Array, ...]
     ):
-        def loss_policy_value_fn(
-            params: dict[str, Params],
-            observations: jax.Array,
-            actions: jax.Array,
-            log_probs_old: jax.Array,
-            gaes: jax.Array,
-            targets: jax.Array,
-            values_old: jax.Array,
-        ):
-            hiddens = ppo_state.encoder_state.apply_fn(
-                {"params": params["encoder"]}, observations
-            )
+
+        observations, actions, log_probs_old, gaes, targets, values_old = batch
+
+        def loss_fn(params):
+            hiddens = ppo_state.encoder_state.apply_fn(params["encoder"], observations)
             if not isinstance(hiddens, tuple):
                 hiddens = (hiddens,)
-            dists = ppo_state.policy_state.apply_fn(
-                {"params": params["policy"]}, *hiddens
-            )
-            log_probs, log_probs_old = get_log_probs(dists, actions, log_probs_old)
+            dists = ppo_state.policy_state.apply_fn(params["policy"], *hiddens)
+            log_probs, _log_probs_old = get_log_probs(dists, actions, log_probs_old)
             loss_policy, info_policy = loss_policy_ppo(
                 dists,
                 log_probs,
-                log_probs_old,
+                _log_probs_old,
                 gaes,
                 algo_params.clip_eps,
                 algo_params.entropy_coef,
             )
 
-            values = ppo_state.value_state.apply_fn(
-                {"params": params["value"]}, *hiddens
-            )
+            values = ppo_state.value_state.apply_fn(params["value"], *hiddens)
             loss_value, info_value = loss_value_clip(
                 values, targets, values_old, algo_params.clip_eps
             )
@@ -237,19 +226,12 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
             return loss, info
 
-        observations, actions, log_probs_old, gaes, targets, values_old = batch
-        (loss, info), grads = jax.value_and_grad(loss_policy_value_fn, has_aux=True)(
+        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             {
                 "policy": ppo_state.policy_state.params,
                 "value": ppo_state.value_state.params,
                 "encoder": ppo_state.encoder_state.params,
             },
-            observations,
-            actions,
-            log_probs_old,
-            gaes,
-            targets,
-            values_old,
         )
 
         ppo_state.policy_state = ppo_state.policy_state.apply_gradients(
