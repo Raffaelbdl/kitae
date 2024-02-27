@@ -9,7 +9,7 @@ import orbax.checkpoint
 import yaml
 
 if TYPE_CHECKING:
-    from rl.base import Agent
+    from rl_tools.base import Agent
 
 
 class Saver:

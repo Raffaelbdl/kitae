@@ -5,7 +5,7 @@ from gymnasium import spaces
 import jax
 import jax.numpy as jnp
 
-from rl.modules.encoder import encoder_factory
+from rl_tools.modules.encoder import encoder_factory
 
 
 class QValueDiscreteOutput(nn.Module):

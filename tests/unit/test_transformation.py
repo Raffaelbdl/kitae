@@ -1,5 +1,5 @@
-from rl.transformation import linear_interpolation
-from rl.transformation import inverse_linear_interpolation
+from rl_tools.transformation import linear_interpolation
+from rl_tools.transformation import inverse_linear_interpolation
 
 
 def test_linear_interpolation():

@@ -2,8 +2,8 @@ import shutil
 
 from evals.eval_envs import make_cartpole
 
-from rl.algos import dqn
-import rl.config as cfg
+from rl_tools.algos import dqn
+import rl_tools.config as cfg
 
 
 # should make this test algo-agnostic

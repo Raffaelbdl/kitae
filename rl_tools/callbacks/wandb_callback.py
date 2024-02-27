@@ -11,7 +11,7 @@ try:
 except ImportError:
     print("Cannot use WandbCallback. You must install wandb first")
 
-from rl.callbacks.callback import Callback, CallbackData
+from rl_tools.callbacks.callback import Callback, CallbackData
 
 
 class WandbCallback(Callback):

@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 
-from rl.buffer import stack_experiences, Experience
+from rl_tools.buffer import stack_experiences, Experience
 
 
 def test_stack_experiences():

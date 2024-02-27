@@ -1,5 +1,5 @@
-from rl.algos.pipelines.experience_pipeline import ExperienceTransform
-from rl.algos.pipelines.update_pipeline import UpdateModule
+from rl_tools.algos.pipelines.experience_pipeline import ExperienceTransform
+from rl_tools.algos.pipelines.update_pipeline import UpdateModule
 
 
 class PipelineModule(ExperienceTransform, UpdateModule):

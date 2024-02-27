@@ -1,16 +1,16 @@
 import jax
 import numpy as np
 
-from rl.base import Base, EnvType, EnvProcs, AlgoType
-from rl.buffer import OnPolicyBuffer, Experience, OffPolicyBuffer
-from rl.save import Saver, SaverContext
+from rl_tools.base import Base, EnvType, EnvProcs, AlgoType
+from rl_tools.buffer import OnPolicyBuffer, Experience, OffPolicyBuffer
+from rl_tools.save import Saver, SaverContext
 
-from rl.types import EnvLike
+from rl_tools.types import EnvLike
 
-from rl.callbacks import callback
-from rl.callbacks.callback import Callback, CallbackData
-from rl.callbacks.episode_return_callback import EpisodeReturnCallback
-from rl.logging import Logger
+from rl_tools.callbacks import callback
+from rl_tools.callbacks.callback import Callback, CallbackData
+from rl_tools.callbacks.episode_return_callback import EpisodeReturnCallback
+from rl_tools.logging import Logger
 
 
 def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):

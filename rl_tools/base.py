@@ -15,13 +15,13 @@ from flax import struct
 from jrd_extensions import Seeded
 
 
-from rl.buffer import Buffer, Experience
-from rl.callbacks.callback import Callback
-from rl.save import Saver
-from rl.types import ActionType, ObsType, Params, Array
+from rl_tools.buffer import Buffer, Experience
+from rl_tools.callbacks.callback import Callback
+from rl_tools.save import Saver
+from rl_tools.types import ActionType, ObsType, Params, Array
 
 from ml_collections import FrozenConfigDict, ConfigDict
-from rl.config import AlgoConfig
+from rl_tools.config import AlgoConfig
 
 
 class EnvProcs(Enum):
@@ -67,9 +67,9 @@ class DeployedJit:
     select_action: Callable = struct.field(pytree_node=False)
 
 
-from rl.algos.pipelines import PipelineModule
-from rl.algos.pipelines.experience_pipeline import ExperienceTransform
-from rl.algos.pipelines.update_pipeline import UpdateModule
+from rl_tools.algos.pipelines import PipelineModule
+from rl_tools.algos.pipelines.experience_pipeline import ExperienceTransform
+from rl_tools.algos.pipelines.update_pipeline import UpdateModule
 
 
 class Base(ABC, Seeded):

@@ -1,6 +1,6 @@
 import ml_collections
 
-from rl.algos import ppo
+from rl_tools.algos import ppo
 from tests.integration.env_fn import (
     create_atari,
     create_cartpole,

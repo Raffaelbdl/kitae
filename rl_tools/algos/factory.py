@@ -10,16 +10,16 @@ import jax.numpy as jnp
 from jrd_extensions import Seeded
 
 
-from rl.base import Agent
-from rl.types import Params
+from rl_tools.base import Agent
+from rl_tools.types import Params
 
-from rl.algos.pipelines.experience_pipeline import process_experience_pipeline_factory
-from rl.algos.pipelines import PipelineModule
-from rl.algos.pipelines.update_pipeline import update_pipeline
-from rl.buffer import Experience, stack_experiences
-from rl.config import AlgoConfig
-from rl.modules.train_state import TrainState
-from rl.save import Saver
+from rl_tools.algos.pipelines.experience_pipeline import process_experience_pipeline_factory
+from rl_tools.algos.pipelines import PipelineModule
+from rl_tools.algos.pipelines.update_pipeline import update_pipeline
+from rl_tools.buffer import Experience, stack_experiences
+from rl_tools.config import AlgoConfig
+from rl_tools.modules.train_state import TrainState
+from rl_tools.save import Saver
 
 Factory = Callable[..., Callable]
 

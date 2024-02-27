@@ -9,24 +9,24 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
-from rl.callbacks.callback import Callback
-from rl.config import AlgoConfig, AlgoParams
-from rl.types import Params, GymEnv, EnvPoolEnv
+from rl_tools.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
+from rl_tools.callbacks.callback import Callback
+from rl_tools.config import AlgoConfig, AlgoParams
+from rl_tools.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import OffPolicyBuffer, Experience
-from rl.loss import loss_mean_squared_error
+from rl_tools.buffer import OffPolicyBuffer, Experience
+from rl_tools.loss import loss_mean_squared_error
 
-from rl.train import train
-from rl.timesteps import compute_td_targets
+from rl_tools.train import train
+from rl_tools.timesteps import compute_td_targets
 
 
-from rl.algos.factory import AlgoFactory
-from rl.modules.encoder import encoder_factory
-from rl.modules.modules import init_params
-from rl.modules.train_state import PolicyQValueTrainState, TrainState
-from rl.modules.policy import PolicyNormalExternalStd
-from rl.modules.qvalue import make_double_q_value, qvalue_factory
+from rl_tools.algos.factory import AlgoFactory
+from rl_tools.modules.encoder import encoder_factory
+from rl_tools.modules.modules import init_params
+from rl_tools.modules.train_state import PolicyQValueTrainState, TrainState
+from rl_tools.modules.policy import PolicyNormalExternalStd
+from rl_tools.modules.qvalue import make_double_q_value, qvalue_factory
 
 
 @dataclass

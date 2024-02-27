@@ -11,25 +11,25 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType
-from rl.callbacks.callback import Callback
-from rl.config import AlgoConfig, AlgoParams
-from rl.types import Params, GymEnv, EnvPoolEnv
+from rl_tools.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType
+from rl_tools.callbacks.callback import Callback
+from rl_tools.config import AlgoConfig, AlgoParams
+from rl_tools.types import Params, GymEnv, EnvPoolEnv
 
-from rl.buffer import Experience
-from rl.distribution import get_log_probs
-from rl.loss import loss_policy_ppo, loss_value_clip
-from rl.timesteps import calculate_gaes_targets
+from rl_tools.buffer import Experience
+from rl_tools.distribution import get_log_probs
+from rl_tools.loss import loss_policy_ppo, loss_value_clip
+from rl_tools.timesteps import calculate_gaes_targets
 
-from rl.train import train
+from rl_tools.train import train
 
-from rl.algos.factory import AlgoFactory
-from rl.modules.encoder import encoder_factory
-from rl.modules.modules import PassThrough, init_params
-from rl.modules.optimizer import linear_learning_rate_schedule
-from rl.modules.policy import policy_output_factory
-from rl.modules.train_state import PolicyValueTrainState, TrainState
-from rl.modules.value import ValueOutput
+from rl_tools.algos.factory import AlgoFactory
+from rl_tools.modules.encoder import encoder_factory
+from rl_tools.modules.modules import PassThrough, init_params
+from rl_tools.modules.optimizer import linear_learning_rate_schedule
+from rl_tools.modules.policy import policy_output_factory
+from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
+from rl_tools.modules.value import ValueOutput
 
 
 @dataclass

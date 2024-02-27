@@ -1,6 +1,6 @@
 import ml_collections
 
-from rl.algos import dqn
+from rl_tools.algos import dqn
 from tests.integration.env_fn import (
     create_atari,
     create_cartpole,

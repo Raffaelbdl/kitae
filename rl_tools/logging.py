@@ -1,8 +1,8 @@
 import jax
 import numpy as np
 
-from rl.base import EnvType, EnvProcs
-from rl.callbacks.callback import Callback
+from rl_tools.base import EnvType, EnvProcs
+from rl_tools.callbacks.callback import Callback
 
 
 def init_episode_return(

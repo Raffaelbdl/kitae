@@ -2,7 +2,7 @@
 
 from collections import deque
 
-from rl.callbacks.callback import Callback, CallbackData
+from rl_tools.callbacks.callback import Callback, CallbackData
 
 
 class EpisodeReturnCallback(Callback):

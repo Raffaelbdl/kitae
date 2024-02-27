@@ -4,7 +4,7 @@ from flax import struct
 import jax
 import jax.numpy as jnp
 
-from rl.buffer import stack_experiences
+from rl_tools.buffer import stack_experiences
 
 
 class ExperienceTransform(struct.PyTreeNode):

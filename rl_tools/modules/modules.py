@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl.types import Params
+from rl_tools.types import Params
 
 
 class PassThrough(nn.Module):
