@@ -1,7 +1,6 @@
 import jax
 import numpy as np
 
-from rl_tools.base import EnvType, EnvProcs
 from rl_tools.callbacks.callback import Callback
 
 
