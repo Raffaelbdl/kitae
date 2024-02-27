@@ -164,11 +164,7 @@ class DQN(OffPolicyAgent):
         self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        keys = (
-            {a: self.nextkey() for a in observation.keys()}
-            if self.parallel
-            else self.nextkey()
-        )
+        keys = self.interact_keys(observation)
 
         action, zeros = self.explore_fn(
             self.state, keys, observation, exploration=NO_EXPLORATION
@@ -177,7 +173,6 @@ class DQN(OffPolicyAgent):
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-
         action, zeros = self.explore_fn(
             self.state,
             keys,
