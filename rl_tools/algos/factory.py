@@ -10,12 +10,12 @@ import jax.numpy as jnp
 from jrd_extensions import Seeded
 
 
-from rl_tools.base import Agent
+from rl_tools.base import PipelineAgent
 from rl_tools.types import Params
 
-from rl_tools.algos.pipelines.experience_pipeline import process_experience_pipeline_factory
-from rl_tools.algos.pipelines import PipelineModule
-from rl_tools.algos.pipelines.update_pipeline import update_pipeline
+from rl_tools.algos.pipeline import PipelineModule
+from rl_tools.algos.pipeline import process_experience_pipeline_factory
+from rl_tools.algos.pipeline import update_pipeline
 from rl_tools.buffer import Experience, stack_experiences
 from rl_tools.config import AlgoConfig
 from rl_tools.modules.train_state import TrainState
@@ -134,7 +134,7 @@ def process_experience_general_factory(
 class AlgoFactory:
     @staticmethod
     def intialize(
-        self: Agent,
+        self: PipelineAgent,
         config: AlgoConfig,
         train_state_factory: Callable[..., TrainState],
         explore_factory: Factory,
