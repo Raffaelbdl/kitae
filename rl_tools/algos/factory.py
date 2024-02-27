@@ -8,7 +8,6 @@ from typing import Any, Callable, NamedTuple
 import jax
 import jax.numpy as jnp
 from jrd_extensions import Seeded
-import numpy as np
 
 
 from rl_tools.base import PipelineAgent
@@ -20,7 +19,6 @@ from rl_tools.algos.pipeline import update_pipeline
 from rl_tools.buffer import Experience, stack_experiences
 from rl_tools.config import AlgoConfig
 from rl_tools.modules.train_state import TrainState
-from rl_tools.train import train
 from rl_tools.save import Saver
 
 Factory = Callable[..., Callable]
