@@ -11,6 +11,7 @@ import chex
 import cloudpickle
 import yaml
 from flax import struct
+import jax
 
 from jrd_extensions import Seeded
 
@@ -22,6 +23,10 @@ from rl_tools.types import ActionType, ObsType, Params, Array
 
 from ml_collections import FrozenConfigDict, ConfigDict
 from rl_tools.config import AlgoConfig
+
+from rl_tools.algos.pipeline import PipelineModule
+from rl_tools.algos.pipeline import ExperienceTransform
+from rl_tools.algos.pipeline import UpdateModule
 
 
 class EnvProcs(Enum):
@@ -59,205 +64,7 @@ class Deployed(Seeded):
         return self.select_action_fn(self.params, self.nextkey(), observation)
 
 
-@chex.dataclass
-class DeployedJit:
-    """Jittable algorithm-agnostic class for agents."""
-
-    params: Params
-    select_action: Callable = struct.field(pytree_node=False)
-
-
-from rl_tools.algos.pipelines import PipelineModule
-from rl_tools.algos.pipelines.experience_pipeline import ExperienceTransform
-from rl_tools.algos.pipelines.update_pipeline import UpdateModule
-
-
-class Base(ABC, Seeded):
-    intrinsic_reward_module: PipelineModule = None
-
-    def experience_transforms(self, state) -> list[ExperienceTransform]:
-        transforms = []
-
-        if self.intrinsic_reward_module:
-            transforms.append(
-                ExperienceTransform(
-                    process_experience_fn=self.intrinsic_reward_module.process_experience_fn,
-                    state=self.intrinsic_reward_module.state,
-                )
-            )
-
-        transforms.append(
-            ExperienceTransform(
-                process_experience_fn=self.process_experience_fn, state=state
-            )
-        )
-
-        return transforms
-
-    def make_update_modules(self, state) -> list[UpdateModule]:
-        modules = []
-        self.modules_to_state = {}
-
-        if self.intrinsic_reward_module:
-            self.modules_to_state[len(modules)] = "intrinsic_reward_module"
-            modules.append(
-                UpdateModule(
-                    update_fn=self.intrinsic_reward_module.update_fn,
-                    state=self.intrinsic_reward_module.state,
-                )
-            )
-
-        self.modules_to_state[len(modules)] = "state"
-        modules.append(UpdateModule(update_fn=self.update_step_fn, state=state))
-
-        return modules
-
-    def apply_updates(self, update_modules: list[UpdateModule]):
-        for i in range(len(update_modules)):
-            if self.modules_to_state[i] == "intrinsic_reward_module":
-                self.intrinsic_reward_module = self.intrinsic_reward_module.replace(
-                    state=update_modules[i].state
-                )
-            elif self.modules_to_state[i] == "state":
-                self.state = update_modules[i].state
-
-    @abstractmethod
-    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Exploits the policy to interact with the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Uses the policy to explore the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def update(self, buffer: Buffer) -> dict:
-        """Updates the agent.
-
-        Args:
-            buffer: A Buffer containing the transitions obtained from the environment.
-
-        Returns:
-            A dict containing the information from the update step.
-        """
-        ...
-
-    @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Starts the training of the agent.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Resumes the training of the agent from the last training step.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    def restore(self) -> int:
-        """Restores the agent's states from the last training step.
-
-        Returns:
-            The latest training step.
-        """
-        latest_step, self.state = self.saver.restore_latest_step(self.state)
-        return latest_step
-
-    @classmethod
-    def unserialize(cls, data_dir: str | Path):
-        """Creates an instance of the agent from a training directory.
-
-        Args:
-            data_dir: A string representing the path to the training directory.
-
-        Returns:
-            An instance of the specific Base class.
-
-        # TODO : Raise if training directory does not correspond to class
-        """
-        path = data_dir if isinstance(data_dir, Path) else Path(data_dir)
-
-        config_path = Path.joinpath(path, "config")
-        with open(config_path, "r") as f:
-            config_dict = yaml.load(f, yaml.SafeLoader)
-        config = ConfigDict(config_dict)
-
-        extra_path = Path.joinpath(path, "extra")
-        with open(extra_path, "rb") as f:
-            extra = cloudpickle.load(f)
-
-        config.env_cfg = extra.pop("env_config")
-        extra["run_name"] = path.parts[-1]
-
-        return cls(config=config, **extra)
-
-
-class IntrinsicRewardManager:
-    prefix: str = "intrinsic_"
-    modules: dict[str, PipelineModule] = {}
-    current_idx = 0
-
-    def add(self, module: PipelineModule) -> None:
-        self.modules[str(self.current_idx)] = module
-        self.current_idx += 1
-
-    @property
-    def state_dict(self):
-        return {self.prefix + i: m.state for i, m in self.modules.items()}
-
-    def load_experience_transforms(self) -> list[ExperienceTransform]:
-        return [m.experience_transform for m in self.modules.values()]
-
-    def load_update_modules(self) -> dict[str, UpdateModule]:
-        return {self.prefix + i: m.update_module for i, m in self.modules.items()}
-
-    def apply_update(self, prefix_idx: str, state: Any) -> None:
-        _idx = prefix_idx[len(self.prefix) :]
-        self.modules[_idx] = self.modules[_idx].replace(state=state)
-
-
-class Agent(ABC, Seeded):
-    config: AlgoConfig = None
-
-    rearrange_pattern: str = None
-    preprocess_fn: Callable = None
-    vectorized: bool = None
-    parallel: bool = None
-
-    main_pipeline_module: PipelineModule = None
-    intrinsc_reward_manager = IntrinsicRewardManager()
-
-    process_experience_pipeline: Callable = None
-    update_pipeline: Callable = None
-
-    explore_fn: Callable = None
-    run_name: str = None
-    saver: Saver = None
+class IAgent(ABC):
 
     @abstractmethod
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
@@ -317,6 +124,58 @@ class Agent(ABC, Seeded):
             callbacks: A list of Callbacks called during training
         """
         ...
+
+
+@chex.dataclass
+class DeployedJit:
+    """Jittable algorithm-agnostic class for agents."""
+
+    params: Params
+    select_action: Callable = struct.field(pytree_node=False)
+
+
+class IntrinsicRewardManager:
+    prefix: str = "intrinsic_"
+    modules: dict[str, PipelineModule] = {}
+    current_idx = 0
+
+    def add(self, module: PipelineModule) -> None:
+        self.modules[str(self.current_idx)] = module
+        self.current_idx += 1
+
+    @property
+    def state_dict(self):
+        return {self.prefix + i: m.state for i, m in self.modules.items()}
+
+    def load_experience_transforms(self) -> list[ExperienceTransform]:
+        return [m.experience_transform for m in self.modules.values()]
+
+    def load_update_modules(self) -> dict[str, UpdateModule]:
+        return {self.prefix + i: m.update_module for i, m in self.modules.items()}
+
+    def apply_update(self, prefix_idx: str, state: Any) -> None:
+        _idx = prefix_idx[len(self.prefix) :]
+        self.modules[_idx] = self.modules[_idx].replace(state=state)
+
+
+class PipelineAgent(IAgent, Seeded):
+    config: AlgoConfig = None
+    algo_type: AlgoType = None
+
+    rearrange_pattern: str = None
+    preprocess_fn: Callable = None
+    vectorized: bool = None
+    parallel: bool = None
+
+    main_pipeline_module: PipelineModule = None
+    intrinsc_reward_manager = IntrinsicRewardManager()
+
+    process_experience_pipeline: Callable = None
+    update_pipeline: Callable = None
+
+    explore_fn: Callable = None
+    run_name: str = None
+    saver: Saver = None
 
     @property
     def state(self) -> Any:
@@ -427,8 +286,14 @@ class Agent(ABC, Seeded):
 
         return cls(config=config, **extra)
 
+    def interact_keys(self, observation: ObsType) -> jax.Array | dict[str : jax.Array]:
+        if self.parallel:
+            return {a: self.nextkey() for a in observation.keys()}
+        return self.nextkey()
 
-class OffPolicyAgent(Agent):
+
+class OffPolicyAgent(PipelineAgent):
+    algo_type = AlgoType.OFF_POLICY
     step = 0
 
     def should_update(self, step: int, buffer: Buffer) -> bool:
@@ -440,6 +305,8 @@ class OffPolicyAgent(Agent):
         )
 
 
-class OnPolicyAgent(Agent):
+class OnPolicyAgent(PipelineAgent):
+    algo_type = AlgoType.ON_POLICY
+
     def should_update(self, step: int, buffer: Buffer) -> bool:
         return len(buffer) >= self.config.update_cfg.max_buffer_size

@@ -275,7 +275,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class PPO(OnPolicyAgent, PipelineAgent):
+class PPO(OnPolicyAgent):
     """
     Proximal Policy Optimization (PPO)
     Paper : https://arxiv.org/abs/1707.06347
@@ -309,13 +309,8 @@ class PPO(OnPolicyAgent, PipelineAgent):
         return self.explore(observation)
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        # TODO remove this and put it in the factory !
-        keys = (
-            {a: self.nextkey() for a in observation.keys()}
-            if self.parallel
-            else self.nextkey()
-        )
-
+        # TODO remove this and put it in the factory !s
+        keys = self.interact_keys()
         action, log_prob = self.explore_fn(self.state, keys, observation)
 
         return np.array(action), log_prob
