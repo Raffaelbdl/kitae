@@ -5,6 +5,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from rl_tools.interface import IBuffer
+
 Experience = namedtuple(
     "Experience",
     ["observation", "action", "reward", "done", "next_observation", "log_prob"],
@@ -19,7 +21,7 @@ def stack_experiences(experiences: list[Experience]) -> Experience:
     return jax.tree_map(lambda *xs: jnp.stack(xs, axis=0), *experiences)
 
 
-class Buffer(ABC):
+class Buffer(IBuffer):
     def __init__(self, seed: int, max_buffer_size: int = 0) -> None:
         self.rng = np.random.default_rng(seed)
         self.max_buffer_size = max_buffer_size
@@ -31,10 +33,6 @@ class Buffer(ABC):
 
     def add(self, experience: Experience) -> None:
         self.buffer.append(experience)
-
-    @abstractmethod
-    def sample(self, batch_size: int) -> list[Experience]:
-        ...
 
 
 class OffPolicyBuffer(Buffer):
@@ -60,3 +58,12 @@ class OnPolicyBuffer(Buffer):
     def sample(self, batch_size: int) -> list[Experience]:
         sample, self.buffer = self.buffer, []
         return sample
+
+
+from rl_tools.base import AlgoType
+
+
+def buffer_factory(seed: int, algo_type: AlgoType, max_buffer_size: int) -> Buffer:
+    if algo_type == AlgoType.ON_POLICY:
+        return OnPolicyBuffer(seed, max_buffer_size)
+    return OffPolicyBuffer(seed, max_buffer_size)

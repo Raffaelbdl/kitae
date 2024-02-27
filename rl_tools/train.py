@@ -1,8 +1,8 @@
 import jax
 import numpy as np
 
-from rl_tools.base import IAgent, EnvType, EnvProcs, AlgoType
-from rl_tools.buffer import OnPolicyBuffer, Experience, OffPolicyBuffer
+from rl_tools.interface import IAgent, AlgoType
+from rl_tools.buffer import Experience, buffer_factory
 from rl_tools.save import Saver, SaverContext
 
 from rl_tools.types import EnvLike
@@ -150,15 +150,12 @@ def train(
     callbacks = [EpisodeReturnCallback(population_size=1)] + callbacks
     callback.on_train_start(callbacks, CallbackData())
 
-    if algo_type == AlgoType.ON_POLICY:
-        buffer = OnPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
-    else:
-        buffer = OffPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
-
     observation, info = env.reset(seed=seed + 1)
 
     logger = Logger(callbacks, parallel=parallel, vectorized=vectorized)
     logger.init_logs(observation)
+
+    buffer = buffer_factory(seed, algo_type, base.config.update_cfg.max_buffer_size)
 
     with SaverContext(saver, base.config.train_cfg.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
