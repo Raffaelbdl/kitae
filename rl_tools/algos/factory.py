@@ -195,36 +195,3 @@ class AlgoFactory:
         self.saver = Saver(
             Path(os.path.join("./results", self.run_name)).absolute(), self
         )
-
-        def train(self: PipelineAgent, env, n_env_steps, callbacks):
-            return train(
-                int(np.asarray(self.nextkey())[0]),
-                self,
-                env,
-                n_env_steps,
-                self.parallel,
-                self.vectorized,
-                self.algo_type,
-                saver=self.saver,
-                callbacks=callbacks,
-            )
-
-        self.train = train
-
-        def resume(self: PipelineAgent, env, n_env_steps, callbacks):
-            step, self.state = self.saver.restore_latest_step(self.state)
-
-            return train(
-                int(np.asarray(self.nextkey())[0]),
-                self,
-                env,
-                n_env_steps,
-                self.parallel,
-                self.vectorized,
-                self.algo_type,
-                start_step=step,
-                saver=self.saver,
-                callbacks=callbacks,
-            )
-
-        self.resume = resume
