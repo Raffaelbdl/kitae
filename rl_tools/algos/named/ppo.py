@@ -11,7 +11,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl_tools.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType
+from rl_tools.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType, PipelineAgent
 from rl_tools.callbacks.callback import Callback
 from rl_tools.config import AlgoConfig, AlgoParams
 from rl_tools.types import Params, GymEnv, EnvPoolEnv
@@ -275,7 +275,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     return update_step_fn
 
 
-class PPO(OnPolicyAgent):
+class PPO(OnPolicyAgent, PipelineAgent):
     """
     Proximal Policy Optimization (PPO)
     Paper : https://arxiv.org/abs/1707.06347

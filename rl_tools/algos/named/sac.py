@@ -303,35 +303,3 @@ class SAC(OffPolicyAgent):
             log_prob = jnp.zeros_like(action)
         return action, log_prob
 
-    def train(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.OFF_POLICY,
-            saver=self.saver,
-            callbacks=callbacks,
-        )
-
-    def resume(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        step, self.state = self.saver.restore_latest_step(self.state)
-
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.OFF_POLICY,
-            start_step=step,
-            saver=self.saver,
-            callbacks=callbacks,
-        )
