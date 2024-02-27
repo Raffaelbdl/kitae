@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from enum import Enum
 import os
 from pathlib import Path
 from typing import Any, Callable, NamedTuple
@@ -15,8 +14,9 @@ import jax
 
 from jrd_extensions import Seeded
 
+from rl_tools.interface import IAgent, IBuffer, AlgoType
+from rl_tools.train import train
 
-from rl_tools.buffer import Buffer, Experience
 from rl_tools.callbacks.callback import Callback
 from rl_tools.save import Saver
 from rl_tools.types import ActionType, ObsType, Params, Array
@@ -28,20 +28,7 @@ from rl_tools.algos.pipeline import PipelineModule
 from rl_tools.algos.pipeline import ExperienceTransform
 from rl_tools.algos.pipeline import UpdateModule
 
-
-class EnvProcs(Enum):
-    ONE = "one"
-    MANY = "many"
-
-
-class EnvType(Enum):
-    SINGLE = "single"
-    PARALLEL = "parallel"
-
-
-class AlgoType(Enum):
-    ON_POLICY = "on_policy"
-    OFF_POLICY = "off_policy"
+import numpy as np
 
 
 class Deployed(Seeded):
@@ -62,68 +49,6 @@ class Deployed(Seeded):
     def select_action(self, observation: ObsType) -> ActionType:
         """Exploits the policy to interact with the environment."""
         return self.select_action_fn(self.params, self.nextkey(), observation)
-
-
-class IAgent(ABC):
-
-    @abstractmethod
-    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Exploits the policy to interact with the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Uses the policy to explore the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def should_update(self, step: int, buffer: Buffer) -> bool:
-        """Determines if the agent should be updated.
-
-        Args:
-            step: An int representing the current step for a single environment.
-            buffer: A Buffer containing the transitions obtained from the environment.
-
-        Returns:
-            A boolean expliciting if the agent should be updated.
-        """
-        ...
-
-    @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Starts the training of the agent.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Resumes the training of the agent from the last training step.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
 
 
 @chex.dataclass
@@ -177,6 +102,8 @@ class PipelineAgent(IAgent, Seeded):
     run_name: str = None
     saver: Saver = None
 
+    train_fn: Callable = None
+
     @property
     def state(self) -> Any:
         return self.main_pipeline_module.state
@@ -223,7 +150,7 @@ class PipelineAgent(IAgent, Seeded):
             elif "intrinsic_" in module_id:
                 self.intrinsc_reward_manager.apply_update(module_id, module.state)
 
-    def update(self, buffer: Buffer) -> dict:
+    def update(self, buffer: IBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         experiences = self.process_experience_pipeline(
             self.load_experience_transforms(), self.nextkey(), sample
@@ -291,12 +218,40 @@ class PipelineAgent(IAgent, Seeded):
             return {a: self.nextkey() for a in observation.keys()}
         return self.nextkey()
 
+    def train(self, env, n_env_steps, callbacks):
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            self.parallel,
+            self.vectorized,
+            self.algo_type,
+            saver=self.saver,
+            callbacks=callbacks,
+        )
+
+    def resume(self, env, n_env_steps, callbacks):
+        step, self.state = self.saver.restore_latest_step(self.state)
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            self.parallel,
+            self.vectorized,
+            self.algo_type,
+            saver=self.saver,
+            callbacks=callbacks,
+            start_step=step,
+        )
+
 
 class OffPolicyAgent(PipelineAgent):
     algo_type = AlgoType.OFF_POLICY
     step = 0
 
-    def should_update(self, step: int, buffer: Buffer) -> bool:
+    def should_update(self, step: int, buffer: IBuffer) -> bool:
         self.step = step
         return (
             len(buffer) >= self.config.update_cfg.batch_size
@@ -308,5 +263,5 @@ class OffPolicyAgent(PipelineAgent):
 class OnPolicyAgent(PipelineAgent):
     algo_type = AlgoType.ON_POLICY
 
-    def should_update(self, step: int, buffer: Buffer) -> bool:
+    def should_update(self, step: int, buffer: IBuffer) -> bool:
         return len(buffer) >= self.config.update_cfg.max_buffer_size
