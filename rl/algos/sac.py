@@ -71,7 +71,7 @@ def train_state_sac_factory(
         ),
     )
     policy_state = TrainState.create(
-        apply_fn=policy.apply,
+        apply_fn=jax.jit(policy.apply),
         params=init_params(key1, policy, [observation_shape], tabulate),
         target_params=init_params(key1, policy, [observation_shape], False),
         tx=optax.adam(config.update_cfg.learning_rate),
@@ -82,7 +82,7 @@ def train_state_sac_factory(
         qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
     )
     qvalue_state = TrainState.create(
-        apply_fn=qvalue.apply,
+        apply_fn=jax.jit(qvalue.apply),
         params=init_params(key2, qvalue, [observation_shape, action_shape], tabulate),
         target_params=init_params(
             key2, qvalue, [observation_shape, action_shape], False
@@ -98,7 +98,7 @@ def train_state_sac_factory(
         shape=(),
     )
     temperature_state = TrainState.create(
-        apply_fn=temperature.apply,
+        apply_fn=jax.jit(temperature.apply),
         params=init_params(key3, temperature, [], tabulate),
         tx=optax.adam(config.update_cfg.learning_rate),
     )
@@ -114,7 +114,7 @@ def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(policy_state: TrainState, key: jax.Array, observations: jax.Array):
         actions, log_probs = policy_state.apply_fn(
-            {"params": policy_state.params}, observations
+            policy_state.params, observations
         ).sample_and_log_prob(seed=key)
         actions = jnp.clip(actions, -1.0, 1.0)
         return actions, log_probs
@@ -128,14 +128,14 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(sac_state: SACTrainState, key: jax.Array, experience: Experience):
 
-        next_actions, next_log_probs = sac_state.policy_state.apply_fn(
-            {"params": sac_state.policy_state.target_params},
-            experience.next_observation,
-        ).sample_and_log_prob(seed=0)
+        next_dists = sac_state.policy_state.apply_fn(
+            sac_state.policy_state.target_params, experience.next_observation
+        )
+        next_actions, next_log_probs = next_dists.sample_and_log_prob(seed=0)
         next_log_probs = jnp.sum(next_log_probs, axis=-1, keepdims=True)
 
         next_q1, next_q2 = sac_state.qvalue_state.apply_fn(
-            {"params": sac_state.qvalue_state.target_params},
+            sac_state.qvalue_state.target_params,
             experience.next_observation,
             next_actions,
         )
@@ -146,9 +146,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
             experience.reward[..., None], discounts, next_q_min
         )
 
-        temps = sac_state.temperature_state.apply_fn(
-            {"params": sac_state.temperature_state.params}
-        )
+        temps = sac_state.temperature_state.apply_fn(sac_state.temperature_state.params)
         targets -= discounts * temps * next_log_probs
 
         return (experience.observation, experience.action, targets)
@@ -161,17 +159,17 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
 
-        def loss_fn(params: Params, observations, actions, targets):
-            q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
+        observations, actions, targets = batch
+
+        def loss_fn(params: Params):
+            q1, q2 = qvalue_state.apply_fn(params, observations, actions)
             loss_q1 = loss_mean_squared_error(q1, targets)
             loss_q2 = loss_mean_squared_error(q2, targets)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
-        observations, actions, targets = batch
-
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            qvalue_state.params, observations, actions, targets
+            qvalue_state.params
         )
         qvalue_state = qvalue_state.apply_gradients(grads=grads)
 
@@ -184,19 +182,19 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         temperature_state: TrainState,
         batch: tuple[jax.Array],
     ):
-        def loss_fn(params: Params, observations):
+        observations, _, _ = batch
+
+        def loss_fn(params: Params):
             actions, log_probs = policy_state.apply_fn(
-                {"params": params}, observations
+                params, observations
             ).sample_and_log_prob(seed=0)
             log_probs = jnp.sum(log_probs, axis=-1)
             qvalues, _ = qvalue_state.apply_fn(
-                {"params": qvalue_state.params}, observations, actions
+                qvalue_state.params, observations, actions
             )
-            temp = temperature_state.apply_fn({"params": temperature_state.params})
+            temp = temperature_state.apply_fn(temperature_state.params)
             loss = jnp.mean(temp * log_probs - qvalues)
             return loss, {"loss_policy": loss, "entropy": -jnp.mean(log_probs)}
-
-        observations, _, _ = batch
 
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params, observations
@@ -222,8 +220,8 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_temperature_fn(temperature_state: TrainState, entropy: float):
-        def loss_fn(params: Params, entropy: float):
-            temperature = temperature_state.apply_fn({"params": params})
+        def loss_fn(params: Params):
+            temperature = temperature_state.apply_fn(params)
             loss = temperature * jnp.mean(entropy - config.algo_params.target_entropy)
             return loss, {"temperature_loss": loss, "temperature": temperature}
 

@@ -74,7 +74,7 @@ def train_state_ddpg_factory(
 
     policy = Policy()
     policy_state = TrainState.create(
-        apply_fn=policy.apply,
+        apply_fn=jax.jit(policy.apply),
         params=init_params(key1, policy, [observation_shape, ()], tabulate),
         target_params=init_params(key1, policy, [observation_shape, ()], False),
         tx=optax.adam(config.update_cfg.learning_rate),
@@ -85,7 +85,7 @@ def train_state_ddpg_factory(
         qvalue_factory(config.env_cfg.observation_space, config.env_cfg.action_space)(),
     )
     qvalue_state = TrainState.create(
-        apply_fn=qvalue.apply,
+        apply_fn=jax.jit(qvalue.apply),
         params=init_params(key2, qvalue, [observation_shape, action_shape], tabulate),
         target_params=init_params(
             key2, qvalue, [observation_shape, action_shape], False
@@ -105,9 +105,8 @@ def explore_factory(config: AlgoConfig) -> Callable:
         observations: jax.Array,
         action_noise: float,
     ):
-        actions, log_probs = policy_state.apply_fn(
-            {"params": policy_state.params}, observations, action_noise
-        ).sample_and_log_prob(seed=key)
+        dists = policy_state.apply_fn(policy_state.params, observations, action_noise)
+        actions, log_probs = dists.sample_and_log_prob(seed=key)
         actions = jnp.clip(actions, -1.0, 1.0)
         return actions, log_probs
 
@@ -124,7 +123,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
         experience: Experience,
     ):
         next_actions = td3_state.policy_state.apply_fn(
-            {"params": td3_state.policy_state.target_params},
+            td3_state.policy_state.target_params,
             experience.next_observation,
             0.0,
         ).sample(seed=0)
@@ -136,7 +135,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
         next_actions = jnp.clip(next_actions + noise, -1.0, 1.0)
 
         next_q1, next_q2 = td3_state.qvalue_state.apply_fn(
-            {"params": td3_state.qvalue_state.target_params},
+            td3_state.qvalue_state.target_params,
             experience.next_observation,
             next_actions,
         )
@@ -157,17 +156,17 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
 
-        def loss_fn(params: Params, observations, actions, targets):
-            q1, q2 = qvalue_state.apply_fn({"params": params}, observations, actions)
+        observations, actions, targets = batch
+
+        def loss_fn(params: Params):
+            q1, q2 = qvalue_state.apply_fn(params, observations, actions)
             loss_q1 = loss_mean_squared_error(q1, targets)
             loss_q2 = loss_mean_squared_error(q2, targets)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
-        observations, actions, targets = batch
-
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            qvalue_state.params, observations, actions, targets
+            qvalue_state.params
         )
         qvalue_state = qvalue_state.apply_gradients(grads=grads)
 
@@ -175,24 +174,24 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_policy_fn(
+        key: jax.Array,
         policy_state: TrainState,
         qvalue_state: TrainState,
         batch: tuple[jax.Array],
     ):
-        def loss_fn(params: Params, observations):
-            actions = policy_state.apply_fn(
-                {"params": params}, observations, 0.0
-            ).sample(seed=0)
+        observations, _, _, _ = batch
+
+        def loss_fn(params: Params):
+            dists = policy_state.apply_fn(params, observations, jnp.zeros(()))
+            actions = dists.sample(seed=key)
             qvalues, _ = qvalue_state.apply_fn(
-                {"params": qvalue_state.params}, observations, actions
+                qvalue_state.params, observations, actions
             )
             loss = -jnp.mean(qvalues)
             return loss, {"loss_policy": loss}
 
-        observations, _, _, _ = batch
-
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            policy_state.params, observations
+            policy_state.params
         )
         policy_state = policy_state.apply_gradients(grads=grads)
 

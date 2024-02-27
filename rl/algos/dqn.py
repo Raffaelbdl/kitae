@@ -59,7 +59,7 @@ def train_state_dqn_factory(
         config.env_cfg.observation_space, config.env_cfg.action_space
     )()
     return TrainState.create(
-        apply_fn=qvalue.apply,
+        apply_fn=jax.jit(qvalue.apply),
         params=init_params(key, qvalue, [observation_shape], tabulate),
         target_params=init_params(key, qvalue, [observation_shape], False),
         tx=optax.adam(config.update_cfg.learning_rate),
@@ -74,9 +74,7 @@ def explore_factory(config: AlgoConfig) -> Callable:
         observations: jax.Array,
         exploration: float,
     ) -> jax.Array:
-        all_qvalues = qvalue_state.apply_fn(
-            {"params": qvalue_state.params}, observations
-        )
+        all_qvalues = qvalue_state.apply_fn(qvalue_state.params, observations)
         actions, log_probs = dx.EpsilonGreedy(
             all_qvalues, exploration
         ).sample_and_log_prob(seed=key)
@@ -92,7 +90,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def fn(dqn_state: TrainState, key: jax.Array, experience: Experience):
         all_next_qvalues = dqn_state.apply_fn(
-            {"params": dqn_state.params}, experience.next_observation
+            dqn_state.params, experience.next_observation
         )
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
@@ -112,19 +110,16 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
 
-        def loss_fn(params: Params, observations, actions, returns):
-            all_qvalues = qvalue_state.apply_fn({"params": params}, observations)
+        observations, actions, returns = batch
+
+        def loss_fn(params: Params):
+            all_qvalues = qvalue_state.apply_fn(params, observations)
             qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
             loss = loss_mean_squared_error(qvalues, returns)
             return loss, {"loss_qvalue": loss}
 
-        observations, actions, returns = batch
-
         (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            qvalue_state.params,
-            observations=observations,
-            actions=actions,
-            returns=returns,
+            qvalue_state.params
         )
         qvalue_state = qvalue_state.apply_gradients(grads=grads)
 
