@@ -8,6 +8,7 @@ from typing import Any, Callable, NamedTuple
 import jax
 import jax.numpy as jnp
 from jrd_extensions import Seeded
+import numpy as np
 
 
 from rl_tools.base import PipelineAgent
@@ -19,6 +20,7 @@ from rl_tools.algos.pipeline import update_pipeline
 from rl_tools.buffer import Experience, stack_experiences
 from rl_tools.config import AlgoConfig
 from rl_tools.modules.train_state import TrainState
+from rl_tools.train import train
 from rl_tools.save import Saver
 
 Factory = Callable[..., Callable]
@@ -193,3 +195,36 @@ class AlgoFactory:
         self.saver = Saver(
             Path(os.path.join("./results", self.run_name)).absolute(), self
         )
+
+        def train(self: PipelineAgent, env, n_env_steps, callbacks):
+            return train(
+                int(np.asarray(self.nextkey())[0]),
+                self,
+                env,
+                n_env_steps,
+                self.parallel,
+                self.vectorized,
+                self.algo_type,
+                saver=self.saver,
+                callbacks=callbacks,
+            )
+
+        self.train = train
+
+        def resume(self: PipelineAgent, env, n_env_steps, callbacks):
+            step, self.state = self.saver.restore_latest_step(self.state)
+
+            return train(
+                int(np.asarray(self.nextkey())[0]),
+                self,
+                env,
+                n_env_steps,
+                self.parallel,
+                self.vectorized,
+                self.algo_type,
+                start_step=step,
+                saver=self.saver,
+                callbacks=callbacks,
+            )
+
+        self.resume = resume
