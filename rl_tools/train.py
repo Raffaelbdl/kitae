@@ -1,8 +1,8 @@
 import jax
 import numpy as np
 
-from rl_tools.base import Base, EnvType, EnvProcs, AlgoType
-from rl_tools.buffer import OnPolicyBuffer, Experience, OffPolicyBuffer
+from rl_tools.interface import IAgent, AlgoType
+from rl_tools.buffer import Experience, buffer_factory
 from rl_tools.save import Saver, SaverContext
 
 from rl_tools.types import EnvLike
@@ -13,7 +13,7 @@ from rl_tools.callbacks.episode_return_callback import EpisodeReturnCallback
 from rl_tools.logging import Logger
 
 
-def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
+def process_action(action: jax.Array, parallel: bool, vectorized: bool):
     def single_one_process(action: jax.Array):
         # return int(action)
         return action
@@ -27,19 +27,19 @@ def process_action(action: jax.Array, env_type: EnvType, env_procs: EnvProcs):
     def parallel_many_process(action: dict[str, jax.Array]):
         return action
 
-    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
+    if not parallel and not vectorized:
         return single_one_process(action)
-    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
+    elif not parallel and vectorized:
         return single_many_process(action)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
+    elif parallel and not vectorized:
         return parallel_one_process(action)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
+    elif parallel and vectorized:
         return parallel_many_process(action)
     else:
         raise NotImplementedError
 
 
-def process_reward(reward, env_type: EnvType, env_procs: EnvProcs):
+def process_reward(reward, parallel: bool, vectorized: bool):
     def single_one_process(reward: float):
         return reward
 
@@ -52,13 +52,13 @@ def process_reward(reward, env_type: EnvType, env_procs: EnvProcs):
     def parallel_many_process(reward: dict[str, jax.Array]):
         return np.sum(np.array(list(reward.values())), axis=0)
 
-    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
+    if not parallel and not vectorized:
         return single_one_process(reward)
-    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
+    elif not parallel and vectorized:
         return single_many_process(reward)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
+    elif parallel and not vectorized:
         return parallel_one_process(reward)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
+    elif parallel and vectorized:
         return parallel_many_process(reward)
     else:
         raise NotImplementedError
@@ -70,8 +70,8 @@ def process_termination(
     done,
     trunc,
     logs: dict,
-    env_type: EnvType,
-    env_procs: EnvProcs,
+    parallel: bool,
+    vectorized: bool,
     callbacks: list[Callback],
 ):
     def single_one_process(env, done, trunc, logs):
@@ -121,13 +121,13 @@ def process_termination(
                 logs["episode_return"][i] = 0.0
         return None, None
 
-    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
+    if not parallel and not vectorized:
         return single_one_process(env, done, trunc, logs)
-    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
+    elif not parallel and vectorized:
         return single_many_process(env, done, trunc, logs)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
+    elif parallel and not vectorized:
         return parallel_one_process(env, done, trunc, logs)
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
+    elif parallel and vectorized:
         return parallel_many_process(env, done, trunc, logs)
     else:
         raise NotImplementedError
@@ -135,11 +135,11 @@ def process_termination(
 
 def train(
     seed: int,
-    base: Base,
+    base: IAgent,
     env: EnvLike,
     n_env_steps: int,
-    env_type: EnvType,
-    env_procs: EnvProcs,
+    parallel: bool,
+    vectorized: bool,
     algo_type: AlgoType,
     *,
     start_step: int = 1,
@@ -150,15 +150,12 @@ def train(
     callbacks = [EpisodeReturnCallback(population_size=1)] + callbacks
     callback.on_train_start(callbacks, CallbackData())
 
-    if algo_type == AlgoType.ON_POLICY:
-        buffer = OnPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
-    else:
-        buffer = OffPolicyBuffer(seed, base.config.update_cfg.max_buffer_size)
-
     observation, info = env.reset(seed=seed + 1)
 
-    logger = Logger(callbacks, env_type=env_type, env_procs=env_procs)
+    logger = Logger(callbacks, parallel=parallel, vectorized=vectorized)
     logger.init_logs(observation)
+
+    buffer = buffer_factory(seed, algo_type, base.config.update_cfg.max_buffer_size)
 
     with SaverContext(saver, base.config.train_cfg.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
@@ -167,9 +164,9 @@ def train(
             action, log_prob = base.explore(observation)
 
             next_observation, reward, done, trunc, info = env.step(
-                process_action(action, env_type, env_procs)
+                process_action(action, parallel, vectorized)
             )
-            logger["episode_return"] += process_reward(reward, env_type, env_procs)
+            logger["episode_return"] += process_reward(reward, parallel, vectorized)
 
             termination = process_termination(
                 step * base.config.env_cfg.n_envs,
@@ -177,8 +174,8 @@ def train(
                 done,
                 trunc,
                 logger,
-                env_type,
-                env_procs,
+                parallel,
+                vectorized,
                 callbacks,
             )
             if termination[0] is not None and termination[1] is not None:

@@ -1,22 +1,21 @@
 import jax
 import numpy as np
 
-from rl_tools.base import EnvType, EnvProcs
 from rl_tools.callbacks.callback import Callback
 
 
 def init_episode_return(
     first_observation: jax.Array | dict[str, jax.Array],
-    env_type: EnvType,
-    env_procs: EnvProcs,
+    parallel: bool,
+    vectorized: bool,
 ):
-    if env_type == EnvType.SINGLE and env_procs == EnvProcs.ONE:
+    if not parallel and not vectorized:
         return 0.0
-    elif env_type == EnvType.SINGLE and env_procs == EnvProcs.MANY:
+    elif not parallel and vectorized:
         return np.zeros((first_observation.shape[0],))
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.ONE:
+    elif parallel and not vectorized:
         return 0.0
-    elif env_type == EnvType.PARALLEL and env_procs == EnvProcs.MANY:
+    elif parallel and vectorized:
         return np.zeros((np.array(list(first_observation.values())[0]).shape[0],))
     else:
         raise NotImplementedError
@@ -24,24 +23,24 @@ def init_episode_return(
 
 class Logger:
     def __init__(
-        self, callbacks: list[Callback], *, env_type: EnvType, env_procs: EnvProcs
+        self, callbacks: list[Callback], *, parallel: bool, vectorized: bool
     ) -> None:
         self.callbacks = callbacks
 
-        self.env_type = env_type
-        self.env_procs = env_procs
+        self.parallel = parallel
+        self.vectorized = vectorized
 
         self.logs: dict = {"step": 0}
 
     def init_logs(self, first_observation: jax.Array | dict[str, jax.Array]):
         if isinstance(first_observation, tuple):
             self.logs["episode_return"] = [
-                init_episode_return(obs, self.env_type, self.env_procs)
+                init_episode_return(obs, self.parallel, self.vectorized)
                 for obs in first_observation
             ]
         else:
             self.logs["episode_return"] = init_episode_return(
-                first_observation, self.env_type, self.env_procs
+                first_observation, self.parallel, self.vectorized
             )
 
     def __getitem__(self, key):

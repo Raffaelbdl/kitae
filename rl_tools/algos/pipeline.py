@@ -91,3 +91,52 @@ def process_experience_pipeline_factory(
         return process_experience_fn(key, *experiences)
 
     return process_experience_pipeline_fn
+
+
+class UpdateModule(struct.PyTreeNode):
+    """Jittable PyTreeNode instance.
+
+    state: A PyTreeNode that contains the module state
+
+    update_fn:
+        Args:
+            state: A PyTreeNode that contains the module state
+            key: An Array for randomness in Jax
+            batch: A tuple
+        Returns:
+            state: The state after update
+            module_info: A dictionary of additional information
+
+    """
+
+    update_fn: Callable = struct.field(pytree_node=False)
+    state: struct.PyTreeNode = struct.field(pytree_node=True)
+
+
+def update_pipeline(
+    update_modules: list[UpdateModule],
+    key: jax.Array,
+    batch: tuple,
+) -> list[UpdateModule]:
+    info = {}
+
+    for i, module in enumerate(update_modules):
+        key, _key = jax.random.split(key, 2)
+        state, module_info = module.update_fn(module.state, _key, batch)
+
+        update_modules[i] = module.replace(state=state)
+        info |= module_info
+
+    return update_modules, info
+
+
+class PipelineModule(ExperienceTransform, UpdateModule):
+    @property
+    def experience_transform(self) -> ExperienceTransform:
+        return ExperienceTransform(
+            process_experience_fn=self.process_experience_fn, state=self.state
+        )
+
+    @property
+    def update_module(self) -> UpdateModule:
+        return UpdateModule(update_fn=self.update_fn, state=self.state)

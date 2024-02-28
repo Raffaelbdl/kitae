@@ -1,42 +1,30 @@
 """Contains the base classes for reinforcement learning."""
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-from enum import Enum
-import os
 from pathlib import Path
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable
 
 import chex
 import cloudpickle
 import yaml
 from flax import struct
+import jax
 
 from jrd_extensions import Seeded
 
+from rl_tools.interface import IAgent, IBuffer, AlgoType
+from rl_tools.train import train
 
-from rl_tools.buffer import Buffer, Experience
-from rl_tools.callbacks.callback import Callback
 from rl_tools.save import Saver
-from rl_tools.types import ActionType, ObsType, Params, Array
+from rl_tools.types import ActionType, ObsType, Params
 
-from ml_collections import FrozenConfigDict, ConfigDict
+from ml_collections import ConfigDict
 from rl_tools.config import AlgoConfig
 
+from rl_tools.algos.pipeline import PipelineModule
+from rl_tools.algos.pipeline import ExperienceTransform
+from rl_tools.algos.pipeline import UpdateModule
 
-class EnvProcs(Enum):
-    ONE = "one"
-    MANY = "many"
-
-
-class EnvType(Enum):
-    SINGLE = "single"
-    PARALLEL = "parallel"
-
-
-class AlgoType(Enum):
-    ON_POLICY = "on_policy"
-    OFF_POLICY = "off_policy"
+import numpy as np
 
 
 class Deployed(Seeded):
@@ -67,156 +55,6 @@ class DeployedJit:
     select_action: Callable = struct.field(pytree_node=False)
 
 
-from rl_tools.algos.pipelines import PipelineModule
-from rl_tools.algos.pipelines.experience_pipeline import ExperienceTransform
-from rl_tools.algos.pipelines.update_pipeline import UpdateModule
-
-
-class Base(ABC, Seeded):
-    intrinsic_reward_module: PipelineModule = None
-
-    def experience_transforms(self, state) -> list[ExperienceTransform]:
-        transforms = []
-
-        if self.intrinsic_reward_module:
-            transforms.append(
-                ExperienceTransform(
-                    process_experience_fn=self.intrinsic_reward_module.process_experience_fn,
-                    state=self.intrinsic_reward_module.state,
-                )
-            )
-
-        transforms.append(
-            ExperienceTransform(
-                process_experience_fn=self.process_experience_fn, state=state
-            )
-        )
-
-        return transforms
-
-    def make_update_modules(self, state) -> list[UpdateModule]:
-        modules = []
-        self.modules_to_state = {}
-
-        if self.intrinsic_reward_module:
-            self.modules_to_state[len(modules)] = "intrinsic_reward_module"
-            modules.append(
-                UpdateModule(
-                    update_fn=self.intrinsic_reward_module.update_fn,
-                    state=self.intrinsic_reward_module.state,
-                )
-            )
-
-        self.modules_to_state[len(modules)] = "state"
-        modules.append(UpdateModule(update_fn=self.update_step_fn, state=state))
-
-        return modules
-
-    def apply_updates(self, update_modules: list[UpdateModule]):
-        for i in range(len(update_modules)):
-            if self.modules_to_state[i] == "intrinsic_reward_module":
-                self.intrinsic_reward_module = self.intrinsic_reward_module.replace(
-                    state=update_modules[i].state
-                )
-            elif self.modules_to_state[i] == "state":
-                self.state = update_modules[i].state
-
-    @abstractmethod
-    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Exploits the policy to interact with the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Uses the policy to explore the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def update(self, buffer: Buffer) -> dict:
-        """Updates the agent.
-
-        Args:
-            buffer: A Buffer containing the transitions obtained from the environment.
-
-        Returns:
-            A dict containing the information from the update step.
-        """
-        ...
-
-    @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Starts the training of the agent.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Resumes the training of the agent from the last training step.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    def restore(self) -> int:
-        """Restores the agent's states from the last training step.
-
-        Returns:
-            The latest training step.
-        """
-        latest_step, self.state = self.saver.restore_latest_step(self.state)
-        return latest_step
-
-    @classmethod
-    def unserialize(cls, data_dir: str | Path):
-        """Creates an instance of the agent from a training directory.
-
-        Args:
-            data_dir: A string representing the path to the training directory.
-
-        Returns:
-            An instance of the specific Base class.
-
-        # TODO : Raise if training directory does not correspond to class
-        """
-        path = data_dir if isinstance(data_dir, Path) else Path(data_dir)
-
-        config_path = Path.joinpath(path, "config")
-        with open(config_path, "r") as f:
-            config_dict = yaml.load(f, yaml.SafeLoader)
-        config = ConfigDict(config_dict)
-
-        extra_path = Path.joinpath(path, "extra")
-        with open(extra_path, "rb") as f:
-            extra = cloudpickle.load(f)
-
-        config.env_cfg = extra.pop("env_config")
-        extra["run_name"] = path.parts[-1]
-
-        return cls(config=config, **extra)
-
-
 class IntrinsicRewardManager:
     prefix: str = "intrinsic_"
     modules: dict[str, PipelineModule] = {}
@@ -241,8 +79,9 @@ class IntrinsicRewardManager:
         self.modules[_idx] = self.modules[_idx].replace(state=state)
 
 
-class Agent(ABC, Seeded):
+class PipelineAgent(IAgent, Seeded):
     config: AlgoConfig = None
+    algo_type: AlgoType = None
 
     rearrange_pattern: str = None
     preprocess_fn: Callable = None
@@ -259,64 +98,7 @@ class Agent(ABC, Seeded):
     run_name: str = None
     saver: Saver = None
 
-    @abstractmethod
-    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Exploits the policy to interact with the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Uses the policy to explore the environment.
-
-        Args:
-            observation: An ObsType within the observation_space.
-
-        Returns:
-            An ActionType within the action_space.
-        """
-        ...
-
-    @abstractmethod
-    def should_update(self, step: int, buffer: Buffer) -> bool:
-        """Determines if the agent should be updated.
-
-        Args:
-            step: An int representing the current step for a single environment.
-            buffer: A Buffer containing the transitions obtained from the environment.
-
-        Returns:
-            A boolean expliciting if the agent should be updated.
-        """
-        ...
-
-    @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Starts the training of the agent.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
-
-    @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
-        """Resumes the training of the agent from the last training step.
-
-        Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
-        """
-        ...
+    train_fn: Callable = None
 
     @property
     def state(self) -> Any:
@@ -364,7 +146,7 @@ class Agent(ABC, Seeded):
             elif "intrinsic_" in module_id:
                 self.intrinsc_reward_manager.apply_update(module_id, module.state)
 
-    def update(self, buffer: Buffer) -> dict:
+    def update(self, buffer: IBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         experiences = self.process_experience_pipeline(
             self.load_experience_transforms(), self.nextkey(), sample
@@ -427,11 +209,45 @@ class Agent(ABC, Seeded):
 
         return cls(config=config, **extra)
 
+    def interact_keys(self, observation: ObsType) -> jax.Array | dict[str : jax.Array]:
+        if self.parallel:
+            return {a: self.nextkey() for a in observation.keys()}
+        return self.nextkey()
 
-class OffPolicyAgent(Agent):
+    def train(self, env, n_env_steps, callbacks):
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            self.parallel,
+            self.vectorized,
+            self.algo_type,
+            saver=self.saver,
+            callbacks=callbacks,
+        )
+
+    def resume(self, env, n_env_steps, callbacks):
+        step, self.state = self.saver.restore_latest_step(self.state)
+        return train(
+            int(np.asarray(self.nextkey())[0]),
+            self,
+            env,
+            n_env_steps,
+            self.parallel,
+            self.vectorized,
+            self.algo_type,
+            saver=self.saver,
+            callbacks=callbacks,
+            start_step=step,
+        )
+
+
+class OffPolicyAgent(PipelineAgent):
+    algo_type = AlgoType.OFF_POLICY
     step = 0
 
-    def should_update(self, step: int, buffer: Buffer) -> bool:
+    def should_update(self, step: int, buffer: IBuffer) -> bool:
         self.step = step
         return (
             len(buffer) >= self.config.update_cfg.batch_size
@@ -440,6 +256,8 @@ class OffPolicyAgent(Agent):
         )
 
 
-class OnPolicyAgent(Agent):
-    def should_update(self, step: int, buffer: Buffer) -> bool:
+class OnPolicyAgent(PipelineAgent):
+    algo_type = AlgoType.ON_POLICY
+
+    def should_update(self, step: int, buffer: IBuffer) -> bool:
         return len(buffer) >= self.config.update_cfg.max_buffer_size

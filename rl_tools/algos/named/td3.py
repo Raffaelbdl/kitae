@@ -6,18 +6,15 @@ from typing import Callable
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
-from rl_tools.base import OffPolicyAgent, EnvType, EnvProcs, AlgoType
-from rl_tools.callbacks.callback import Callback
+from rl_tools.base import OffPolicyAgent
 from rl_tools.config import AlgoConfig, AlgoParams
-from rl_tools.types import Params, GymEnv, EnvPoolEnv
+from rl_tools.types import Params
 
 from rl_tools.buffer import OffPolicyBuffer, Experience
 from rl_tools.loss import loss_mean_squared_error
 
-from rl_tools.train import train
 from rl_tools.timesteps import compute_td_targets
 
 
@@ -223,7 +220,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         update_policy = batch[-1]
         if update_policy == 0:
             (state.policy_state, state.qvalue_state), loss_policy, info_policy = (
-                update_policy_fn(state.policy_state, state.qvalue_state, batch)
+                update_policy_fn(key, state.policy_state, state.qvalue_state, batch)
             )
         else:
             loss_policy = 0.0
@@ -269,21 +266,13 @@ class TD3(OffPolicyAgent):
         self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        keys = (
-            {a: self.nextkey() for a in observation.keys()}
-            if self.parallel
-            else self.nextkey()
-        )
+        keys = self.interact_keys(observation)
 
         action, zeros = self.explore_fn(self.state.policy_state, keys, observation, 0.0)
         return action, zeros
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        keys = (
-            {a: self.nextkey() for a in observation.keys()}
-            if self.parallel
-            else self.nextkey()
-        )
+        keys = self.interact_keys(observation)
 
         action, log_prob = self.explore_fn(
             self.state.policy_state,
@@ -314,36 +303,3 @@ class TD3(OffPolicyAgent):
         self.apply_updates(update_modules)
 
         return info
-
-    def train(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.OFF_POLICY,
-            saver=self.saver,
-            callbacks=callbacks,
-        )
-
-    def resume(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        step, self.state = self.saver.restore_latest_step(self.state)
-
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.train_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.train_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.OFF_POLICY,
-            start_step=step,
-            saver=self.saver,
-            callbacks=callbacks,
-        )

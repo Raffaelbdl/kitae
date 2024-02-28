@@ -3,8 +3,8 @@ from collections import namedtuple
 import jax
 import jax.numpy as jnp
 
-from rl_tools.algos.pipelines.experience_pipeline import ExperienceTransform
-from rl_tools.algos.pipelines.experience_pipeline import process_experience_pipeline_factory
+from rl_tools.algos.pipeline import ExperienceTransform
+from rl_tools.algos.pipeline import process_experience_pipeline_factory
 
 ExperienceNamedTuple = namedtuple("ExperienceNamedTuple", ["field_0", "field_1"])
 
@@ -128,7 +128,3 @@ def test_process_experience_pipeline_factory():
     )
     assert jnp.all(jnp.equal(experience.field_0, 1 * jnp.ones((2 * 5 * 10, 4))))
     assert jnp.all(jnp.equal(experience.field_1, 6 * jnp.ones((2 * 5 * 10, 4))))
-
-
-if __name__ == "__main__":
-    test_process_experience_pipeline_factory()

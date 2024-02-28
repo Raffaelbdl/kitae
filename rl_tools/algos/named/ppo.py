@@ -11,17 +11,14 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-from rl_tools.base import OnPolicyAgent, EnvType, EnvProcs, AlgoType
-from rl_tools.callbacks.callback import Callback
+from rl_tools.base import OnPolicyAgent
 from rl_tools.config import AlgoConfig, AlgoParams
-from rl_tools.types import Params, GymEnv, EnvPoolEnv
 
-from rl_tools.buffer import Experience
+from rl_tools.buffer import Experience, batchify_and_randomize
 from rl_tools.distribution import get_log_probs
 from rl_tools.loss import loss_policy_ppo, loss_value_clip
 from rl_tools.timesteps import calculate_gaes_targets
 
-from rl_tools.train import train
 
 from rl_tools.algos.factory import AlgoFactory
 from rl_tools.modules.encoder import encoder_factory
@@ -251,24 +248,13 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ):
-        num_elems = experiences[0].shape[0]
-        iterations = num_elems // config.update_cfg.batch_size
-        inds = jax.random.permutation(key, num_elems)[
-            : iterations * config.update_cfg.batch_size
-        ]
-
-        batches = jax.tree_util.tree_map(
-            lambda x: x[inds].reshape(
-                (iterations, config.update_cfg.batch_size) + x.shape[1:]
-            ),
-            experiences,
-        )
+        batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
 
         loss = 0.0
         for batch in zip(*batches):
             ppo_state, l, info = update_policy_value_fn(ppo_state, batch)
             loss += l
-        loss /= iterations
+        loss /= len(batches[0])
 
         return ppo_state, info
 
@@ -309,46 +295,7 @@ class PPO(OnPolicyAgent):
         return self.explore(observation)
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        # TODO remove this and put it in the factory !
-        keys = (
-            {a: self.nextkey() for a in observation.keys()}
-            if self.parallel
-            else self.nextkey()
-        )
-
+        keys = self.interact_keys(observation)
         action, log_prob = self.explore_fn(self.state, keys, observation)
 
         return np.array(action), log_prob
-
-    def train(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.env_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.ON_POLICY,
-            saver=self.saver,
-            callbacks=callbacks,
-        )
-
-    def resume(
-        self, env: GymEnv | EnvPoolEnv, n_env_steps: int, callbacks: list[Callback]
-    ) -> None:
-        step = self.restore()
-
-        return train(
-            int(np.asarray(self.nextkey())[0]),
-            self,
-            env,
-            n_env_steps,
-            EnvType.SINGLE if self.config.env_cfg.n_agents == 1 else EnvType.PARALLEL,
-            EnvProcs.ONE if self.config.env_cfg.n_envs == 1 else EnvProcs.MANY,
-            AlgoType.ON_POLICY,
-            start_step=step,
-            saver=self.saver,
-            callbacks=callbacks,
-        )
