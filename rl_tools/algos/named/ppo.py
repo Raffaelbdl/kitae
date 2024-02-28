@@ -14,7 +14,7 @@ import optax
 from rl_tools.base import OnPolicyAgent
 from rl_tools.config import AlgoConfig, AlgoParams
 
-from rl_tools.buffer import Experience
+from rl_tools.buffer import Experience, batchify_and_randomize
 from rl_tools.distribution import get_log_probs
 from rl_tools.loss import loss_policy_ppo, loss_value_clip
 from rl_tools.timesteps import calculate_gaes_targets
@@ -248,24 +248,13 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ):
-        num_elems = experiences[0].shape[0]
-        iterations = num_elems // config.update_cfg.batch_size
-        inds = jax.random.permutation(key, num_elems)[
-            : iterations * config.update_cfg.batch_size
-        ]
-
-        batches = jax.tree_util.tree_map(
-            lambda x: x[inds].reshape(
-                (iterations, config.update_cfg.batch_size) + x.shape[1:]
-            ),
-            experiences,
-        )
+        batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
 
         loss = 0.0
         for batch in zip(*batches):
             ppo_state, l, info = update_policy_value_fn(ppo_state, batch)
             loss += l
-        loss /= iterations
+        loss /= len(batches[0])
 
         return ppo_state, info
 
