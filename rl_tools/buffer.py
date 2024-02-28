@@ -34,6 +34,9 @@ def batchify(data: tuple[jax.Array, ...], batch_size: int) -> tuple[jax.Array, .
         batch_size: A int that represents the length of each batches
     Returns:
         batches: A tuple of Array of shape [T // batch_size, batch_size, ...]
+
+    Errors:
+        AssertionError: if the batch_size is strictly greater than the number of elements
     """
     n_elements = data[0].shape[0]
     n_batches = n_elements // batch_size  # will truncate last elements
