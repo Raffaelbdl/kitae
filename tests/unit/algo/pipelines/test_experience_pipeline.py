@@ -128,7 +128,3 @@ def test_process_experience_pipeline_factory():
     )
     assert jnp.all(jnp.equal(experience.field_0, 1 * jnp.ones((2 * 5 * 10, 4))))
     assert jnp.all(jnp.equal(experience.field_1, 6 * jnp.ones((2 * 5 * 10, 4))))
-
-
-if __name__ == "__main__":
-    test_process_experience_pipeline_factory()
