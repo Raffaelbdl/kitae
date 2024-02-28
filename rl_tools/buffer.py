@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
 from collections import namedtuple, deque
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl_tools.interface import IBuffer
+from rl_tools.interface import AlgoType, IBuffer
 
 Experience = namedtuple(
     "Experience",
@@ -58,9 +57,6 @@ class OnPolicyBuffer(Buffer):
     def sample(self, batch_size: int) -> list[Experience]:
         sample, self.buffer = self.buffer, []
         return sample
-
-
-from rl_tools.base import AlgoType
 
 
 def buffer_factory(seed: int, algo_type: AlgoType, max_buffer_size: int) -> Buffer:

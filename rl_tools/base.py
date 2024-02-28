@@ -1,10 +1,7 @@
 """Contains the base classes for reinforcement learning."""
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-import os
 from pathlib import Path
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable
 
 import chex
 import cloudpickle
@@ -17,11 +14,10 @@ from jrd_extensions import Seeded
 from rl_tools.interface import IAgent, IBuffer, AlgoType
 from rl_tools.train import train
 
-from rl_tools.callbacks.callback import Callback
 from rl_tools.save import Saver
-from rl_tools.types import ActionType, ObsType, Params, Array
+from rl_tools.types import ActionType, ObsType, Params
 
-from ml_collections import FrozenConfigDict, ConfigDict
+from ml_collections import ConfigDict
 from rl_tools.config import AlgoConfig
 
 from rl_tools.algos.pipeline import PipelineModule

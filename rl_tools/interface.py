@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Callable, NamedTuple
+from typing import Any, NamedTuple
 
 from rl_tools.callbacks.callback import Callback
-from rl_tools.types import ActionType, ObsType, Params, Array
+from rl_tools.types import ActionType, ObsType, Array
 
 
 class AlgoType(Enum):
