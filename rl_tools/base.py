@@ -12,7 +12,8 @@ import jax
 from jrd_extensions import Seeded
 
 from rl_tools.interface import IAgent, IBuffer, AlgoType
-from rl_tools.train import train
+
+from rl_tools.train import vectorized_train
 
 from rl_tools.save import Saver
 from rl_tools.types import ActionType, ObsType, Params
@@ -215,13 +216,12 @@ class PipelineAgent(IAgent, Seeded):
         return self.nextkey()
 
     def train(self, env, n_env_steps, callbacks):
-        return train(
+        return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
             self.parallel,
-            self.vectorized,
             self.algo_type,
             saver=self.saver,
             callbacks=callbacks,
@@ -229,13 +229,12 @@ class PipelineAgent(IAgent, Seeded):
 
     def resume(self, env, n_env_steps, callbacks):
         step, self.state = self.saver.restore_latest_step(self.state)
-        return train(
+        return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
             self.parallel,
-            self.vectorized,
             self.algo_type,
             saver=self.saver,
             callbacks=callbacks,
