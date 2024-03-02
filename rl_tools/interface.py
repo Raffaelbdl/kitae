@@ -24,6 +24,22 @@ class IBuffer(ABC):
     def sample(self, sample_size: int) -> list[type[NamedTuple]]: ...
 
 
+class IActor(ABC):
+    """Interface for Actor instances."""
+
+    @abstractmethod
+    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
+        """Exploits the policy to interact with the environment.
+
+        Args:
+            observation: An ObsType within the observation_space.
+
+        Returns:
+            An ActionType within the action_space.
+        """
+        ...
+
+
 class IAgent(ABC):
     """Interface for Agent instances."""
 
