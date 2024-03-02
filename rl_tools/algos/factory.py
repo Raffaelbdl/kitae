@@ -106,7 +106,8 @@ class AlgoFactory:
         self.rearrange_pattern = rearrange_pattern
         self.preprocess_fn = preprocess_fn
 
-        self.vectorized = self.config.env_cfg.n_envs > 1
+        # self.vectorized = self.config.env_cfg.n_envs > 1
+        self.vectorized = True
         self.parallel = self.config.env_cfg.n_agents > 1
 
         state = train_state_factory(

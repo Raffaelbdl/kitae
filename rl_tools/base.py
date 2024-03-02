@@ -3,16 +3,15 @@
 from pathlib import Path
 from typing import Any, Callable
 
-import chex
 import cloudpickle
-import yaml
-from flax import struct
 import jax
+import yaml
 
 from jrd_extensions import Seeded
 
 from rl_tools.interface import IAgent, IBuffer, AlgoType
-from rl_tools.train import train
+
+from rl_tools.train import vectorized_train
 
 from rl_tools.save import Saver
 from rl_tools.types import ActionType, ObsType, Params
@@ -25,34 +24,6 @@ from rl_tools.algos.pipeline import ExperienceTransform
 from rl_tools.algos.pipeline import UpdateModule
 
 import numpy as np
-
-
-class Deployed(Seeded):
-    """Algorithm-agnostic class for agents."""
-
-    def __init__(self, seed: int, params: Params, select_action_fn: Callable) -> None:
-        """Initializes a Deployed instance of an agent.
-
-        Args:
-            seed: An int for reproducibility.
-            params: The Params of the agent.
-            select_action_fn: The Callable select_action method of the agent.
-        """
-        Seeded.__init__(self, seed)
-        self.params = params
-        self.select_action_fn = select_action_fn
-
-    def select_action(self, observation: ObsType) -> ActionType:
-        """Exploits the policy to interact with the environment."""
-        return self.select_action_fn(self.params, self.nextkey(), observation)
-
-
-@chex.dataclass
-class DeployedJit:
-    """Jittable algorithm-agnostic class for agents."""
-
-    params: Params
-    select_action: Callable = struct.field(pytree_node=False)
 
 
 class IntrinsicRewardManager:
@@ -215,13 +186,11 @@ class PipelineAgent(IAgent, Seeded):
         return self.nextkey()
 
     def train(self, env, n_env_steps, callbacks):
-        return train(
+        return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
-            self.parallel,
-            self.vectorized,
             self.algo_type,
             saver=self.saver,
             callbacks=callbacks,
@@ -229,13 +198,11 @@ class PipelineAgent(IAgent, Seeded):
 
     def resume(self, env, n_env_steps, callbacks):
         step, self.state = self.saver.restore_latest_step(self.state)
-        return train(
+        return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
-            self.parallel,
-            self.vectorized,
             self.algo_type,
             saver=self.saver,
             callbacks=callbacks,

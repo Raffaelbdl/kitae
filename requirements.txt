@@ -11,4 +11,7 @@ optax
 orbax_checkpoint
 pettingzoo
 
+tensorboard
+tensorboardX
+
 git+https://github.com/Raffaelbdl/vectorization_parallel_env
