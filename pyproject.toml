@@ -23,6 +23,8 @@ dependencies = [
     "orbax_checkpoint",
     "pettingzoo",
     "cliconfig",
+    "tensorboard",
+    "tensorboardX",
     "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env",
     "jrd_extensions@git+https://github.com/Raffaelbdl/jrd_extensions"
 ]
@@ -33,7 +35,7 @@ homepage = "https://github.com/Raffaelbdl/flax_rl"
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
-version = {attr = "rl.version.__version__"}
+version = {attr = "rl_tools.version.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["rl*"]
+include = ["rl_tools*"]
