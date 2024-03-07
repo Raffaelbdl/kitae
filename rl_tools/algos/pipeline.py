@@ -80,7 +80,7 @@ def process_experience_pipeline_factory(
             )[0]
 
         if vectorized:
-            keys = jax.random.split(key, experiences[0].shape[1])[None]
+            keys = jax.random.split(key, experiences[0].shape[1]).transpose((1, 0))
             processed_experiences = jax.vmap(
                 process_experience_fn, in_axes=1, out_axes=1
             )(keys, *experiences)
