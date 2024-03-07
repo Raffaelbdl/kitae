@@ -77,3 +77,16 @@ class IndependentVariable(nn.Module):
     @nn.compact
     def __call__(self) -> jax.Array:
         return self.param(self.name, self.init_fn, self.shape)
+
+
+def parallel_copy(module: nn.Module, n: int):
+    """Encapsulates copies of a module and infer them in parallel."""
+
+    class Module(nn.Module):
+        def setup(self) -> None:
+            self.modules = [module for _ in range(n)]
+
+        def __call__(self, *xs: Iterable[jax.Array]) -> Iterable[jax.Array]:
+            return jax.tree_map(lambda m: m(*xs), self.modules)
+
+    return Module()
