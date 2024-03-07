@@ -1,4 +1,5 @@
 import time
+from typing import Callable
 
 from absl import logging
 import numpy as np
@@ -13,6 +14,8 @@ from rl_tools.types import EnvLike
 
 from rl_tools.callbacks import callback
 from rl_tools.callbacks.callback import Callback, CallbackData
+
+logging.set_verbosity(logging.INFO)
 
 
 def check_env(env: EnvLike) -> EnvLike:
@@ -65,6 +68,25 @@ def process_termination(
     return next_observations
 
 
+def make_process_inputs(agent: IAgent, observations: np.ndarray, dones: np.ndarray):
+    recurrent = False
+    try:
+        agent.explore(observations, dones)
+        recurrent = True
+        agent.lstm_state = None
+    except TypeError:
+        pass
+
+    def process_inputs(
+        observations: np.ndarray, dones: np.ndarray
+    ) -> tuple[np.ndarray, ...]:
+        if recurrent:
+            return (observations, dones)
+        return observations
+
+    return process_inputs
+
+
 def vectorized_train(
     seed: int,
     agent: IAgent,
@@ -84,13 +106,18 @@ def vectorized_train(
     callback.on_train_start(callbacks, CallbackData())
 
     observations, infos = env.reset(seed=seed + 1)
+    dones = np.zeros((len(observations)), np.bool_)
+    process_inputs = make_process_inputs(agent, observations, dones)
 
     buffer = buffer_factory(seed, algo_type, agent.config.update_cfg.max_buffer_size)
 
     with SaverContext(saver, agent.config.train_cfg.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
             global_step = step * agent.config.env_cfg.n_envs
-            actions, log_probs = agent.explore(observations)
+
+            inputs = process_inputs(observations, dones)
+            actions, log_probs = agent.explore(*inputs)
+
             (
                 next_observations,
                 rewards,
