@@ -9,6 +9,7 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import optax
+import numpy as np
 
 from rl_tools.base import OffPolicyAgent
 from rl_tools.buffer import Experience
@@ -18,15 +19,13 @@ from rl_tools.types import Params
 from rl_tools.loss import loss_mean_squared_error
 from rl_tools.timesteps import compute_td_targets
 
-
-# from rl_tools.algos.factory import AlgoFactory
 from rl_tools.modules.encoder import encoder_factory
 from rl_tools.modules.modules import init_params, IndependentVariable
 from rl_tools.modules.policy import make_policy, PolicyTanhNormal
 from rl_tools.modules.train_state import PolicyQValueTrainState, TrainState
 from rl_tools.modules.qvalue import make_double_q_value, qvalue_factory
 
-SAC_tuple = namedtuple("PPO_tuple", ["observation", "action", "target"])
+SAC_tuple = namedtuple("SAC_tuple", ["observation", "action", "target"])
 
 
 @chex.dataclass

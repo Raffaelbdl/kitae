@@ -97,7 +97,7 @@ def vectorized_train(
                 terminateds,
                 truncations,
                 infos,
-            ) = env.step(actions)
+            ) = env.step(np.array(actions))
 
             real_next_observations = process_termination(
                 global_step, next_observations, infos, writer
