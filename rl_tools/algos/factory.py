@@ -1,25 +1,12 @@
-from datetime import datetime
 import functools
-import os
-from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
-
+from flax import struct
 import jax
 import jax.numpy as jnp
-from jrd_extensions import Seeded
 
+from rl_tools.buffer import stack_experiences
 
-from rl_tools.base import PipelineAgent
-from rl_tools.types import Params
-
-from rl_tools.algos.pipeline import PipelineModule
-from rl_tools.algos.pipeline import process_experience_pipeline_factory
-from rl_tools.algos.pipeline import update_pipeline
-from rl_tools.buffer import Experience, stack_experiences
-from rl_tools.config import AlgoConfig
-from rl_tools.modules.train_state import TrainState
-from rl_tools.save import Saver
 
 Factory = Callable[..., Callable]
 
@@ -84,66 +71,107 @@ def explore_general_factory(
     return general_fn
 
 
-class AlgoFactory:
-    @staticmethod
-    def intialize(
-        self: PipelineAgent,
-        config: AlgoConfig,
-        train_state_factory: Callable[..., TrainState],
-        explore_factory: Factory,
-        process_experience_factory: Factory,
-        update_step_factory: Factory,
-        *,
-        rearrange_pattern: str = "b h w c -> b h w c",
-        preprocess_fn: Callable = None,
-        run_name: str | None = None,
-        tabulate: bool = False,
-        experience_type: NamedTuple = Experience,
-    ) -> None:
-        Seeded.__init__(self, config.seed)
-        self.config = config
+class ExperienceTransform(struct.PyTreeNode):
+    """Experience Transform PyTreeNode.
 
-        self.rearrange_pattern = rearrange_pattern
-        self.preprocess_fn = preprocess_fn
+    This class encapsulates both a state and a process_experience function.
+    """
 
-        # self.vectorized = self.config.env_cfg.n_envs > 1
-        self.vectorized = True
-        self.parallel = self.config.env_cfg.n_agents > 1
+    process_experience_fn: Callable = struct.field(pytree_node=False)
+    state: struct.PyTreeNode = struct.field(pytree_node=True)
 
-        state = train_state_factory(
-            self.nextkey(),
-            self.config,
-            rearrange_pattern=rearrange_pattern,
-            preprocess_fn=preprocess_fn,
-            tabulate=tabulate,
-        )
-        process_experience_fn = process_experience_factory(self.config)
-        update_fn = update_step_factory(self.config)
-        self.main_pipeline_module = PipelineModule(
-            state=state,
-            process_experience_fn=process_experience_fn,
-            update_fn=update_fn,
-        )
 
-        self.explore_fn = explore_general_factory(
-            explore_factory(self.config.algo_params),
-            self.vectorized,
-            self.parallel,
-        )
+def process_experience_pipeline_factory(
+    vectorized: bool,
+    parallel: bool,
+    experience_type: NamedTuple,
+) -> Callable:
+    """Wrap ExperienceTransform for vectorized and parallel envs.
 
-        self.process_experience_pipeline = jax.jit(
-            process_experience_pipeline_factory(
-                self.vectorized, self.parallel, experience_type
+    If vectorized:
+        inputs: tuple with elements of shape [T, N_envs, ...]
+        outputs: tuple with elements of shape [T * N_envs, ...]
+
+    If parallel:
+        inputs: tuple with elements of shape [{str: [T, ...]}]
+        outputs: tuple with elements of shape [T * N_agents, ...]
+
+    If vectorized and parallel:
+        inputs: tuple with elements of shape [{str: [T, N_envs, ...]}]
+        outputs: tuple with elements of shape [T * N_agents * N_envs, ...]
+    """
+
+    def process_experience(
+        experience_transforms: ExperienceTransform | list[ExperienceTransform],
+        key: jax.Array,
+        experiences: tuple | list[tuple],
+    ):
+        if not isinstance(experience_transforms, list):
+            experience_transforms = [experience_transforms]
+
+        def process_experience_pipeline(
+            key: jax.Array, *_experiences: tuple[jax.Array, ...]
+        ) -> tuple[jax.Array, ...]:
+            _experiences = experience_type(*_experiences)
+
+            for transform in experience_transforms:
+                key, _k = jax.random.split(key)
+                _experiences = transform.process_experience_fn(
+                    transform.state, _k, _experiences
+                )
+
+            return _experiences
+
+        if isinstance(experiences, list):
+            experiences = stack_experiences(experiences)
+
+        if parallel and vectorized:
+            keys = {}
+            for agent, value in experiences[0].items():
+                # vectorized => shape [T, n_envs, ...]
+                _keys = jax.random.split(key, value.shape[1] + 1)
+                key, keys[agent] = _keys[0], _keys[1:]
+
+            in_axes = (0,) + (1,) * len(experiences)
+            processed = jax.tree_map(
+                jax.vmap(process_experience_pipeline, in_axes=in_axes, out_axes=1),
+                keys,
+                *experiences,
             )
-        )
 
-        self.update_pipeline = update_pipeline
+            def concat_and_reshape(*x: tuple[jax.Array, ...]) -> jax.Array:
+                # x n_agents * (T, n_envs, ...)
+                # concat > (T, n_agents * n_envs, ...)
+                # reshape => (T * n_agents * n_envs, ...)
+                out = jnp.concatenate(x, axis=1)
+                return jnp.reshape(out, (-1, *out.shape[2:]))
 
-        self.explore_factory = explore_factory
+            return jax.tree_map(concat_and_reshape, *zip(processed.values()))[0]
 
-        self.run_name = run_name
-        if run_name is None:
-            self.run_name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
-        self.saver = Saver(
-            Path(os.path.join("./results", self.run_name)).absolute(), self
-        )
+        if vectorized:
+            keys = jax.random.split(key, experiences[0].shape[1])
+            in_axes = (0,) + (1,) * len(experiences)
+            processed = jax.vmap(
+                process_experience_pipeline, in_axes=in_axes, out_axes=1
+            )(keys, *experiences)
+            return jax.tree_map(lambda x: jnp.reshape(x, (-1, *x.shape[2:])), processed)
+
+        if parallel:
+            keys = {}
+            for agent, value in experiences[0].items():
+                key, keys[agent] = jax.random.split(key, 2)
+
+            processed = jax.tree_map(process_experience_pipeline, keys, *experiences)
+
+            def stack_and_reshape(*x: tuple[jax.Array, ...]) -> jax.Array:
+                # x n_agents * (T,  ...)
+                # stack > (T, n_agents, ...)
+                # reshape => (T * n_agents, ...)
+                out = jnp.stack(x, axis=1)
+                return jnp.reshape(out, (-1, *out.shape[2:]))
+
+            return jax.tree_map(stack_and_reshape, *zip(processed.values()))[0]
+
+        return process_experience_pipeline(key, *experiences)
+
+    return process_experience

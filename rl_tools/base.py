@@ -16,15 +16,15 @@ from rl_tools.interface import IAgent, IBuffer, AlgoType
 from rl_tools.train import vectorized_train
 
 from rl_tools.save import Saver
-from rl_tools.types import ActionType, ObsType, Params
+from rl_tools.types import ActionType, ObsType
 
 from ml_collections import ConfigDict
 from rl_tools.config import AlgoConfig
 
 
-from rl_tools.algos.experience import ExperienceTransform
-from rl_tools.algos.experience import process_experience_pipeline_factory
+from rl_tools.algos.factory import ExperienceTransform
 from rl_tools.algos.factory import explore_general_factory
+from rl_tools.algos.factory import process_experience_pipeline_factory
 
 from rl_tools.buffer import Experience
 
@@ -38,8 +38,8 @@ class BaseAgent(IAgent, Seeded):
         config: AlgoConfig,
         train_state_factory: Callable,
         explore_factory: Callable,
-        process_experience_fn_factory: Callable,
-        update_factory: Callable,
+        process_experience_factory: Callable,
+        update_step_factory: Callable,
         *,
         preprocess_fn: Callable,
         tabulate: bool = False,
@@ -66,13 +66,13 @@ class BaseAgent(IAgent, Seeded):
         )
         self.explore_fn = jax.jit(self.explore_fn)
 
-        self.process_experience_fn = process_experience_fn_factory(config)
+        self.process_experience_fn = process_experience_factory(config)
         self.process_experience_pipeline = process_experience_pipeline_factory(
             self.vectorized, self.parallel, experience_type
         )
         self.process_experience_pipeline = jax.jit(self.process_experience_pipeline)
 
-        self.update_fn = jax.jit(update_factory(config))
+        self.update_step_fn = jax.jit(update_step_factory(config))
 
         self.saver = create_saver(self, run_name)
 
@@ -98,8 +98,10 @@ class BaseAgent(IAgent, Seeded):
         GeneralLogger.debug("Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):
-            self.state, info = self.update_fn(self.state, self.nextkey(), experiences)
-            GeneralLogger.debug("Updated")
+            self.state, info = self.update_step_fn(
+                self.state, self.nextkey(), experiences
+            )
+        GeneralLogger.debug("Updated")
 
         return info
 

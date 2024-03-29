@@ -157,7 +157,7 @@ def explore_factory(config: AlgoConfig) -> Callable:
     return fn
 
 
-def process_experience_fn_factory(config: AlgoConfig) -> Callable:
+def process_experience_factory(config: AlgoConfig) -> Callable:
     """Process experience PPO-style."""
     algo_params = config.algo_params
 
@@ -200,7 +200,7 @@ def process_experience_fn_factory(config: AlgoConfig) -> Callable:
     return process_experience_fn
 
 
-def update_factory(config: AlgoConfig) -> Callable:
+def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     @jax.jit
@@ -301,8 +301,8 @@ class PPO(OnPolicyAgent):
             config,
             train_state_ppo_factory,
             explore_factory,
-            process_experience_fn_factory,
-            update_factory,
+            process_experience_factory,
+            update_step_factory,
             preprocess_fn=preprocess_fn,
             tabulate=tabulate,
             experience_type=Experience,
