@@ -51,7 +51,7 @@ class Saver:
                 {
                     "env_config": env_config,
                     "run_name": base.run_name,
-                    "rearrange_pattern": base.rearrange_pattern,
+                    # "rearrange_pattern": base.rearrange_pattern,
                     "preprocess_fn": base.preprocess_fn,
                     # "tabulate": base.tabulate,
                 },

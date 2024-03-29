@@ -1,12 +1,12 @@
 """Deep Q-Network (DQN)"""
 
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Callable
 
 import distrax as dx
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 
@@ -18,11 +18,11 @@ from rl_tools.buffer import Experience
 from rl_tools.loss import loss_mean_squared_error
 from rl_tools.timesteps import compute_td_targets
 
-from rl_tools.algos.factory import AlgoFactory
 from rl_tools.modules.modules import init_params
 from rl_tools.modules.train_state import TrainState
 from rl_tools.modules.qvalue import qvalue_factory
 
+DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
 NO_EXPLORATION = 0.0
 
 
@@ -47,7 +47,6 @@ def train_state_dqn_factory(
     key: jax.Array,
     config: AlgoConfig,
     *,
-    rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> TrainState:
@@ -66,7 +65,7 @@ def train_state_dqn_factory(
 
 def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
-    def fn(
+    def explore_fn(
         qvalue_state: TrainState,
         key: jax.Array,
         observations: jax.Array,
@@ -79,14 +78,19 @@ def explore_factory(config: AlgoConfig) -> Callable:
 
         return actions, log_probs
 
-    return fn
+    return explore_fn
 
 
 def process_experience_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     @jax.jit
-    def fn(dqn_state: TrainState, key: jax.Array, experience: Experience):
+    def process_experience_fn(
+        dqn_state: TrainState,
+        key: jax.Array,
+        experience: Experience,
+    ) -> tuple[jax.Array, ...]:
+
         all_next_qvalues = dqn_state.apply_fn(
             dqn_state.params, experience.next_observation
         )
@@ -98,37 +102,37 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
         )
         actions = experience.action[..., None]
 
-        return experience.observation, actions, returns
+        return (experience.observation, actions, returns)
 
-    return fn
+    return process_experience_fn
 
 
 def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
-    def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
-
-        observations, actions, returns = batch
+    def update_qvalue_fn(qvalue_state: TrainState, batch: DQN_tuple):
 
         def loss_fn(params: Params):
-            all_qvalues = qvalue_state.apply_fn(params, observations)
-            qvalues = jnp.take_along_axis(all_qvalues, actions, axis=-1)
-            loss = loss_mean_squared_error(qvalues, returns)
+            all_qvalues = qvalue_state.apply_fn(params, batch.observation)
+            qvalues = jnp.take_along_axis(all_qvalues, batch.action, axis=-1)
+            loss = loss_mean_squared_error(qvalues, batch.return_)
             return loss, {"loss_qvalue": loss}
 
-        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             qvalue_state.params
         )
         qvalue_state = qvalue_state.apply_gradients(grads=grads)
 
-        return qvalue_state, loss, info
+        return qvalue_state, info
 
-    def update_step_fn(state: TrainState, key: jax.Array, batch: tuple[jax.Array]):
-        state, loss_qvalue, info_qvalue = update_qvalue_fn(state, batch)
-        info = info_qvalue
-        info["total_loss"] = loss_qvalue
-
-        return state, info
+    @jax.jit
+    def update_step_fn(
+        state: TrainState,
+        key: jax.Array,
+        experiences: tuple[jax.Array, ...],
+    ) -> tuple[TrainState, dict]:
+        batch = DQN_tuple(*experiences)
+        return update_qvalue_fn(state, batch)
 
     return update_step_fn
 
@@ -141,26 +145,24 @@ class DQN(OffPolicyAgent):
 
     def __init__(
         self,
+        run_name: str,
         config: AlgoConfig,
         *,
-        rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        run_name: str = None,
         tabulate: bool = False,
     ):
-        AlgoFactory.intialize(
-            self,
+        super().__init__(
+            run_name,
             config,
             train_state_dqn_factory,
             explore_factory,
             process_experience_factory,
             update_step_factory,
-            rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            run_name=run_name,
             tabulate=tabulate,
             experience_type=Experience,
         )
+
         self.algo_params = self.config.algo_params
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
@@ -173,10 +175,11 @@ class DQN(OffPolicyAgent):
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
+
         action, zeros = self.explore_fn(
             self.state,
             keys,
             observation,
             exploration=self.algo_params.exploration,
         )
-        return jax.device_get(action), zeros
+        return action, zeros

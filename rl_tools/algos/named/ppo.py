@@ -1,5 +1,6 @@
 """Proximal Policy Optimization (PPO)"""
 
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Callable
 
@@ -8,7 +9,6 @@ import flax.linen as nn
 from gymnasium import spaces
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 from rl_tools.base import OnPolicyAgent
@@ -20,13 +20,27 @@ from rl_tools.loss import loss_policy_ppo, loss_value_clip
 from rl_tools.timesteps import calculate_gaes_targets
 
 
-from rl_tools.algos.factory import AlgoFactory
 from rl_tools.modules.encoder import encoder_factory
 from rl_tools.modules.modules import PassThrough, init_params
 from rl_tools.modules.optimizer import linear_learning_rate_schedule
 from rl_tools.modules.policy import policy_output_factory
 from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
 from rl_tools.modules.value import ValueOutput
+
+PPO_tuple = namedtuple(
+    "PPO_tuple",
+    [
+        "observation",
+        "action",
+        "reward",
+        "done",
+        "next_observation",
+        "log_prob",
+        "gae",
+        "target",
+        "value",
+    ],
+)
 
 
 @dataclass
@@ -55,7 +69,6 @@ def train_state_ppo_factory(
     key: jax.Array,
     config: AlgoConfig,
     *,
-    rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> PolicyValueTrainState:
@@ -67,7 +80,6 @@ def train_state_ppo_factory(
 
     encoder = encoder_factory(
         config.env_cfg.observation_space,
-        rearrange_pattern=rearrange_pattern,
         preprocess_fn=preprocess_fn,
     )
     policy_output = policy_output_factory(config.env_cfg.action_space)
@@ -127,7 +139,7 @@ def train_state_ppo_factory(
 
 def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
-    def fn(
+    def explore_fn(
         ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = ppo_state.encoder_state.apply_fn(
@@ -140,14 +152,19 @@ def explore_factory(config: AlgoConfig) -> Callable:
         )
         return dists.sample_and_log_prob(seed=key)
 
-    return fn
+    return explore_fn
 
 
 def process_experience_factory(config: AlgoConfig) -> Callable:
+    """Process experience PPO-style."""
     algo_params = config.algo_params
 
-    @jax.jit
-    def fn(ppo_state: PolicyValueTrainState, key: jax.Array, experience: Experience):
+    def process_experience_fn(
+        ppo_state: PolicyValueTrainState,
+        key: jax.Array,
+        experience: Experience,
+    ) -> tuple[jax.Array, ...]:
+
         all_obs = jnp.concatenate(
             [experience.observation, experience.next_observation[-1:]], axis=0
         )
@@ -176,45 +193,42 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
             algo_params.normalize,
         )
 
-        return (
-            experience.observation,
-            experience.action,
-            experience.log_prob,
-            gaes,
-            targets,
-            values,
-        )
+        return (*experience, gaes, targets, values)
 
-    return fn
+    return process_experience_fn
 
 
 def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
+    @jax.jit
     def update_policy_value_fn(
-        ppo_state: PolicyValueTrainState, batch: tuple[jax.Array, ...]
-    ):
-
-        observations, actions, log_probs_old, gaes, targets, values_old = batch
-
+        ppo_state: PolicyValueTrainState,
+        batch: PPO_tuple,
+    ) -> tuple[PolicyValueTrainState, dict]:
         def loss_fn(params):
-            hiddens = ppo_state.encoder_state.apply_fn(params["encoder"], observations)
+            hiddens = ppo_state.encoder_state.apply_fn(
+                params["encoder"], batch.observation
+            )
             if not isinstance(hiddens, tuple):
                 hiddens = (hiddens,)
+
             dists = ppo_state.policy_state.apply_fn(params["policy"], *hiddens)
-            log_probs, _log_probs_old = get_log_probs(dists, actions, log_probs_old)
+            log_probs, log_probs_old = get_log_probs(
+                dists, batch.action, batch.log_prob
+            )
             loss_policy, info_policy = loss_policy_ppo(
                 dists,
                 log_probs,
-                _log_probs_old,
-                gaes,
+                log_probs_old,
+                batch.gae,
                 algo_params.clip_eps,
                 algo_params.entropy_coef,
             )
 
             values = ppo_state.value_state.apply_fn(params["value"], *hiddens)
             loss_value, info_value = loss_value_clip(
-                values, targets, values_old, algo_params.clip_eps
+                values, batch.target, batch.value, algo_params.clip_eps
             )
 
             loss = loss_policy + algo_params.value_coef * loss_value
@@ -223,7 +237,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
             return loss, info
 
-        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             {
                 "policy": ppo_state.policy_state.params,
                 "value": ppo_state.value_state.params,
@@ -240,21 +254,19 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         ppo_state.encoder_state = ppo_state.encoder_state.apply_gradients(
             grads=grads["encoder"]
         )
-        return ppo_state, loss, info
+
+        return ppo_state, info
 
     @jax.jit
     def update_step_fn(
         ppo_state: PolicyValueTrainState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
-    ):
+    ) -> tuple[PolicyValueTrainState, dict]:
         batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
 
-        loss = 0.0
         for batch in zip(*batches):
-            ppo_state, l, info = update_policy_value_fn(ppo_state, batch)
-            loss += l
-        loss /= len(batches[0])
+            ppo_state, info = update_policy_value_fn(ppo_state, PPO_tuple(*batch))
 
         return ppo_state, info
 
@@ -270,32 +282,20 @@ class PPO(OnPolicyAgent):
 
     def __init__(
         self,
+        run_name: str,
         config: AlgoConfig,
         *,
-        rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        run_name: str = None,
         tabulate: bool = False,
     ):
-        AlgoFactory.intialize(
-            self,
+        super().__init__(
+            run_name,
             config,
             train_state_ppo_factory,
             explore_factory,
             process_experience_factory,
             update_step_factory,
-            rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            run_name=run_name,
             tabulate=tabulate,
             experience_type=Experience,
         )
-
-    def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        return self.explore(observation)
-
-    def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
-        keys = self.interact_keys(observation)
-        action, log_prob = self.explore_fn(self.state, keys, observation)
-
-        return np.array(action), log_prob

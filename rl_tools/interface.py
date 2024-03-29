@@ -44,8 +44,8 @@ class IAgent(ABC):
     """Interface for Agent instances."""
 
     @abstractmethod
-    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Exploits the policy to interact with the environment.
+    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
+        """Uses the policy to explore the environment.
 
         Args:
             observation: An ObsType within the observation_space.
@@ -56,8 +56,8 @@ class IAgent(ABC):
         ...
 
     @abstractmethod
-    def explore(self, observation: ObsType) -> tuple[ActionType, Array]:
-        """Uses the policy to explore the environment.
+    def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
+        """Exploits the policy to interact with the environment.
 
         Args:
             observation: An ObsType within the observation_space.
