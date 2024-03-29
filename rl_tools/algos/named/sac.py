@@ -9,7 +9,6 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import optax
-import numpy as np
 
 from rl_tools.base import OffPolicyAgent
 from rl_tools.buffer import Experience
@@ -155,7 +154,6 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 
 
 def update_step_factory(config: AlgoConfig) -> Callable:
-
     @jax.jit
     def update_qvalue_fn(
         qvalue_state: TrainState, batch: SAC_tuple
@@ -288,6 +286,12 @@ class SAC(OffPolicyAgent):
             -self.config.env_cfg.action_space.shape[-1] / 2
         )
         self.algo_params = self.config.algo_params
+
+    def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
+        keys = self.interact_keys(observation)
+
+        action, zeros = self.explore_fn(self.state.policy_state, keys, observation, 0.0)
+        return action, zeros
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)

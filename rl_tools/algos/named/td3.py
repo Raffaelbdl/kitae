@@ -1,5 +1,6 @@
 """Deep Deterministic Policy Gradient (TD3)"""
 
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Callable
 
@@ -8,7 +9,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from rl_tools.base import OffPolicyAgent
+from rl_tools.base import OffPolicyAgent, ExperienceTransform
 from rl_tools.config import AlgoConfig, AlgoParams
 from rl_tools.types import Params
 
@@ -18,12 +19,13 @@ from rl_tools.loss import loss_mean_squared_error
 from rl_tools.timesteps import compute_td_targets
 
 
-from rl_tools.algos.factory import AlgoFactory
 from rl_tools.modules.encoder import encoder_factory
 from rl_tools.modules.modules import init_params
 from rl_tools.modules.train_state import PolicyQValueTrainState, TrainState
 from rl_tools.modules.policy import PolicyNormalExternalStd
 from rl_tools.modules.qvalue import make_double_q_value, qvalue_factory
+
+TD3_tuple = namedtuple("TD3_tuple", ["observation", "action", "target"])
 
 
 @dataclass
@@ -44,7 +46,6 @@ def train_state_ddpg_factory(
     key: jax.Array,
     config: AlgoConfig,
     *,
-    rearrange_pattern: str,
     preprocess_fn: Callable,
     tabulate: bool = False,
 ) -> PolicyQValueTrainState:
@@ -94,9 +95,8 @@ def train_state_ddpg_factory(
 
 
 def explore_factory(config: AlgoConfig) -> Callable:
-
     @jax.jit
-    def fn(
+    def explore_fn(
         policy_state: TrainState,
         key: jax.Array,
         observations: jax.Array,
@@ -107,18 +107,18 @@ def explore_factory(config: AlgoConfig) -> Callable:
         actions = jnp.clip(actions, -1.0, 1.0)
         return actions, log_probs
 
-    return fn
+    return explore_fn
 
 
 def process_experience_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     @jax.jit
-    def fn(
+    def process_experience_fn(
         td3_state: PolicyQValueTrainState,
         key: jax.Array,
         experience: Experience,
-    ):
+    ) -> tuple[jax.Array, ...]:
         next_actions = td3_state.policy_state.apply_fn(
             td3_state.policy_state.target_params,
             experience.next_observation,
@@ -145,49 +145,47 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 
         return (experience.observation, experience.action, targets)
 
-    return fn
+    return process_experience_fn
 
 
 def update_step_factory(config: AlgoConfig) -> Callable:
-
     @jax.jit
-    def update_qvalue_fn(qvalue_state: TrainState, batch: tuple[jax.Array]):
-
-        observations, actions, targets = batch
+    def update_qvalue_fn(
+        qvalue_state: TrainState, batch: TD3_tuple
+    ) -> tuple[TrainState, dict]:
 
         def loss_fn(params: Params):
-            q1, q2 = qvalue_state.apply_fn(params, observations, actions)
-            loss_q1 = loss_mean_squared_error(q1, targets)
-            loss_q2 = loss_mean_squared_error(q2, targets)
+            q1, q2 = qvalue_state.apply_fn(params, batch.observation, batch.action)
+            loss_q1 = loss_mean_squared_error(q1, batch.target)
+            loss_q2 = loss_mean_squared_error(q2, batch.target)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
-        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             qvalue_state.params
         )
         qvalue_state = qvalue_state.apply_gradients(grads=grads)
 
-        return qvalue_state, loss, info
+        return qvalue_state, info
 
     @jax.jit
     def update_policy_fn(
         key: jax.Array,
         policy_state: TrainState,
         qvalue_state: TrainState,
-        batch: tuple[jax.Array],
-    ):
-        observations, _, _, _ = batch
+        batch: TD3_tuple,
+    ) -> tuple[TrainState, dict]:
 
         def loss_fn(params: Params):
-            dists = policy_state.apply_fn(params, observations, jnp.zeros(()))
+            dists = policy_state.apply_fn(params, batch.observation, jnp.zeros(()))
             actions = dists.sample(seed=key)
             qvalues, _ = qvalue_state.apply_fn(
-                qvalue_state.params, observations, actions
+                qvalue_state.params, batch.observation, actions
             )
             loss = -jnp.mean(qvalues)
             return loss, {"loss_policy": loss}
 
-        (loss, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             policy_state.params
         )
         policy_state = policy_state.apply_gradients(grads=grads)
@@ -207,27 +205,22 @@ def update_step_factory(config: AlgoConfig) -> Callable:
             )
         )
 
-        return (policy_state, qvalue_state), loss, info
+        return (policy_state, qvalue_state), info
 
     def update_step_fn(
         state: PolicyQValueTrainState,
         key: jax.Array,
-        batch: tuple[jax.Array],
-    ):
-        state.qvalue_state, loss_qvalue, info_qvalue = update_qvalue_fn(
-            state.qvalue_state, batch[:-1]
-        )
-        update_policy = batch[-1]
-        if update_policy == 0:
-            (state.policy_state, state.qvalue_state), loss_policy, info_policy = (
-                update_policy_fn(key, state.policy_state, state.qvalue_state, batch)
-            )
-        else:
-            loss_policy = 0.0
-            info_policy = {}
+        experiences: tuple[jax.Array, ...],
+        should_update_policy: bool = True,
+    ) -> tuple[PolicyQValueTrainState, dict]:
+        batch = TD3_tuple(*experiences)
 
-        info = info_qvalue | info_policy
-        info["total_loss"] = loss_qvalue + loss_policy
+        state.qvalue_state, info = update_qvalue_fn(state.qvalue_state, batch)
+        if should_update_policy:
+            (state.policy_state, state.qvalue_state), info_policy = update_policy_fn(
+                key, state.policy_state, state.qvalue_state, batch
+            )
+            info |= info_policy
 
         return state, info
 
@@ -242,23 +235,20 @@ class TD3(OffPolicyAgent):
 
     def __init__(
         self,
+        run_name: str,
         config: AlgoConfig,
         *,
-        rearrange_pattern: str = "b h w c -> b h w c",
         preprocess_fn: Callable = None,
-        run_name: str = None,
         tabulate: bool = False,
     ):
-        AlgoFactory.intialize(
-            self,
+        super().__init__(
+            run_name,
             config,
             train_state_ddpg_factory,
             explore_factory,
             process_experience_factory,
             update_step_factory,
-            rearrange_pattern=rearrange_pattern,
             preprocess_fn=preprocess_fn,
-            run_name=run_name,
             tabulate=tabulate,
             experience_type=Experience,
         )
@@ -289,17 +279,17 @@ class TD3(OffPolicyAgent):
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
+
         experiences = self.process_experience_pipeline(
-            self.load_experience_transforms(), self.nextkey(), sample
+            [ExperienceTransform(self.process_experience_fn, self.state)],
+            key=self.nextkey(),
+            experiences=sample,
         )
-        update_modules = self.load_update_modules()
-
         update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
-        for epoch in range(self.config.update_cfg.n_epochs):
-            update_modules, info = self.update_pipeline(
-                update_modules, self.nextkey(), (*experiences, update_policy)
-            )
 
-        self.apply_updates(update_modules)
+        for _ in range(self.config.update_cfg.n_epochs):
+            self.state, info = self.update_step_fn(
+                self.state, self.nextkey(), experiences, update_policy
+            )
 
         return info
