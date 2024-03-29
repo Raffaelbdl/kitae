@@ -1,5 +1,6 @@
 """Proximal Policy Optimization (PPO)"""
 
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Callable
 
@@ -26,7 +27,6 @@ from rl_tools.modules.policy import policy_output_factory
 from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
 from rl_tools.modules.value import ValueOutput
 
-from collections import namedtuple
 from jrd_extensions import PRNGSequence
 
 PPO_tuple = namedtuple(
@@ -141,7 +141,7 @@ def train_state_ppo_factory(
 
 def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
-    def fn(
+    def explore_fn(
         ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = ppo_state.encoder_state.apply_fn(
@@ -154,7 +154,7 @@ def explore_factory(config: AlgoConfig) -> Callable:
         )
         return dists.sample_and_log_prob(seed=key)
 
-    return fn
+    return explore_fn
 
 
 def process_experience_factory(config: AlgoConfig) -> Callable:
@@ -206,7 +206,6 @@ def update_step_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def update_policy_value_fn(
         ppo_state: PolicyValueTrainState,
-        key: jax.Array,
         batch: PPO_tuple,
     ) -> tuple[PolicyValueTrainState, dict]:
         def loss_fn(params):
@@ -266,15 +265,10 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ) -> tuple[PolicyValueTrainState, dict]:
-        key = PRNGSequence(key)
-        batches = batchify_and_randomize(
-            next(key), experiences, config.update_cfg.batch_size
-        )
+        batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
 
         for batch in zip(*batches):
-            ppo_state, info = update_policy_value_fn(
-                ppo_state, next(key), PPO_tuple(*batch)
-            )
+            ppo_state, info = update_policy_value_fn(ppo_state, PPO_tuple(*batch))
 
         return ppo_state, info
 
