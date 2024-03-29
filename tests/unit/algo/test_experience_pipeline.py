@@ -3,8 +3,8 @@ from collections import namedtuple
 import jax
 import jax.numpy as jnp
 
-from rl_tools.algos.pipeline import ExperienceTransform
-from rl_tools.algos.pipeline import process_experience_pipeline_factory
+from rl_tools.algos.experience import ExperienceTransform
+from rl_tools.algos.experience import process_experience_pipeline_factory
 
 ExperienceNamedTuple = namedtuple("ExperienceNamedTuple", ["field_0", "field_1"])
 
