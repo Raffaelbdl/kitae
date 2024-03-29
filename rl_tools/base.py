@@ -72,7 +72,7 @@ class BaseAgent(IAgent, Seeded):
         )
         self.process_experience_pipeline = jax.jit(self.process_experience_pipeline)
 
-        self.update_step_fn = jax.jit(update_step_factory(config))
+        self.update_step_fn = update_step_factory(config)
 
         self.saver = create_saver(self, run_name)
 
@@ -98,7 +98,7 @@ class BaseAgent(IAgent, Seeded):
         GeneralLogger.debug("Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):
-            self.state, info = self.update_step_fn(
+            self.state, info = jax.jit(self.update_step_fn)(
                 self.state, self.nextkey(), experiences
             )
         GeneralLogger.debug("Updated")

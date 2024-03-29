@@ -27,8 +27,6 @@ from rl_tools.modules.policy import policy_output_factory
 from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
 from rl_tools.modules.value import ValueOutput
 
-from jrd_extensions import PRNGSequence
-
 PPO_tuple = namedtuple(
     "PPO_tuple",
     [
