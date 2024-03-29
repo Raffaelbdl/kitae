@@ -48,7 +48,7 @@ def process_termination(
 
             if not logged:
                 logged = True
-                logging.info(
+                print(
                     f"Global Step = {global_step} | Episodic Return = {episodic_return:.3f}"
                 )
                 if writer:
@@ -129,7 +129,8 @@ def vectorized_train(
                     )
                 callback.on_update_end(callbacks, CallbackData(logs=update_dict))
 
-            s.update(step, agent.state_dict)
+            # s.update(step, agent.state_dict)
+            s.update(step, agent.state)
 
             observations = next_observations
 
