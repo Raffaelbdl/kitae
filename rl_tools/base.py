@@ -1,4 +1,4 @@
-"""Contains the base classes for reinforcement learning."""
+"""Contains the self classes for reinforcement learning."""
 
 from pathlib import Path
 from typing import Any, Callable
@@ -6,6 +6,8 @@ from typing import Any, Callable
 import cloudpickle
 import jax
 import yaml
+
+from shaberax.logger import GeneralLogger
 
 from jrd_extensions import Seeded
 
@@ -19,171 +21,96 @@ from rl_tools.types import ActionType, ObsType, Params
 from ml_collections import ConfigDict
 from rl_tools.config import AlgoConfig
 
-from rl_tools.algos.pipeline import PipelineModule
-from rl_tools.algos.pipeline import ExperienceTransform
-from rl_tools.algos.pipeline import UpdateModule
+
+from rl_tools.algos.experience import ExperienceTransform
+from rl_tools.algos.experience import process_experience_pipeline_factory
+from rl_tools.algos.factory import explore_general_factory
+
+from rl_tools.buffer import Experience
 
 import numpy as np
 
 
-class IntrinsicRewardManager:
-    prefix: str = "intrinsic_"
-    modules: dict[str, PipelineModule] = {}
-    current_idx = 0
+class BaseAgent(IAgent, Seeded):
+    def __init__(
+        self,
+        run_name: str,
+        config: AlgoConfig,
+        train_state_factory: Callable,
+        explore_factory: Callable,
+        process_experience_fn_factory: Callable,
+        update_factory: Callable,
+        *,
+        preprocess_fn: Callable,
+        tabulate: bool = False,
+        experience_type: bool = Experience,
+    ):
+        Seeded.__init__(self, config.seed)
 
-    def add(self, module: PipelineModule) -> None:
-        self.modules[str(self.current_idx)] = module
-        self.current_idx += 1
+        self.run_name = run_name
+        self.config = config
 
-    @property
-    def state_dict(self):
-        return {self.prefix + i: m.state for i, m in self.modules.items()}
+        self.preprocess_fn = preprocess_fn
+        self.vectorized = True
+        self.parallel = config.env_cfg.n_agents > 1
 
-    def load_experience_transforms(self) -> list[ExperienceTransform]:
-        return [m.experience_transform for m in self.modules.values()]
+        self.state = train_state_factory(
+            self.nextkey(),
+            config,
+            preprocess_fn=preprocess_fn,
+            tabulate=tabulate,
+        )
 
-    def load_update_modules(self) -> dict[str, UpdateModule]:
-        return {self.prefix + i: m.update_module for i, m in self.modules.items()}
+        self.explore_fn = explore_general_factory(
+            explore_factory(config), self.vectorized, self.parallel
+        )
+        self.explore_fn = jax.jit(self.explore_fn)
 
-    def apply_update(self, prefix_idx: str, state: Any) -> None:
-        _idx = prefix_idx[len(self.prefix) :]
-        self.modules[_idx] = self.modules[_idx].replace(state=state)
+        self.process_experience_fn = process_experience_fn_factory(config)
+        self.process_experience_pipeline = process_experience_pipeline_factory(
+            self.vectorized, self.parallel, experience_type
+        )
+        self.process_experience_pipeline = jax.jit(self.process_experience_pipeline)
 
+        self.update_fn = jax.jit(update_factory(config))
 
-class PipelineAgent(IAgent, Seeded):
-    config: AlgoConfig = None
-    algo_type: AlgoType = None
+        self.saver = create_saver(self, run_name)
 
-    rearrange_pattern: str = None
-    preprocess_fn: Callable = None
-    vectorized: bool = None
-    parallel: bool = None
+        GeneralLogger.debug("Finished initialization.")
 
-    main_pipeline_module: PipelineModule = None
-    intrinsc_reward_manager = IntrinsicRewardManager()
+    def explore(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
+        keys = self.interact_keys(observation)
+        action, log_prob = self.explore_fn(self.state, keys, observation)
+        return np.array(action), log_prob
 
-    process_experience_pipeline: Callable = None
-    update_pipeline: Callable = None
-
-    explore_fn: Callable = None
-    run_name: str = None
-    saver: Saver = None
-
-    train_fn: Callable = None
-
-    @property
-    def state(self) -> Any:
-        return self.main_pipeline_module.state
-
-    @property
-    def state_dict(self) -> dict:
-        _dict = {"main": self.main_pipeline_module.state}
-        _dict |= self.intrinsc_reward_manager.state_dict
-
-        return _dict
-
-    def add_intrinsic_reward_module(self, module: PipelineModule) -> None:
-        self.intrinsc_reward_manager.add(module)
-
-    def load_experience_transforms(self) -> list[ExperienceTransform]:
-        transforms = []
-        transforms += self.intrinsc_reward_manager.load_experience_transforms()
-        transforms.append(self.main_pipeline_module.experience_transform)
-
-        return transforms
-
-    def load_update_modules(self) -> list[UpdateModule]:
-        modules = []
-        self.module_to_state = {}
-
-        for _id, module in self.intrinsc_reward_manager.load_update_modules().items():
-            self.module_to_state[len(modules)] = _id
-            modules.append(module)
-
-        self.module_to_state[len(modules)] = "main"
-        modules.append(self.main_pipeline_module.update_module)
-
-        return modules
-
-    def apply_updates(self, update_modules: list[UpdateModule]) -> None:
-        for i, module in enumerate(update_modules):
-            module_id = self.module_to_state[i]
-
-            if "main" in module_id:
-                self.main_pipeline_module = self.main_pipeline_module.replace(
-                    state=module.state
-                )
-
-            elif "intrinsic_" in module_id:
-                self.intrinsc_reward_manager.apply_update(module_id, module.state)
+    def select_action(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
+        return self.explore(observation)
 
     def update(self, buffer: IBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
+        GeneralLogger.debug("Sampled")
+
         experiences = self.process_experience_pipeline(
-            self.load_experience_transforms(), self.nextkey(), sample
+            [ExperienceTransform(self.process_experience_fn, self.state)],
+            key=self.nextkey(),
+            experiences=sample,
         )
-        update_modules = self.load_update_modules()
+        GeneralLogger.debug("Processed")
 
-        for epoch in range(self.config.update_cfg.n_epochs):
-            update_modules, info = self.update_pipeline(
-                update_modules, self.nextkey(), experiences
-            )
-
-        self.apply_updates(update_modules)
+        for _ in range(self.config.update_cfg.n_epochs):
+            self.state, info = self.update_fn(self.state, self.nextkey(), experiences)
+            GeneralLogger.debug("Updated")
 
         return info
 
-    def restore(self) -> int:
-        """Restores the agent's states from the last training step.
+    def restore(self, step: int = -1) -> int:
+        """Restores the agent's states from the given step."""
+        if step < 0:
+            latest_step, self.state = self.saver.restore_latest_step(self.state)
+            return latest_step
 
-        Returns:
-            The latest training step.
-        """
-        latest_step, state_dict = self.saver.restore_latest_step(self.state_dict)
-        for module_id, state in state_dict.items():
-
-            if "main" in module_id:
-                self.main_pipeline_module = self.main_pipeline_module.replace(
-                    state=state
-                )
-
-            elif "intrinsic_" in module_id:
-                self.intrinsc_reward_manager.apply_update(module_id, state)
-
-        return latest_step
-
-    @classmethod
-    def unserialize(cls, data_dir: str | Path):
-        """Creates an instance of the agent from a training directory.
-
-        Args:
-            data_dir: A string representing the path to the training directory.
-
-        Returns:
-            An instance of the specific Base class.
-
-        # TODO : Raise if training directory does not correspond to class
-        """
-        path = data_dir if isinstance(data_dir, Path) else Path(data_dir)
-
-        config_path = Path.joinpath(path, "config")
-        with open(config_path, "r") as f:
-            config_dict = yaml.load(f, yaml.SafeLoader)
-        config = ConfigDict(config_dict)
-
-        extra_path = Path.joinpath(path, "extra")
-        with open(extra_path, "rb") as f:
-            extra = cloudpickle.load(f)
-
-        config.env_cfg = extra.pop("env_config")
-        extra["run_name"] = path.parts[-1]
-
-        return cls(config=config, **extra)
-
-    def interact_keys(self, observation: ObsType) -> jax.Array | dict[str : jax.Array]:
-        if self.parallel:
-            return {a: self.nextkey() for a in observation.keys()}
-        return self.nextkey()
+        # TODO Handle specific steps
+        raise NotImplementedError("Saving a specific step is not yet implemented.")
 
     def train(self, env, n_env_steps, callbacks):
         return vectorized_train(
@@ -209,8 +136,42 @@ class PipelineAgent(IAgent, Seeded):
             start_step=step,
         )
 
+    def interact_keys(self, observation: ObsType) -> jax.Array | dict[str : jax.Array]:
+        if self.parallel:
+            return {a: self.nextkey() for a in observation.keys()}
+        return self.nextkey()
 
-class OffPolicyAgent(PipelineAgent):
+    @classmethod
+    def unserialize(cls, data_dir: str | Path):
+        """Creates a new instance of the agent given the save directory.
+
+        Args:
+            data_dir: A string or Path to the save directory.
+        Returns:
+            An instance of the chosen agent.
+        """
+        path = Path(data_dir)
+
+        config_path = path.joinpath("config")
+        with open(config_path, "r") as f:
+            config_dict = yaml.load(f, yaml.SafeLoader)
+        config = ConfigDict(config_dict)
+
+        extra_path = path.joinpath("extra")
+        with open(extra_path, "rb") as f:
+            extra = cloudpickle.load(f)
+
+        config.env_cfg = extra.pop("env_config")
+        extra["run_name"] = path.parts[-1]
+
+        return cls(config=config, **extra)
+
+
+def create_saver(self: BaseAgent, run_name: str) -> Saver:
+    return Saver(Path("./results").joinpath(run_name).absolute(), self)
+
+
+class OffPolicyAgent(BaseAgent):
     algo_type = AlgoType.OFF_POLICY
     step = 0
 
@@ -223,7 +184,7 @@ class OffPolicyAgent(PipelineAgent):
         )
 
 
-class OnPolicyAgent(PipelineAgent):
+class OnPolicyAgent(BaseAgent):
     algo_type = AlgoType.ON_POLICY
 
     def should_update(self, step: int, buffer: IBuffer) -> bool:
