@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 import jax
-import jax.numpy as jnp
 
 from rl_tools.algos.pipeline import UpdateModule
 from rl_tools.algos.pipeline import update_pipeline
