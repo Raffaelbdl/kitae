@@ -11,9 +11,6 @@ from rl_tools.save import Saver, SaverContext
 from rl_tools.envs.make import wrap_single_env, wrap_single_parallel_env
 from rl_tools.types import EnvLike
 
-from rl_tools.callbacks import callback
-from rl_tools.callbacks.callback import Callback, CallbackData
-
 
 def check_env(env: EnvLike) -> EnvLike:
     def not_vec_fallback(env: EnvLike) -> EnvLike:
@@ -74,14 +71,10 @@ def vectorized_train(
     *,
     start_step: int = 1,
     saver: Saver = None,
-    callbacks: list[Callback] = None,
     writer: SummaryWriter | None = None,
 ):
     env = check_env(env)
     start_time = time.time()
-
-    callbacks = callbacks if callbacks else []
-    callback.on_train_start(callbacks, CallbackData())
 
     observations, infos = env.reset(seed=seed + 1)
 
@@ -117,7 +110,6 @@ def vectorized_train(
             )
 
             if agent.should_update(step, buffer):
-                callback.on_update_start(callbacks, CallbackData())
                 update_dict = agent.update(buffer)
                 if writer:
                     for key, value in update_dict.items():
@@ -127,7 +119,6 @@ def vectorized_train(
                         int(global_step / (time.time() - start_time)),
                         global_step,
                     )
-                callback.on_update_end(callbacks, CallbackData(logs=update_dict))
 
             # s.update(step, agent.state_dict)
             s.update(step, agent.state)
@@ -136,4 +127,3 @@ def vectorized_train(
 
     env.close()
     writer.close()
-    callback.on_train_end(callbacks, CallbackData())

@@ -114,7 +114,7 @@ class BaseAgent(IAgent, Seeded):
         # TODO Handle specific steps
         raise NotImplementedError("Saving a specific step is not yet implemented.")
 
-    def train(self, env, n_env_steps, callbacks):
+    def train(self, env, n_env_steps):
         return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
@@ -122,10 +122,9 @@ class BaseAgent(IAgent, Seeded):
             n_env_steps,
             self.algo_type,
             saver=self.saver,
-            callbacks=callbacks,
         )
 
-    def resume(self, env, n_env_steps, callbacks):
+    def resume(self, env, n_env_steps):
         step, self.state = self.saver.restore_latest_step(self.state)
         return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
@@ -134,7 +133,6 @@ class BaseAgent(IAgent, Seeded):
             n_env_steps,
             self.algo_type,
             saver=self.saver,
-            callbacks=callbacks,
             start_step=step,
         )
 

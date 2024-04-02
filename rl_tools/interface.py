@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, NamedTuple
 
-from rl_tools.callbacks.callback import Callback
 from rl_tools.types import ActionType, ObsType, Array
 
 
@@ -81,23 +80,21 @@ class IAgent(ABC):
         ...
 
     @abstractmethod
-    def train(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def train(self, env: Any, n_env_steps: int) -> None:
         """Starts the training of the agent.
 
         Args:
             env: An EnvLike environment to train in.
             n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
         """
         ...
 
     @abstractmethod
-    def resume(self, env: Any, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def resume(self, env: Any, n_env_steps: int) -> None:
         """Resumes the training of the agent from the last training step.
 
         Args:
             env: An EnvLike environment to train in.
             n_env_steps: An int representing the number of steps in a single environment.
-            callbacks: A list of Callbacks called during training
         """
         ...
