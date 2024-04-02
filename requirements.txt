@@ -6,7 +6,6 @@ flatdict
 flax
 gymnasium
 numpy
-ml_collections
 optax
 orbax_checkpoint
 pettingzoo
@@ -15,3 +14,4 @@ tensorboard
 tensorboardX
 
 git+https://github.com/Raffaelbdl/vectorization_parallel_env
+"shaberax[all] @ git+https://github.com/Raffaelbdl/shaberax.git"

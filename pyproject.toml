@@ -18,7 +18,6 @@ dependencies = [
     "flax",
     "gymnasium",
     "numpy",
-    "ml_collections",
     "optax",
     "orbax_checkpoint",
     "pettingzoo",
