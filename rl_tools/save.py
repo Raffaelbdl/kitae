@@ -1,5 +1,6 @@
 from contextlib import AbstractContextManager
 from pathlib import Path
+import time
 from types import TracebackType
 from typing import Any
 
@@ -10,6 +11,11 @@ from tensorboardX import SummaryWriter
 import yaml
 
 from rl_tools.interface import IAgent
+from rl_tools.config import dump_algo_config
+
+
+def default_run_name(env_id: str) -> str:
+    return f"{env_id}/{env_id}__{int(time.time())}"
 
 
 class Saver:
@@ -25,7 +31,7 @@ class Saver:
             dir: A string or path-like path to the saving directory.
             base: The parent agent.
         """
-        dir = Path(dir)
+        self.dir = dir = Path(dir)
 
         self.ckptr = orbax.checkpoint.PyTreeCheckpointer()
         self.options = orbax.checkpoint.CheckpointManagerOptions(
@@ -39,26 +45,16 @@ class Saver:
 
         self.writer = SummaryWriter(dir.joinpath("logs"))
 
-    def save_base_data(self, dir: Path, base: IAgent) -> None:
-        config_dict = base.config.to_dict()
-        env_config = config_dict.pop("env_cfg")
+    def save_base_data(self, dir_path: Path, base: IAgent) -> None:
+        config_dir = dir_path.joinpath("config")
+        dump_algo_config(base.config, config_dir)
 
-        config_path = dir.joinpath("config")
-        with config_path.open("w") as f:
-            yaml.dump(config_dict, f)
-
-        extra_path = dir.joinpath("extra")
-        with extra_path.open("wb") as f:
-            cloudpickle.dump(
-                {
-                    "env_config": env_config,
-                    "run_name": base.run_name,
-                    # "rearrange_pattern": base.rearrange_pattern,
-                    "preprocess_fn": base.preprocess_fn,
-                    # "tabulate": base.tabulate,
-                },
-                f,
-            )
+        extra_info = {
+            "run_name": base.run_name,
+            "preprocess_fn": base.preprocess_fn,
+        }
+        with config_dir.joinpath("extra").open("wb") as f:
+            cloudpickle.dump(extra_info, f)
 
     def save(self, step: int, ckpt: dict[str, Any]):
         save_args = orbax_utils.save_args_from_target(ckpt)
