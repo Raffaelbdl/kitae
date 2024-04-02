@@ -1,15 +1,15 @@
 from contextlib import AbstractContextManager
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
+from tensorboardX import SummaryWriter
 import yaml
 
-if TYPE_CHECKING:
-    from rl_tools.base import Agent
+from rl_tools.interface import IAgent
 
 
 class Saver:
@@ -18,7 +18,7 @@ class Saver:
     Handles saving during training and restoring from checkpoints.
     """
 
-    def __init__(self, dir: str | Path, base: "Agent") -> None:
+    def __init__(self, dir: str | Path, base: IAgent) -> None:
         """Initializes a Saver instance for an agent.
 
         Args:
@@ -37,7 +37,9 @@ class Saver:
 
         self.save_base_data(dir, base)
 
-    def save_base_data(self, dir: Path, base: "Agent") -> None:
+        self.writer = SummaryWriter(dir.joinpath("logs"))
+
+    def save_base_data(self, dir: Path, base: IAgent) -> None:
         config_dict = base.config.to_dict()
         env_config = config_dict.pop("env_cfg")
 

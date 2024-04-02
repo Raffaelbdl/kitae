@@ -38,7 +38,6 @@ def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
         "loss_policy": loss_policy,
         "mean_entropy": jnp.mean(entropy),
         "kl_divergence": kl_divergence,
-        "entropy": entropy,
     }
 
     return loss_policy + entropy_coef * loss_entropy, infos

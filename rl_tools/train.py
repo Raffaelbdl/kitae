@@ -71,8 +71,8 @@ def vectorized_train(
     *,
     start_step: int = 1,
     saver: Saver = None,
-    writer: SummaryWriter | None = None,
 ):
+    writer = saver.writer
     env = check_env(env)
     start_time = time.time()
 
@@ -120,7 +120,6 @@ def vectorized_train(
                         global_step,
                     )
 
-            # s.update(step, agent.state_dict)
             s.update(step, agent.state)
 
             observations = next_observations
