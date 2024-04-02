@@ -18,8 +18,7 @@ from rl_tools.train import vectorized_train
 from rl_tools.save import Saver
 from rl_tools.types import ActionType, ObsType
 
-from ml_collections import ConfigDict
-from rl_tools.config import AlgoConfig
+from rl_tools.config import AlgoConfig, load_algo_config
 
 
 from rl_tools.algos.factory import ExperienceTransform
@@ -41,7 +40,7 @@ class BaseAgent(IAgent, Seeded):
         process_experience_factory: Callable,
         update_step_factory: Callable,
         *,
-        preprocess_fn: Callable,
+        preprocess_fn: Callable = None,
         tabulate: bool = False,
         experience_type: bool = Experience,
     ):
@@ -151,18 +150,12 @@ class BaseAgent(IAgent, Seeded):
             An instance of the chosen agent.
         """
         path = Path(data_dir)
+        config_dir = path.joinpath("config")
+        config = load_algo_config(config_dir)
 
-        config_path = path.joinpath("config")
-        with open(config_path, "r") as f:
-            config_dict = yaml.load(f, yaml.SafeLoader)
-        config = ConfigDict(config_dict)
-
-        extra_path = path.joinpath("extra")
+        extra_path = config_dir.joinpath("extra")
         with open(extra_path, "rb") as f:
             extra = cloudpickle.load(f)
-
-        config.env_cfg = extra.pop("env_config")
-        extra["run_name"] = path.parts[-1]
 
         return cls(config=config, **extra)
 

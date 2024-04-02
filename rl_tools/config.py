@@ -1,13 +1,15 @@
 from dataclasses import asdict, dataclass
+import os
+from pathlib import Path
 
+
+import cloudpickle
 from gymnasium.spaces import Space
-from ml_collections import ConfigDict
 import yaml
 
 
 @dataclass
-class AlgoParams:
-    ...
+class AlgoParams: ...
 
 
 @dataclass
@@ -36,76 +38,52 @@ class EnvConfig:
     n_agents: int
 
 
-class AlgoConfig(ConfigDict):
-    """Base configuration class for all algorithms
+@dataclass
+class AlgoConfig:
+    seed: int
+    algo_params: AlgoParams
+    update_cfg: UpdateConfig
+    train_cfg: TrainConfig
+    env_cfg: EnvConfig
 
-    Contains all information about an instance of an agent.
-    """
 
-    def __init__(
-        self,
-        seed: int,
-        algo_params: AlgoParams,
-        update_config: UpdateConfig,
-        train_config: TrainConfig,
-        env_config: EnvConfig,
-    ):
-        """Creates an instance of AlgoConfig.
+def dump_algo_config(config: AlgoConfig, dir_path: str | Path) -> None:
+    """Dumps an AlgoConfig in the given directory."""
+    dir_path = Path(dir_path)
+    os.makedirs(dir_path, exist_ok=True)
 
-        Args:
-            seed: An int that enforces code reproducibility.
-            algo_params: An algorithm-specific instance of AlgoParams.
-            update_config: An instance of UpdateConfig.
-            train_config: An instance of TrainConfig.
-            env_config: An instance of EnvConfig.
-        """
-        config = {
-            "seed": seed,
-            "algo_params": asdict(algo_params),
-            "update_cfg": asdict(update_config),
-            "train_cfg": asdict(train_config),
-            "env_cfg": asdict(env_config),
-        }
-        ConfigDict.__init__(self, config)
+    env_cfg = config.env_cfg
 
-        # env_cfg cannot be serialized to yaml because it holds gymnasium spaces.
-        # The chosen solution is to transfer the meaningful information for the user.
-        self.task_name = self.env_cfg.task_name
-        self.train_cfg.n_envs = self.env_cfg.n_envs
-        self.train_cfg.n_agents = self.env_cfg.n_agents
+    # save custom instance type for yaml-dumping
+    algo_params_type = type(config.algo_params)
+    with dir_path.joinpath("algo_params_type").open("wb") as f:
+        cloudpickle.dump(algo_params_type, f)
 
-    @classmethod
-    def create_config_from_file(
-        cls, config_path: str, env_config: EnvConfig
-    ) -> ConfigDict:
-        """Creates an AlgoConfig instance from a yaml file.
+    algo_config_dict = asdict(config)
+    algo_config_dict.pop("env_cfg")  # rm because cannot be yaml-dumped
 
-        Technically, the created instance is not from the AlgoConfig class. But
-        it does behave exactly the same.
+    with dir_path.joinpath("algo_config.yaml").open("w") as f:
+        yaml.dump(algo_config_dict, f)
+    with dir_path.joinpath("env_config").open("wb") as f:
+        cloudpickle.dump(env_cfg, f)
 
-        Args:
-            config_path: A string path to the yaml configuration file.
-            env_config: An instance of EnvConfig.
 
-        Returns:
-            An instance of ConfigDict that behaves similarly to AlgoConfig.
+def load_algo_config(dir_path: str | Path) -> AlgoConfig:
+    """Loads an AlgoConfig from the given directory."""
+    dir_path = Path(dir_path)
 
-        Raises:
-            KeyError: If one key is missing from the yaml config file.
-        """
-        with open(config_path, "r") as file:
-            config_dict = yaml.load(file, yaml.SafeLoader)
+    with dir_path.joinpath("algo_params_type").open("rb") as f:
+        algo_params_type = cloudpickle.load(f)
 
-        for key in ["seed", "algo_params", "update_cfg", "train_cfg"]:
-            if key not in config_dict.keys():
-                raise KeyError(
-                    f"KeyError : {key} key is not present in the config file"
-                )
+    with dir_path.joinpath("algo_config.yaml").open("r") as f:
+        algo_config_dict = yaml.load(f, yaml.SafeLoader)
+    with dir_path.joinpath("env_config").open("rb") as f:
+        algo_config_dict["env_cfg"] = cloudpickle.load(f)
 
-        config = ConfigDict(config_dict | {"env_cfg": asdict(env_config)})
-
-        config.task_name = config.env_cfg.task_name
-        config.train_cfg.n_envs = config.env_cfg.n_envs
-        config.train_cfg.n_agents = config.env_cfg.n_agents
-
-        return config
+    return AlgoConfig(
+        seed=algo_config_dict["seed"],
+        algo_params=algo_params_type(**algo_config_dict["algo_params"]),
+        update_cfg=UpdateConfig(**algo_config_dict["update_cfg"]),
+        train_cfg=TrainConfig(**algo_config_dict["train_cfg"]),
+        env_cfg=algo_config_dict["env_cfg"],
+    )
