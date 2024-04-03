@@ -5,7 +5,7 @@ from flax import struct
 import jax
 import jax.numpy as jnp
 
-from rl_tools.buffer import stack_experiences
+from rl_tools.buffer import jax_stack_experiences
 
 
 Factory = Callable[..., Callable]
@@ -123,7 +123,7 @@ def process_experience_pipeline_factory(
             return _experiences
 
         if isinstance(experiences, list):
-            experiences = stack_experiences(experiences)
+            experiences = jax_stack_experiences(experiences)
 
         if parallel and vectorized:
             keys = {}

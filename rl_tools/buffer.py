@@ -17,8 +17,14 @@ def array_of_name(experiences: list[Experience], name: str) -> np.ndarray:
     return np.array([e.__getattribute__(name) for e in experiences])
 
 
-def stack_experiences(experiences: list[Experience]) -> Experience:
-    return jax.tree_map(lambda *xs: jnp.stack(xs, axis=0), *experiences)
+def jax_stack_experiences(experiences: list[Experience]) -> Experience:
+    _cls = experiences[0].__class__
+    return _cls(*jax.tree_map(lambda *xs: jnp.stack(xs, axis=0), *experiences))
+
+
+def numpy_stack_experiences(experiences: list[Experience]) -> Experience:
+    _cls = experiences[0].__class__
+    return _cls(*[np.stack(v, axis=0) for v in zip(*experiences)])
 
 
 def batchify(data: tuple[jax.Array, ...], batch_size: int) -> tuple[jax.Array, ...]:
