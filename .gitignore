@@ -163,3 +163,7 @@ legacy/
 results/
 *Callback/
 wandb/
+_examples/
+_evals/
+_configs/
+.vscode
