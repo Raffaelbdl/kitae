@@ -2,13 +2,16 @@ import pytest
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
-from rl_tools.buffer import stack_experiences, Experience
+from rl_tools.buffer import Experience
+from rl_tools.buffer import jax_stack_experiences
+from rl_tools.buffer import numpy_stack_experiences
 from rl_tools.buffer import batchify
 from rl_tools.buffer import batchify_and_randomize
 
 
-def test_stack_experiences():
+def test_jax_stack_experiences():
     experiences = [
         Experience(
             observation=jnp.zeros((5,)),
@@ -35,7 +38,7 @@ def test_stack_experiences():
             log_prob=2 * jnp.ones(()),
         ),
     ]
-    stacked = stack_experiences(experiences)
+    stacked = jax_stack_experiences(experiences)
 
     assert stacked.observation.shape == (3, 5)
     assert stacked.done.shape == (3,)
@@ -75,7 +78,7 @@ def test_stack_experiences():
             log_prob=2 * jnp.ones((4,)),
         ),
     ]
-    stacked = stack_experiences(experiences)
+    stacked = jax_stack_experiences(experiences)
 
     assert stacked.observation.shape == (3, 4, 5)
     assert stacked.done.shape == (3, 4)
@@ -87,6 +90,88 @@ def test_stack_experiences():
     assert jnp.equal(
         stacked.action,
         jnp.stack([jnp.zeros((4,)), jnp.ones((4,)), 2 * jnp.ones((4,))], axis=0),
+    ).all()
+
+
+def test_numpy_stack_experiences():
+    experiences = [
+        Experience(
+            observation=np.zeros((5,)),
+            action=np.zeros(()),
+            reward=np.zeros(()),
+            done=np.zeros(()),
+            next_observation=np.zeros((5,)),
+            log_prob=np.zeros(()),
+        ),
+        Experience(
+            observation=np.ones((5,)),
+            action=np.ones(()),
+            reward=np.ones(()),
+            done=np.ones(()),
+            next_observation=np.ones((5,)),
+            log_prob=np.ones(()),
+        ),
+        Experience(
+            observation=2 * np.ones((5,)),
+            action=2 * np.ones(()),
+            reward=2 * np.ones(()),
+            done=2 * np.ones(()),
+            next_observation=2 * np.ones((5,)),
+            log_prob=2 * np.ones(()),
+        ),
+    ]
+    stacked = numpy_stack_experiences(experiences)
+
+    assert stacked.observation.shape == (3, 5)
+    assert stacked.done.shape == (3,)
+
+    assert np.equal(
+        stacked.observation,
+        np.stack([np.zeros((5,)), np.ones((5,)), 2 * np.ones((5,))], axis=0),
+    ).all()
+    assert np.equal(
+        stacked.action,
+        np.stack([np.zeros(()), np.ones(()), 2 * np.ones(())], axis=0),
+    ).all()
+
+    experiences = [
+        Experience(
+            observation=np.zeros((4, 5)),
+            action=np.zeros((4,)),
+            reward=np.zeros((4,)),
+            done=np.zeros((4,)),
+            next_observation=np.zeros((4, 5)),
+            log_prob=np.zeros((4,)),
+        ),
+        Experience(
+            observation=np.ones((4, 5)),
+            action=np.ones((4,)),
+            reward=np.ones((4,)),
+            done=np.ones((4,)),
+            next_observation=np.ones((4, 5)),
+            log_prob=np.ones((4,)),
+        ),
+        Experience(
+            observation=2 * np.ones((4, 5)),
+            action=2 * np.ones((4,)),
+            reward=2 * np.ones((4,)),
+            done=2 * np.ones((4,)),
+            next_observation=2 * np.ones((4, 5)),
+            log_prob=2 * np.ones((4,)),
+        ),
+    ]
+    stacked = numpy_stack_experiences(experiences)
+
+    assert stacked.observation.shape == (3, 4, 5)
+    assert stacked.done.shape == (3, 4)
+
+    assert np.equal(
+        stacked.observation,
+        np.stack([np.zeros((4, 5)), np.ones((4, 5)), 2 * np.ones((4, 5))], axis=0),
+    ).all()
+    assert np.equal(
+        stacked.action,
+        np.stack([np.zeros((4,)), np.ones((4,)), 2 * np.ones((4,))], axis=0),
     ).all()
 
 
