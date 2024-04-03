@@ -118,3 +118,19 @@ def policy_output_factory(action_space: Discrete) -> type[PolicyOutput]:
         return PolicyNormal
     else:
         raise NotImplementedError
+
+
+def sample_and_log_prob(
+    distribution: dx.Distribution, key: jax.Array
+) -> tuple[jax.Array, jax.Array]:
+    sample, log_prob = distribution.sample_and_log_prob(seed=key)
+    if isinstance(distribution, dx.Categorical):
+        return sample, jnp.expand_dims(log_prob, axis=-1)
+    return sample, jnp.sum(log_prob, axis=-1, keepdims=True)
+
+
+def get_log_prob(distribution: dx.Distribution, value: jax.Array) -> jax.Array:
+    log_prob = distribution.log_prob(value)
+    if isinstance(distribution, dx.Categorical):
+        return jnp.expand_dims(log_prob, axis=-1)
+    return jnp.sum(log_prob, axis=-1, keepdims=True)

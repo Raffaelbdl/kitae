@@ -15,7 +15,8 @@ from rl_tools.base import OnPolicyAgent
 from rl_tools.config import AlgoConfig, AlgoParams
 
 from rl_tools.buffer import Experience, batchify_and_randomize
-from rl_tools.distribution import get_log_probs
+
+# from rl_tools.distribution import get_log_probs
 from rl_tools.loss import loss_policy_ppo, loss_value_clip
 from rl_tools.timesteps import calculate_gaes_targets
 
@@ -23,7 +24,11 @@ from rl_tools.timesteps import calculate_gaes_targets
 from rl_tools.modules.encoder import encoder_factory
 from rl_tools.modules.modules import PassThrough, init_params
 from rl_tools.modules.optimizer import linear_learning_rate_schedule
-from rl_tools.modules.policy import policy_output_factory
+from rl_tools.modules.policy import (
+    policy_output_factory,
+    sample_and_log_prob,
+    get_log_prob,
+)
 from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
 from rl_tools.modules.value import ValueOutput
 
@@ -150,7 +155,8 @@ def explore_factory(config: AlgoConfig) -> Callable:
         dists: dx.Distribution = ppo_state.policy_state.apply_fn(
             ppo_state.policy_state.params, *hiddens
         )
-        return dists.sample_and_log_prob(seed=key)
+        # return dists.sample_and_log_prob(seed=key)
+        return sample_and_log_prob(dists, key)
 
     return explore_fn
 
@@ -214,13 +220,12 @@ def update_step_factory(config: AlgoConfig) -> Callable:
                 hiddens = (hiddens,)
 
             dists = ppo_state.policy_state.apply_fn(params["policy"], *hiddens)
-            log_probs, log_probs_old = get_log_probs(
-                dists, batch.action, batch.log_prob
-            )
+            log_probs = get_log_prob(dists, batch.action)
+
             loss_policy, info_policy = loss_policy_ppo(
                 dists,
                 log_probs,
-                log_probs_old,
+                batch.log_prob,
                 batch.gae,
                 algo_params.clip_eps,
                 algo_params.entropy_coef,
