@@ -1,10 +1,10 @@
 import pytest
 import gymnasium as gym
 
-from rl_tools.envs.make import make_env
-from rl_tools.envs.make import make_single_env
-from rl_tools.envs.make import wrap_single_env
-from rl_tools.envs.make import make_vec_env
+from kitae.envs.make import make_env
+from kitae.envs.make import make_single_env
+from kitae.envs.make import wrap_single_env
+from kitae.envs.make import make_vec_env
 
 
 def test_make_env():

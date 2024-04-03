@@ -3,10 +3,10 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from rl_tools.interface import IAgent, IBuffer
-from rl_tools.types import Array
+from kitae.interface import IAgent, IBuffer
+from kitae.types import Array
 
-from rl_tools.config import AlgoConfig
+from kitae.config import AlgoConfig
 
 
 class DummySaver:

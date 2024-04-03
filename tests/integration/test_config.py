@@ -1,5 +1,5 @@
-from rl_tools.config import AlgoConfig, AlgoParams, UpdateConfig, TrainConfig, EnvConfig
-from rl_tools.config import dump_algo_config, load_algo_config
+from kitae.config import AlgoConfig, AlgoParams, UpdateConfig, TrainConfig, EnvConfig
+from kitae.config import dump_algo_config, load_algo_config
 
 import time
 

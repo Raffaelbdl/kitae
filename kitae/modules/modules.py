@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl_tools.types import Params
+from kitae.types import Params
 
 
 class PassThrough(nn.Module):

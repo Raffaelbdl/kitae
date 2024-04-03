@@ -11,15 +11,15 @@ from shaberax.logger import GeneralLogger
 from jrd_extensions import Seeded
 
 
-from rl_tools.algos.factory import ExperienceTransform
-from rl_tools.algos.factory import explore_general_factory
-from rl_tools.algos.factory import process_experience_pipeline_factory
-from rl_tools.buffer import Experience, numpy_stack_experiences
-from rl_tools.config import AlgoConfig, load_algo_config
-from rl_tools.interface import IAgent, IBuffer, AlgoType
-from rl_tools.save import Saver
-from rl_tools.train import vectorized_train
-from rl_tools.types import ActionType, ObsType
+from kitae.algos.factory import ExperienceTransform
+from kitae.algos.factory import explore_general_factory
+from kitae.algos.factory import process_experience_pipeline_factory
+from kitae.buffer import Experience, numpy_stack_experiences
+from kitae.config import AlgoConfig, load_algo_config
+from kitae.interface import IAgent, IBuffer, AlgoType
+from kitae.save import Saver
+from kitae.train import vectorized_train
+from kitae.types import ActionType, ObsType
 
 
 class BaseAgent(IAgent, Seeded):

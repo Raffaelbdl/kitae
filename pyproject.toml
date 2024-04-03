@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rl_tools"
+name = "kitae"
 requires-python = ">=3.10"
 description = "A RL library using Flax modules"
 authors = [
@@ -30,11 +30,11 @@ dependencies = [
 dynamic = ["version", "readme"]
 
 [project.urls]
-homepage = "https://github.com/Raffaelbdl/flax_rl"
+homepage = "https://github.com/Raffaelbdl/kitae"
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
-version = {attr = "rl_tools.version.__version__"}
+version = {attr = "kitae.version.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["rl_tools*"]
+include = ["kitae*"]

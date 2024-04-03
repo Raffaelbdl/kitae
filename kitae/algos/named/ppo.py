@@ -11,26 +11,26 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from rl_tools.base import OnPolicyAgent
-from rl_tools.config import AlgoConfig, AlgoParams
+from kitae.base import OnPolicyAgent
+from kitae.config import AlgoConfig, AlgoParams
 
-from rl_tools.buffer import Experience, batchify_and_randomize
+from kitae.buffer import Experience, batchify_and_randomize
 
 # from rl_tools.distribution import get_log_probs
-from rl_tools.loss import loss_policy_ppo, loss_value_clip
-from rl_tools.timesteps import calculate_gaes_targets
+from kitae.loss import loss_policy_ppo, loss_value_clip
+from kitae.timesteps import calculate_gaes_targets
 
 
-from rl_tools.modules.encoder import encoder_factory
-from rl_tools.modules.modules import PassThrough, init_params
-from rl_tools.modules.optimizer import linear_learning_rate_schedule
-from rl_tools.modules.policy import (
+from kitae.modules.encoder import encoder_factory
+from kitae.modules.modules import PassThrough, init_params
+from kitae.modules.optimizer import linear_learning_rate_schedule
+from kitae.modules.policy import (
     policy_output_factory,
     sample_and_log_prob,
     get_log_prob,
 )
-from rl_tools.modules.train_state import PolicyValueTrainState, TrainState
-from rl_tools.modules.value import ValueOutput
+from kitae.modules.train_state import PolicyValueTrainState, TrainState
+from kitae.modules.value import ValueOutput
 
 PPO_tuple = namedtuple(
     "PPO_tuple",

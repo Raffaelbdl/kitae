@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
-from rl_tools.algos.factory import fn_parallel
-from rl_tools.algos.factory import explore_general_factory
+from kitae.algos.factory import fn_parallel
+from kitae.algos.factory import explore_general_factory
 
 
 def test_fn_parallel():

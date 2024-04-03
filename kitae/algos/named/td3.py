@@ -9,21 +9,21 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from rl_tools.base import OffPolicyAgent, ExperienceTransform
-from rl_tools.config import AlgoConfig, AlgoParams
-from rl_tools.types import Params
+from kitae.base import OffPolicyAgent, ExperienceTransform
+from kitae.config import AlgoConfig, AlgoParams
+from kitae.types import Params
 
-from rl_tools.buffer import OffPolicyBuffer, Experience
-from rl_tools.loss import loss_mean_squared_error
+from kitae.buffer import OffPolicyBuffer, Experience
+from kitae.loss import loss_mean_squared_error
 
-from rl_tools.timesteps import compute_td_targets
+from kitae.timesteps import compute_td_targets
 
 
-from rl_tools.modules.encoder import encoder_factory
-from rl_tools.modules.modules import init_params
-from rl_tools.modules.train_state import PolicyQValueTrainState, TrainState
-from rl_tools.modules.policy import PolicyNormalExternalStd
-from rl_tools.modules.qvalue import make_double_q_value, qvalue_factory
+from kitae.modules.encoder import encoder_factory
+from kitae.modules.modules import init_params
+from kitae.modules.train_state import PolicyQValueTrainState, TrainState
+from kitae.modules.policy import PolicyNormalExternalStd
+from kitae.modules.qvalue import make_double_q_value, qvalue_factory
 
 TD3_tuple = namedtuple("TD3_tuple", ["observation", "action", "target"])
 

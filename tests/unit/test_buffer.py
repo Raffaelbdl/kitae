@@ -4,11 +4,11 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl_tools.buffer import Experience
-from rl_tools.buffer import jax_stack_experiences
-from rl_tools.buffer import numpy_stack_experiences
-from rl_tools.buffer import batchify
-from rl_tools.buffer import batchify_and_randomize
+from kitae.buffer import Experience
+from kitae.buffer import jax_stack_experiences
+from kitae.buffer import numpy_stack_experiences
+from kitae.buffer import batchify
+from kitae.buffer import batchify_and_randomize
 
 
 def test_jax_stack_experiences():

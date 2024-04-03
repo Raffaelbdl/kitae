@@ -7,7 +7,7 @@ import gymnasium.spaces as spaces
 import jax
 import jax.numpy as jnp
 
-from rl_tools.modules.modules import conv_layer, MLP
+from kitae.modules.modules import conv_layer, MLP
 
 
 class VisionEncoder(nn.Module):

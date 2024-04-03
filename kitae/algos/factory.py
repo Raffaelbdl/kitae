@@ -5,7 +5,7 @@ from flax import struct
 import jax
 import jax.numpy as jnp
 
-from rl_tools.buffer import jax_stack_experiences
+from kitae.buffer import jax_stack_experiences
 
 
 Factory = Callable[..., Callable]

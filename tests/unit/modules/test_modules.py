@@ -1,7 +1,7 @@
 import flax.linen as nn
 import jax.numpy as jnp
 
-from rl_tools.modules.modules import parallel_copy
+from kitae.modules.modules import parallel_copy
 
 
 def test_parallel_copy():

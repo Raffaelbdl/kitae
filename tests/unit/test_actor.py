@@ -2,7 +2,7 @@ from flax.training.train_state import TrainState
 import numpy as np
 from optax import sgd
 
-from rl_tools.actor import PolicyActor
+from kitae.actor import PolicyActor
 
 
 def test_policy_actor():

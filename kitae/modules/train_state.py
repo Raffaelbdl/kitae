@@ -1,7 +1,7 @@
 import chex
 from flax.training import train_state
 
-from rl_tools.types import Params
+from kitae.types import Params
 
 
 class TrainState(train_state.TrainState):

@@ -10,17 +10,17 @@ import jax.numpy as jnp
 import optax
 
 
-from rl_tools.base import OffPolicyAgent
-from rl_tools.config import AlgoConfig, AlgoParams
-from rl_tools.types import Params
+from kitae.base import OffPolicyAgent
+from kitae.config import AlgoConfig, AlgoParams
+from kitae.types import Params
 
-from rl_tools.buffer import Experience
-from rl_tools.loss import loss_mean_squared_error
-from rl_tools.timesteps import compute_td_targets
+from kitae.buffer import Experience
+from kitae.loss import loss_mean_squared_error
+from kitae.timesteps import compute_td_targets
 
-from rl_tools.modules.modules import init_params
-from rl_tools.modules.train_state import TrainState
-from rl_tools.modules.qvalue import qvalue_factory
+from kitae.modules.modules import init_params
+from kitae.modules.train_state import TrainState
+from kitae.modules.qvalue import qvalue_factory
 
 DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
 NO_EXPLORATION = 0.0

@@ -3,9 +3,9 @@ from typing import Callable
 from flax.training.train_state import TrainState
 from jrd_extensions import Seeded
 
-from rl_tools.interface import IActor
-from rl_tools.types import ActionType, ObsType, Array
-from rl_tools.algos.factory import explore_general_factory
+from kitae.interface import IActor
+from kitae.types import ActionType, ObsType, Array
+from kitae.algos.factory import explore_general_factory
 
 
 class PolicyActor(IActor, Seeded):

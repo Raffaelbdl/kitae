@@ -10,8 +10,8 @@ import orbax.checkpoint
 from tensorboardX import SummaryWriter
 import yaml
 
-from rl_tools.interface import IAgent
-from rl_tools.config import dump_algo_config
+from kitae.interface import IAgent
+from kitae.config import dump_algo_config
 
 
 def default_run_name(env_id: str) -> str:

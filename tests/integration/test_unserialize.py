@@ -1,14 +1,14 @@
 from typing import Callable
-from rl_tools.base import BaseAgent
-from rl_tools.buffer import Experience
-from rl_tools.config import AlgoConfig
-from rl_tools.interface import IBuffer
+from kitae.base import BaseAgent
+from kitae.buffer import Experience
+from kitae.config import AlgoConfig
+from kitae.interface import IBuffer
 
 
 def dummy_config():
     from dataclasses import dataclass
     import gymnasium as gym
-    from rl_tools.config import (
+    from kitae.config import (
         AlgoConfig,
         AlgoParams,
         UpdateConfig,

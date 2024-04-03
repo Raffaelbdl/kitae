@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from rl_tools.interface import AlgoType, IBuffer
+from kitae.interface import AlgoType, IBuffer
 
 Experience = namedtuple(
     "Experience",

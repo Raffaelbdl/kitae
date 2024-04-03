@@ -4,12 +4,12 @@ from absl import logging
 import numpy as np
 from tensorboardX import SummaryWriter
 
-from rl_tools.interface import IAgent, AlgoType
-from rl_tools.buffer import Experience, buffer_factory
-from rl_tools.save import Saver, SaverContext
+from kitae.interface import IAgent, AlgoType
+from kitae.buffer import Experience, buffer_factory
+from kitae.save import Saver, SaverContext
 
-from rl_tools.envs.make import wrap_single_env, wrap_single_parallel_env
-from rl_tools.types import EnvLike
+from kitae.envs.make import wrap_single_env, wrap_single_parallel_env
+from kitae.types import EnvLike
 
 
 def check_env(env: EnvLike) -> EnvLike:
