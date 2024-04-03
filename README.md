@@ -1,4 +1,4 @@
-# RL_TOOLS: Yet another RL library built with FLAX modules
+# Kitae: Yet another RL library built with FLAX modules
 
 ![example workflow](https://github.com/Raffaelbdl/rl_tools/actions/workflows/pytest.yml/badge.svg)
 ![Python Version](https://img.shields.io/badge/Python->=3.10-blue)
@@ -15,23 +15,23 @@ To install JAX, refer to [the instructions](https://github.com/google/jax#instal
 
 ```bash
 pip install --upgrade pip
-pip install --upgrade git+https://github.com/Raffaelbdl/rl_tools
+pip install --upgrade git+https://github.com/Raffaelbdl/kitae
 ```
 
 ## Overview
 
-RL_TOOLS is designed as a polyvalent RL library. The goal is to make agents creation easier, as well as training and evaluating. 
+Kitae is designed as a polyvalent RL library. The goal is to make agents creation easier, as well as training and evaluating. 
 
-RL_TOOLS's goals is also to make it easier to use agents in single or multi-agent setups, as well as vectorized environments.
+Kitae's goals is also to make it easier to use agents in single or multi-agent setups, as well as vectorized environments.
 
 For research purposes, please use the original implementations for comparison. 
 
 
 ## Example Usage
 ```python
-from rl_tools.algos.named import ppo
-from rl_tools import config as cfg
-from rl_tools.envs.make import make_vec_env
+from kitae.algos.named import ppo
+from kitae import config as cfg
+from kitae.envs.make import make_vec_env
 
 SEED = 0
 ENV_ID = "CartPole-v1"
