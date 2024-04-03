@@ -1,13 +1,29 @@
+<div align="center">
+  <img src="./docs/source/_static/images/sword.png" />
+</div>
+
 # Kitae: Yet another RL library built with FLAX modules
 
-![example workflow](https://github.com/Raffaelbdl/rl_tools/actions/workflows/pytest.yml/badge.svg)
+![Tests](https://github.com/Raffaelbdl/rl_tools/actions/workflows/pytest.yml/badge.svg)
+![Status](https://img.shields.io/badge/Status-Work_In_Progress-orange)
+
 ![Python Version](https://img.shields.io/badge/Python->=3.10-blue)
 ![Code Style](https://img.shields.io/badge/Code_Style-black-black)
 
 [**Installation**](#installation) 
 |  [**Overview**](#overview) 
 | [**Example Usage**](#example-usage)
-| [**Roadmap**](#roadmap)
+<!-- | [**Roadmap**](#roadmap) -->
+
+Kitae aims to be a general toolbox to make working with reinforcement learning easier.
+
+> [!IMPORTANT]
+> New reinforcement learning algorithms are frequently added to this project. However, for benchmarking purposes, please refer to the original implementations.
+
+> [!NOTE]
+> The following README is an overview of what the library offers. Please refer to the [documentation](https://raffaelbdl.github.io/kitae/) for more details.
+
+
 
 ## Installation
 This package requires Python 3.10 or later and a working [JAX](https://github.com/google/jax) installation.
@@ -20,12 +36,9 @@ pip install --upgrade git+https://github.com/Raffaelbdl/kitae
 
 ## Overview
 
-Kitae is designed as a polyvalent RL library. The goal is to make agents creation easier, as well as training and evaluating. 
+Kitae is designed as a polyvalent toolbox library for reinforcement learning. The goal is to simplify all steps of the process, from agent creation, to training and evaluating them.
 
-Kitae's goals is also to make it easier to use agents in single or multi-agent setups, as well as vectorized environments.
-
-For research purposes, please use the original implementations for comparison. 
-
+One main feature of Kitae, is that it is designed to simplify working in vectorized settings with multiple instances of a environment.
 
 ## Example Usage
 ```python
@@ -75,7 +88,7 @@ agent = ppo.PPO(
 algo.train(env, algo.config.train_cfg.n_env_steps, callbacks=[])
 ```
 
-## Roadmap
+<!-- ## Roadmap
 
 This project is still a work in progress. The current version is v0.1.0:
 - [x] Implementation of state-of-the-art algorithms:
@@ -84,4 +97,4 @@ This project is still a work in progress. The current version is v0.1.0:
     - [x] TD3
 - [x] Automatic adaptation to multi-agent (self-play) and vectorial environments. 
 - [x] Training loops, callbacks etc..
-
+ -->
