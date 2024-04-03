@@ -42,7 +42,7 @@ One main feature of Kitae, is that it is designed to simplify working in vectori
 
 ## Example Usage
 ```python
-from kitae.algos.named import ppo
+from kitae.algos import ppo
 from kitae import config as cfg
 from kitae.envs.make import make_vec_env
 
