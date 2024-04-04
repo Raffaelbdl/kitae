@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "flax_rl"
+name = "kitae"
 requires-python = ">=3.10"
 description = "A RL library using Flax modules"
 authors = [
@@ -18,24 +18,24 @@ dependencies = [
     "flax",
     "gymnasium",
     "numpy",
-    "ml_collections",
     "optax",
     "orbax_checkpoint",
     "pettingzoo",
-    "cliconfig",
     "tensorboard",
     "tensorboardX",
     "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env",
-    "jrd_extensions@git+https://github.com/Raffaelbdl/jrd_extensions"
+    "jrd_extensions@git+https://github.com/Raffaelbdl/jrd_extensions",
+    "shaberax[all] @ git+https://github.com/Raffaelbdl/shaberax.git",
+    "distrax-tabulate@git+https://github.com/Raffaelbdl/distrax_flax",
 ]
 dynamic = ["version", "readme"]
 
 [project.urls]
-homepage = "https://github.com/Raffaelbdl/flax_rl"
+homepage = "https://github.com/Raffaelbdl/kitae"
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
-version = {attr = "rl_tools.version.__version__"}
+version = {attr = "kitae.version.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["rl_tools*"]
+include = ["kitae*"]

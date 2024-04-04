@@ -2,12 +2,11 @@ from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from rl_tools.callbacks.callback import Callback
 
-from rl_tools.interface import IAgent, IBuffer
-from rl_tools.types import Array
+from kitae.interface import IAgent, IBuffer
+from kitae.types import Array
 
-from rl_tools.config import AlgoConfig
+from kitae.config import AlgoConfig
 
 
 class DummySaver:
@@ -34,10 +33,10 @@ class RandomAgent(IAgent):
     def should_update(self, step: int, buffer: IBuffer) -> bool:
         return False
 
-    def train(self, env: gym.Env, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def train(self, env: gym.Env, n_env_steps: int) -> None:
         return None
 
-    def resume(self, env: gym.Env, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def resume(self, env: gym.Env, n_env_steps: int) -> None:
         return None
 
 
@@ -65,8 +64,8 @@ class RandomParallelAgent(IAgent):
     def should_update(self, step: int, buffer: IBuffer) -> bool:
         return False
 
-    def train(self, env: gym.Env, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def train(self, env: gym.Env, n_env_steps: int) -> None:
         return None
 
-    def resume(self, env: gym.Env, n_env_steps: int, callbacks: list[Callback]) -> None:
+    def resume(self, env: gym.Env, n_env_steps: int) -> None:
         return None

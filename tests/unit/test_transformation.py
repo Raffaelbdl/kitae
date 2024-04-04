@@ -1,5 +1,5 @@
-from rl_tools.transformation import linear_interpolation
-from rl_tools.transformation import inverse_linear_interpolation
+from kitae.transformation import linear_interpolation
+from kitae.transformation import inverse_linear_interpolation
 
 
 def test_linear_interpolation():
