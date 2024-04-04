@@ -31,7 +31,7 @@ class IActor(ABC):
         """Exploits the policy to interact with the environment.
 
         Args:
-            observation: An ObsType within the observation_space.
+            observation (ObsType): An ObsType within the observation_space.
 
         Returns:
             An ActionType within the action_space.
@@ -47,7 +47,7 @@ class IAgent(ABC):
         """Uses the policy to explore the environment.
 
         Args:
-            observation: An ObsType within the observation_space.
+            observation (ObsType): An ObsType within the observation_space.
 
         Returns:
             An ActionType within the action_space.
@@ -59,7 +59,7 @@ class IAgent(ABC):
         """Exploits the policy to interact with the environment.
 
         Args:
-            observation: An ObsType within the observation_space.
+            observation (ObsType): An ObsType within the observation_space.
 
         Returns:
             An ActionType within the action_space.
@@ -71,8 +71,8 @@ class IAgent(ABC):
         """Determines if the agent should be updated.
 
         Args:
-            step: An int representing the current step for a single environment.
-            buffer: A Buffer containing the transitions obtained from the environment.
+            step (int): An int representing the current step for a single environment.
+            buffer (IBuffer): A Buffer containing the transitions obtained from the environment.
 
         Returns:
             A boolean expliciting if the agent should be updated.
@@ -84,8 +84,8 @@ class IAgent(ABC):
         """Starts the training of the agent.
 
         Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
+            env (gym.Env): An EnvLike environment to train in.
+            n_env_steps (int): An int representing the number of steps in a single environment.
         """
         ...
 
@@ -94,7 +94,7 @@ class IAgent(ABC):
         """Resumes the training of the agent from the last training step.
 
         Args:
-            env: An EnvLike environment to train in.
-            n_env_steps: An int representing the number of steps in a single environment.
+            env (gym.Env): An EnvLike environment to train in.
+            n_env_steps (int): An int representing the number of steps in a single environment.
         """
         ...

@@ -70,7 +70,7 @@ def explore_factory(config: AlgoConfig) -> Callable:
         key: jax.Array,
         observations: jax.Array,
         exploration: float,
-    ) -> jax.Array:
+    ) -> tuple[jax.Array, jax.Array]:
         all_qvalues = qvalue_state.apply_fn(qvalue_state.params, observations)
         actions, log_probs = dx.EpsilonGreedy(
             all_qvalues, exploration

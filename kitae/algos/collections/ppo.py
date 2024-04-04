@@ -16,7 +16,6 @@ from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.buffer import Experience, batchify_and_randomize
 
-# from rl_tools.distribution import get_log_probs
 from kitae.loss import loss_policy_ppo, loss_value_clip
 from kitae.timesteps import calculate_gaes_targets
 

@@ -48,7 +48,12 @@ class AlgoConfig:
 
 
 def dump_algo_config(config: AlgoConfig, dir_path: str | Path) -> None:
-    """Dumps an AlgoConfig in the given directory."""
+    """Dumps an AlgoConfig in the given directory.
+
+    Args:
+        config (AlgoConfig): An agent's config.
+        dir_path (str | Path): The path where the config must be saved.
+    """
     dir_path = Path(dir_path)
     os.makedirs(dir_path, exist_ok=True)
 
@@ -69,7 +74,14 @@ def dump_algo_config(config: AlgoConfig, dir_path: str | Path) -> None:
 
 
 def load_algo_config(dir_path: str | Path) -> AlgoConfig:
-    """Loads an AlgoConfig from the given directory."""
+    """Loads an AlgoConfig from the given directory.
+
+    Args:
+        dir_path (str | Path): The path where the config is saved.
+
+    Returns:
+        The AlgoConfig saved at the given location.
+    """
     dir_path = Path(dir_path)
 
     with dir_path.joinpath("algo_params_type").open("rb") as f:

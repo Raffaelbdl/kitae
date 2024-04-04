@@ -3,9 +3,9 @@ from typing import Callable
 from flax.training.train_state import TrainState
 from jrd_extensions import Seeded
 
+from kitae.algos.factory import explore_general_factory
 from kitae.interface import IActor
 from kitae.types import ActionType, ObsType, Array
-from kitae.algos.factory import explore_general_factory
 
 
 class PolicyActor(IActor, Seeded):
@@ -22,9 +22,11 @@ class PolicyActor(IActor, Seeded):
         """Initializes a PolicyActor from a policy and a select_action function.
 
         Args:
-            seed: An int for reproducibility.
-            policy_state: A TrainState used in the select_action function.
-            select_action_fn: A function that uses the policy_state to select an action.
+            seed (int): An int for reproducibility.
+            policy_state (TrainState): A TrainState used in the select_action function.
+            select_action_fn (Callable): A function that uses the policy_state to select an action.
+
+            vectorized (bool): A boolean that describes if the environment observations are batched.
         """
         Seeded.__init__(self, seed)
         self.policy_state = policy_state
@@ -33,4 +35,12 @@ class PolicyActor(IActor, Seeded):
         )
 
     def select_action(self, observation: ObsType) -> tuple[ActionType, Array]:
+        """Selects an action from an observation.
+
+        Args:
+            observation (ObsType): An observation from the environment.
+
+        Returns:
+            A tuple of actions and log_probs as Array.
+        """
         return self.select_action_fn(self.policy_state, self.nextkey(), observation)
