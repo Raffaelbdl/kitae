@@ -18,30 +18,30 @@
   </script>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
 
   
-  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+  <link href="../_static/vendor/fontawesome/6.5.1/css/all.min.css?digest=8d27b9dea8ad943066ae" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.1/webfonts/fa-regular-400.woff2" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=7676fc3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=384b581d" />
     <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=7676fc3b" />
   
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
-  <script src="../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
+  <script src="../_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=98dd19df"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=efea14e4"></script>
     <script src="../_static/design-tabs.js?v=36754332"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'modules/kitae.algos.collections';</script>
     <link rel="icon" href="../_static/sword.png"/>
@@ -58,10 +58,9 @@
 
   
   
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <a id="pst-skip-link" class="skip-link" href="#main-content">Skip to main content</a>
   
   <div id="pst-scroll-pixel-helper"></div>
-
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>
@@ -102,11 +101,14 @@
 </form></div>
   </div>
   
-    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
-    </nav>
+    <header class="bd-header navbar navbar-expand-lg bd-navbar">
+    </header>
   
+
   <div class="bd-container">
     <div class="bd-container__inner bd-page-width">
+      
+      
       
       <div class="bd-sidebar-primary bd-sidebar">
         
@@ -140,7 +142,18 @@
   
   
 </a></div>
-        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
         <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../guides/quick_start.html">Quick Start</a></li>
@@ -324,10 +337,127 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-dqn-module">kitae.algos.collections.dqn module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-ppo-module">kitae.algos.collections.ppo module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-sac-module">kitae.algos.collections.sac module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-td3-module">kitae.algos.collections.td3 module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.dqn">kitae.algos.collections.dqn module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN"><code class="docutils literal notranslate"><span class="pre">DQN</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN.explore"><code class="docutils literal notranslate"><span class="pre">DQN.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN.select_action"><code class="docutils literal notranslate"><span class="pre">DQN.select_action()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams"><code class="docutils literal notranslate"><span class="pre">DQNParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.exploration"><code class="docutils literal notranslate"><span class="pre">DQNParams.exploration</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.gamma"><code class="docutils literal notranslate"><span class="pre">DQNParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.skip_steps"><code class="docutils literal notranslate"><span class="pre">DQNParams.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.start_step"><code class="docutils literal notranslate"><span class="pre">DQNParams.start_step</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple"><code class="docutils literal notranslate"><span class="pre">DQN_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.action"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.observation"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.return_"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.return_</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.train_state_dqn_factory"><code class="docutils literal notranslate"><span class="pre">train_state_dqn_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.ppo">kitae.algos.collections.ppo module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO"><code class="docutils literal notranslate"><span class="pre">PPO</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams"><code class="docutils literal notranslate"><span class="pre">PPOParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.clip_eps"><code class="docutils literal notranslate"><span class="pre">PPOParams.clip_eps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.entropy_coef"><code class="docutils literal notranslate"><span class="pre">PPOParams.entropy_coef</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.gamma"><code class="docutils literal notranslate"><span class="pre">PPOParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.normalize"><code class="docutils literal notranslate"><span class="pre">PPOParams.normalize</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.value_coef"><code class="docutils literal notranslate"><span class="pre">PPOParams.value_coef</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple"><code class="docutils literal notranslate"><span class="pre">PPO_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.action"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.done"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.done</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.gae"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.gae</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.log_prob"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.log_prob</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.next_observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.next_observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.reward"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.reward</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.target"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.target</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.value"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.train_state_ppo_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ppo_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.sac">kitae.algos.collections.sac module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC"><code class="docutils literal notranslate"><span class="pre">SAC</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC.explore"><code class="docutils literal notranslate"><span class="pre">SAC.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC.select_action"><code class="docutils literal notranslate"><span class="pre">SAC.select_action()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams"><code class="docutils literal notranslate"><span class="pre">SACParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.gamma"><code class="docutils literal notranslate"><span class="pre">SACParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.initial_alpha"><code class="docutils literal notranslate"><span class="pre">SACParams.initial_alpha</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.log_std_max"><code class="docutils literal notranslate"><span class="pre">SACParams.log_std_max</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.log_std_min"><code class="docutils literal notranslate"><span class="pre">SACParams.log_std_min</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.skip_steps"><code class="docutils literal notranslate"><span class="pre">SACParams.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.start_step"><code class="docutils literal notranslate"><span class="pre">SACParams.start_step</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.tau"><code class="docutils literal notranslate"><span class="pre">SACParams.tau</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState"><code class="docutils literal notranslate"><span class="pre">SACTrainState</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.alpha_state"><code class="docutils literal notranslate"><span class="pre">SACTrainState.alpha_state</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.from_tuple"><code class="docutils literal notranslate"><span class="pre">SACTrainState.from_tuple()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.items"><code class="docutils literal notranslate"><span class="pre">SACTrainState.items()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.keys"><code class="docutils literal notranslate"><span class="pre">SACTrainState.keys()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.replace"><code class="docutils literal notranslate"><span class="pre">SACTrainState.replace()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.to_tuple"><code class="docutils literal notranslate"><span class="pre">SACTrainState.to_tuple()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.values"><code class="docutils literal notranslate"><span class="pre">SACTrainState.values()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple"><code class="docutils literal notranslate"><span class="pre">SAC_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.action"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.observation"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.target"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.target</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.train_state_sac_factory"><code class="docutils literal notranslate"><span class="pre">train_state_sac_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.td3">kitae.algos.collections.td3 module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3"><code class="docutils literal notranslate"><span class="pre">TD3</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.explore"><code class="docutils literal notranslate"><span class="pre">TD3.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.select_action"><code class="docutils literal notranslate"><span class="pre">TD3.select_action()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.update"><code class="docutils literal notranslate"><span class="pre">TD3.update()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params"><code class="docutils literal notranslate"><span class="pre">TD3Params</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.action_noise"><code class="docutils literal notranslate"><span class="pre">TD3Params.action_noise</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.gamma"><code class="docutils literal notranslate"><span class="pre">TD3Params.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.policy_update_frequency"><code class="docutils literal notranslate"><span class="pre">TD3Params.policy_update_frequency</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.skip_steps"><code class="docutils literal notranslate"><span class="pre">TD3Params.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.start_step"><code class="docutils literal notranslate"><span class="pre">TD3Params.start_step</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.target_noise_clip"><code class="docutils literal notranslate"><span class="pre">TD3Params.target_noise_clip</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.target_noise_std"><code class="docutils literal notranslate"><span class="pre">TD3Params.target_noise_std</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.tau"><code class="docutils literal notranslate"><span class="pre">TD3Params.tau</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple"><code class="docutils literal notranslate"><span class="pre">TD3_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.action"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.observation"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.target"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.target</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.train_state_ddpg_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ddpg_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections">Module contents</a></li>
 </ul>
             </nav>
@@ -338,24 +468,572 @@ document.write(`
               
                 
 <div id="searchbox"></div>
-                <article class="bd-article" role="main">
+                <article class="bd-article">
                   
   <section id="kitae-algos-collections-package">
 <h1>kitae.algos.collections package<a class="headerlink" href="#kitae-algos-collections-package" title="Permalink to this heading">#</a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">#</a></h2>
 </section>
-<section id="kitae-algos-collections-dqn-module">
-<h2>kitae.algos.collections.dqn module<a class="headerlink" href="#kitae-algos-collections-dqn-module" title="Permalink to this heading">#</a></h2>
+<section id="module-kitae.algos.collections.dqn">
+<span id="kitae-algos-collections-dqn-module"></span><h2>kitae.algos.collections.dqn module<a class="headerlink" href="#module-kitae.algos.collections.dqn" title="Permalink to this heading">#</a></h2>
+<p>Deep Q-Network (DQN)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">DQN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.base.OffPolicyAgent" title="kitae.base.OffPolicyAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">OffPolicyAgent</span></code></a></p>
+<p>Deep Q-Network (DQN)
+Paper : <a class="reference external" href="https://arxiv.org/abs/1312.5602">https://arxiv.org/abs/1312.5602</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN.explore">
+<span class="sig-name descname"><span class="pre">explore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN.explore" title="Permalink to this definition">#</a></dt>
+<dd><p>Uses the policy to explore the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN.select_action">
+<span class="sig-name descname"><span class="pre">select_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN.select_action" title="Permalink to this definition">#</a></dt>
+<dd><p>Exploits the policy to interact with the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQNParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">DQNParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exploration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.dqn.DQNParams" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.config.AlgoParams" title="kitae.config.AlgoParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlgoParams</span></code></a></p>
+<p>Deep Q-Network parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exploration</strong> – The exploration coefficient of the epsilon-greedy policy.</p></li>
+<li><p><strong>gamma</strong> – The discount factor.</p></li>
+<li><p><strong>skip_step</strong> – The numbers of steps skipped when training.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQNParams.exploration">
+<span class="sig-name descname"><span class="pre">exploration</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.dqn.DQNParams.exploration" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQNParams.gamma">
+<span class="sig-name descname"><span class="pre">gamma</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.dqn.DQNParams.gamma" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQNParams.skip_steps">
+<span class="sig-name descname"><span class="pre">skip_steps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.dqn.DQNParams.skip_steps" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQNParams.start_step">
+<span class="sig-name descname"><span class="pre">start_step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em><a class="headerlink" href="#kitae.algos.collections.dqn.DQNParams.start_step" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN_tuple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">DQN_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN_tuple" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN_tuple.action">
+<span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN_tuple.action" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN_tuple.observation">
+<span class="sig-name descname"><span class="pre">observation</span></span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN_tuple.observation" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.DQN_tuple.return_">
+<span class="sig-name descname"><span class="pre">return_</span></span><a class="headerlink" href="#kitae.algos.collections.dqn.DQN_tuple.return_" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.explore_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">explore_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.explore_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.process_experience_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">process_experience_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.process_experience_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.train_state_dqn_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">train_state_dqn_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.TrainState" title="kitae.modules.train_state.TrainState"><span class="pre">TrainState</span></a></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.train_state_dqn_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.dqn.update_step_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.dqn.</span></span><span class="sig-name descname"><span class="pre">update_step_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.dqn.update_step_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="kitae-algos-collections-ppo-module">
-<h2>kitae.algos.collections.ppo module<a class="headerlink" href="#kitae-algos-collections-ppo-module" title="Permalink to this heading">#</a></h2>
+<section id="module-kitae.algos.collections.ppo">
+<span id="kitae-algos-collections-ppo-module"></span><h2>kitae.algos.collections.ppo module<a class="headerlink" href="#module-kitae.algos.collections.ppo" title="Permalink to this heading">#</a></h2>
+<p>Proximal Policy Optimization (PPO)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">PPO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.base.OnPolicyAgent" title="kitae.base.OnPolicyAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">OnPolicyAgent</span></code></a></p>
+<p>Proximal Policy Optimization (PPO)
+Paper : <a class="reference external" href="https://arxiv.org/abs/1707.06347">https://arxiv.org/abs/1707.06347</a>
+Implementation details : <a class="reference external" href="https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/">https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/</a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">PPOParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_lambda</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_eps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_coef</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_coef</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.config.AlgoParams" title="kitae.config.AlgoParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlgoParams</span></code></a></p>
+<p>Proximal Policy Optimization parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gamma</strong> – The discount factor.</p></li>
+<li><p><strong>_lambda</strong> – The factor for Generalized Advantage Estimator.</p></li>
+<li><p><strong>clip_eps</strong> – The clipping range for update.</p></li>
+<li><p><strong>entropy_coef</strong> – The loss coefficient of the entropy loss.</p></li>
+<li><p><strong>value_coef</strong> – The loss coefficient of the value loss.</p></li>
+<li><p><strong>normalize</strong> – If true, advantages are normalized.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams.clip_eps">
+<span class="sig-name descname"><span class="pre">clip_eps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams.clip_eps" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams.entropy_coef">
+<span class="sig-name descname"><span class="pre">entropy_coef</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams.entropy_coef" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams.gamma">
+<span class="sig-name descname"><span class="pre">gamma</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams.gamma" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams.normalize">
+<span class="sig-name descname"><span class="pre">normalize</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams.normalize" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPOParams.value_coef">
+<span class="sig-name descname"><span class="pre">value_coef</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.ppo.PPOParams.value_coef" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">PPO_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gae</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.action">
+<span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.action" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.done">
+<span class="sig-name descname"><span class="pre">done</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.done" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.gae">
+<span class="sig-name descname"><span class="pre">gae</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.gae" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.log_prob">
+<span class="sig-name descname"><span class="pre">log_prob</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.log_prob" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.next_observation">
+<span class="sig-name descname"><span class="pre">next_observation</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.next_observation" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.observation">
+<span class="sig-name descname"><span class="pre">observation</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.observation" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.reward">
+<span class="sig-name descname"><span class="pre">reward</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.reward" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.target">
+<span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.target" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 7</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.PPO_tuple.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#kitae.algos.collections.ppo.PPO_tuple.value" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 8</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.explore_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">explore_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.ppo.explore_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.process_experience_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">process_experience_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.ppo.process_experience_factory" title="Permalink to this definition">#</a></dt>
+<dd><p>Process experience PPO-style.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.train_state_ppo_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">train_state_ppo_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.PolicyValueTrainState" title="kitae.modules.train_state.PolicyValueTrainState"><span class="pre">PolicyValueTrainState</span></a></span></span><a class="headerlink" href="#kitae.algos.collections.ppo.train_state_ppo_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.ppo.update_step_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.ppo.</span></span><span class="sig-name descname"><span class="pre">update_step_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.ppo.update_step_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="kitae-algos-collections-sac-module">
-<h2>kitae.algos.collections.sac module<a class="headerlink" href="#kitae-algos-collections-sac-module" title="Permalink to this heading">#</a></h2>
+<section id="module-kitae.algos.collections.sac">
+<span id="kitae-algos-collections-sac-module"></span><h2>kitae.algos.collections.sac module<a class="headerlink" href="#module-kitae.algos.collections.sac" title="Permalink to this heading">#</a></h2>
+<p>Soft Actor Critic (SAC)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">SAC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SAC" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.base.OffPolicyAgent" title="kitae.base.OffPolicyAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">OffPolicyAgent</span></code></a></p>
+<p>Soft Actor Crtic (SAC)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC.explore">
+<span class="sig-name descname"><span class="pre">explore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.SAC.explore" title="Permalink to this definition">#</a></dt>
+<dd><p>Uses the policy to explore the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC.select_action">
+<span class="sig-name descname"><span class="pre">select_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.SAC.select_action" title="Permalink to this definition">#</a></dt>
+<dd><p>Exploits the policy to interact with the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">SACParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_std_min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_std_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SACParams" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.config.AlgoParams" title="kitae.config.AlgoParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlgoParams</span></code></a></p>
+<p>SAC parameters</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.gamma">
+<span class="sig-name descname"><span class="pre">gamma</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.gamma" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.initial_alpha">
+<span class="sig-name descname"><span class="pre">initial_alpha</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.initial_alpha" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.log_std_max">
+<span class="sig-name descname"><span class="pre">log_std_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.log_std_max" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.log_std_min">
+<span class="sig-name descname"><span class="pre">log_std_min</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.log_std_min" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.skip_steps">
+<span class="sig-name descname"><span class="pre">skip_steps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.skip_steps" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.start_step">
+<span class="sig-name descname"><span class="pre">start_step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.start_step" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACParams.tau">
+<span class="sig-name descname"><span class="pre">tau</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.sac.SACParams.tau" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">SACTrainState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.TrainState" title="kitae.modules.train_state.TrainState"><span class="pre">kitae.modules.train_state.TrainState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">qvalue_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.TrainState" title="kitae.modules.train_state.TrainState"><span class="pre">kitae.modules.train_state.TrainState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.TrainState" title="kitae.modules.train_state.TrainState"><span class="pre">kitae.modules.train_state.TrainState</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.PolicyQValueTrainState" title="kitae.modules.train_state.PolicyQValueTrainState"><code class="xref py py-class docutils literal notranslate"><span class="pre">PolicyQValueTrainState</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.alpha_state">
+<span class="sig-name descname"><span class="pre">alpha_state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.TrainState" title="kitae.modules.train_state.TrainState"><span class="pre">TrainState</span></a></em><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.alpha_state" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.from_tuple">
+<span class="sig-name descname"><span class="pre">from_tuple</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.from_tuple" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.items">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">set-like</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">items</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.items" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.keys">
+<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">set-like</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">keys</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.keys" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.replace" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.to_tuple">
+<span class="sig-name descname"><span class="pre">to_tuple</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.to_tuple" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SACTrainState.values">
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">an</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">values</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.SACTrainState.values" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC_tuple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">SAC_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.sac.SAC_tuple" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC_tuple.action">
+<span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#kitae.algos.collections.sac.SAC_tuple.action" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC_tuple.observation">
+<span class="sig-name descname"><span class="pre">observation</span></span><a class="headerlink" href="#kitae.algos.collections.sac.SAC_tuple.observation" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.SAC_tuple.target">
+<span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#kitae.algos.collections.sac.SAC_tuple.target" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.explore_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">explore_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.explore_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.process_experience_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">process_experience_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.process_experience_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.train_state_sac_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">train_state_sac_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#kitae.algos.collections.sac.SACTrainState" title="kitae.algos.collections.sac.SACTrainState"><span class="pre">SACTrainState</span></a></span></span><a class="headerlink" href="#kitae.algos.collections.sac.train_state_sac_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.sac.update_step_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.sac.</span></span><span class="sig-name descname"><span class="pre">update_step_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.sac.update_step_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="kitae-algos-collections-td3-module">
-<h2>kitae.algos.collections.td3 module<a class="headerlink" href="#kitae-algos-collections-td3-module" title="Permalink to this heading">#</a></h2>
+<section id="module-kitae.algos.collections.td3">
+<span id="kitae-algos-collections-td3-module"></span><h2>kitae.algos.collections.td3 module<a class="headerlink" href="#module-kitae.algos.collections.td3" title="Permalink to this heading">#</a></h2>
+<p>Deep Deterministic Policy Gradient (TD3)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">TD3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.td3.TD3" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.base.OffPolicyAgent" title="kitae.base.OffPolicyAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">OffPolicyAgent</span></code></a></p>
+<p>Deep Deterministic Policy Gradient (TD3)
+Paper : <a class="reference external" href="https://arxiv.org/abs/1509.02971">https://arxiv.org/abs/1509.02971</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3.explore">
+<span class="sig-name descname"><span class="pre">explore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3.explore" title="Permalink to this definition">#</a></dt>
+<dd><p>Uses the policy to explore the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3.select_action">
+<span class="sig-name descname"><span class="pre">select_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jax.Array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3.select_action" title="Permalink to this definition">#</a></dt>
+<dd><p>Exploits the policy to interact with the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>ObsType</em>) – An ObsType within the observation_space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ActionType within the action_space.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.buffer.OffPolicyBuffer" title="kitae.buffer.OffPolicyBuffer"><span class="pre">OffPolicyBuffer</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3.update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">TD3Params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_noise</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_update_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_noise_std</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_noise_clip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="kitae.html#kitae.config.AlgoParams" title="kitae.config.AlgoParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlgoParams</span></code></a></p>
+<p>TD3 parameters</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.action_noise">
+<span class="sig-name descname"><span class="pre">action_noise</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.action_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.gamma">
+<span class="sig-name descname"><span class="pre">gamma</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.gamma" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.policy_update_frequency">
+<span class="sig-name descname"><span class="pre">policy_update_frequency</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.policy_update_frequency" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.skip_steps">
+<span class="sig-name descname"><span class="pre">skip_steps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.skip_steps" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.start_step">
+<span class="sig-name descname"><span class="pre">start_step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.start_step" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.target_noise_clip">
+<span class="sig-name descname"><span class="pre">target_noise_clip</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.target_noise_clip" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.target_noise_std">
+<span class="sig-name descname"><span class="pre">target_noise_std</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.target_noise_std" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3Params.tau">
+<span class="sig-name descname"><span class="pre">tau</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#kitae.algos.collections.td3.TD3Params.tau" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3_tuple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">TD3_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.algos.collections.td3.TD3_tuple" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3_tuple.action">
+<span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3_tuple.action" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3_tuple.observation">
+<span class="sig-name descname"><span class="pre">observation</span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3_tuple.observation" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.TD3_tuple.target">
+<span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#kitae.algos.collections.td3.TD3_tuple.target" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.explore_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">explore_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.explore_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.process_experience_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">process_experience_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.process_experience_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.train_state_ddpg_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">train_state_ddpg_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="kitae.modules.html#kitae.modules.train_state.PolicyQValueTrainState" title="kitae.modules.train_state.PolicyQValueTrainState"><span class="pre">PolicyQValueTrainState</span></a></span></span><a class="headerlink" href="#kitae.algos.collections.td3.train_state_ddpg_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="kitae.algos.collections.td3.update_step_factory">
+<span class="sig-prename descclassname"><span class="pre">kitae.algos.collections.td3.</span></span><span class="sig-name descname"><span class="pre">update_step_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kitae.html#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#kitae.algos.collections.td3.update_step_factory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </section>
 <section id="module-kitae.algos.collections">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-kitae.algos.collections" title="Permalink to this heading">#</a></h2>
@@ -400,6 +1078,7 @@ document.write(`
               
                 <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
   <div class="sidebar-secondary-item">
   <div class="page-toc tocsection onthispage">
     <i class="fa-solid fa-list"></i> Contents
@@ -407,10 +1086,127 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-dqn-module">kitae.algos.collections.dqn module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-ppo-module">kitae.algos.collections.ppo module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-sac-module">kitae.algos.collections.sac module</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae-algos-collections-td3-module">kitae.algos.collections.td3 module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.dqn">kitae.algos.collections.dqn module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN"><code class="docutils literal notranslate"><span class="pre">DQN</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN.explore"><code class="docutils literal notranslate"><span class="pre">DQN.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN.select_action"><code class="docutils literal notranslate"><span class="pre">DQN.select_action()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams"><code class="docutils literal notranslate"><span class="pre">DQNParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.exploration"><code class="docutils literal notranslate"><span class="pre">DQNParams.exploration</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.gamma"><code class="docutils literal notranslate"><span class="pre">DQNParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.skip_steps"><code class="docutils literal notranslate"><span class="pre">DQNParams.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQNParams.start_step"><code class="docutils literal notranslate"><span class="pre">DQNParams.start_step</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple"><code class="docutils literal notranslate"><span class="pre">DQN_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.action"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.observation"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.DQN_tuple.return_"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.return_</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.train_state_dqn_factory"><code class="docutils literal notranslate"><span class="pre">train_state_dqn_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.dqn.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.ppo">kitae.algos.collections.ppo module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO"><code class="docutils literal notranslate"><span class="pre">PPO</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams"><code class="docutils literal notranslate"><span class="pre">PPOParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.clip_eps"><code class="docutils literal notranslate"><span class="pre">PPOParams.clip_eps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.entropy_coef"><code class="docutils literal notranslate"><span class="pre">PPOParams.entropy_coef</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.gamma"><code class="docutils literal notranslate"><span class="pre">PPOParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.normalize"><code class="docutils literal notranslate"><span class="pre">PPOParams.normalize</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPOParams.value_coef"><code class="docutils literal notranslate"><span class="pre">PPOParams.value_coef</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple"><code class="docutils literal notranslate"><span class="pre">PPO_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.action"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.done"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.done</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.gae"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.gae</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.log_prob"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.log_prob</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.next_observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.next_observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.reward"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.reward</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.target"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.target</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.PPO_tuple.value"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.train_state_ppo_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ppo_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.ppo.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.sac">kitae.algos.collections.sac module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC"><code class="docutils literal notranslate"><span class="pre">SAC</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC.explore"><code class="docutils literal notranslate"><span class="pre">SAC.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC.select_action"><code class="docutils literal notranslate"><span class="pre">SAC.select_action()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams"><code class="docutils literal notranslate"><span class="pre">SACParams</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.gamma"><code class="docutils literal notranslate"><span class="pre">SACParams.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.initial_alpha"><code class="docutils literal notranslate"><span class="pre">SACParams.initial_alpha</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.log_std_max"><code class="docutils literal notranslate"><span class="pre">SACParams.log_std_max</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.log_std_min"><code class="docutils literal notranslate"><span class="pre">SACParams.log_std_min</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.skip_steps"><code class="docutils literal notranslate"><span class="pre">SACParams.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.start_step"><code class="docutils literal notranslate"><span class="pre">SACParams.start_step</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACParams.tau"><code class="docutils literal notranslate"><span class="pre">SACParams.tau</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState"><code class="docutils literal notranslate"><span class="pre">SACTrainState</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.alpha_state"><code class="docutils literal notranslate"><span class="pre">SACTrainState.alpha_state</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.from_tuple"><code class="docutils literal notranslate"><span class="pre">SACTrainState.from_tuple()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.items"><code class="docutils literal notranslate"><span class="pre">SACTrainState.items()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.keys"><code class="docutils literal notranslate"><span class="pre">SACTrainState.keys()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.replace"><code class="docutils literal notranslate"><span class="pre">SACTrainState.replace()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.to_tuple"><code class="docutils literal notranslate"><span class="pre">SACTrainState.to_tuple()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SACTrainState.values"><code class="docutils literal notranslate"><span class="pre">SACTrainState.values()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple"><code class="docutils literal notranslate"><span class="pre">SAC_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.action"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.observation"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.SAC_tuple.target"><code class="docutils literal notranslate"><span class="pre">SAC_tuple.target</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.train_state_sac_factory"><code class="docutils literal notranslate"><span class="pre">train_state_sac_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.sac.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections.td3">kitae.algos.collections.td3 module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3"><code class="docutils literal notranslate"><span class="pre">TD3</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.explore"><code class="docutils literal notranslate"><span class="pre">TD3.explore()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.select_action"><code class="docutils literal notranslate"><span class="pre">TD3.select_action()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3.update"><code class="docutils literal notranslate"><span class="pre">TD3.update()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params"><code class="docutils literal notranslate"><span class="pre">TD3Params</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.action_noise"><code class="docutils literal notranslate"><span class="pre">TD3Params.action_noise</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.gamma"><code class="docutils literal notranslate"><span class="pre">TD3Params.gamma</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.policy_update_frequency"><code class="docutils literal notranslate"><span class="pre">TD3Params.policy_update_frequency</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.skip_steps"><code class="docutils literal notranslate"><span class="pre">TD3Params.skip_steps</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.start_step"><code class="docutils literal notranslate"><span class="pre">TD3Params.start_step</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.target_noise_clip"><code class="docutils literal notranslate"><span class="pre">TD3Params.target_noise_clip</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.target_noise_std"><code class="docutils literal notranslate"><span class="pre">TD3Params.target_noise_std</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3Params.tau"><code class="docutils literal notranslate"><span class="pre">TD3Params.tau</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple"><code class="docutils literal notranslate"><span class="pre">TD3_tuple</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.action"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.action</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.observation"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.observation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.TD3_tuple.target"><code class="docutils literal notranslate"><span class="pre">TD3_tuple.target</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.train_state_ddpg_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ddpg_factory()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.algos.collections.td3.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.algos.collections">Module contents</a></li>
 </ul>
   </nav></div>
@@ -460,8 +1256,8 @@ By RaffaelBDL
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
-<script src="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+  <script src="../_static/scripts/bootstrap.js?digest=8d27b9dea8ad943066ae"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae"></script>
 
   <footer class="bd-footer">
   </footer>
