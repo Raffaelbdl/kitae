@@ -26,7 +26,7 @@ dependencies = [
     "vec_parallel_env@git+https://github.com/Raffaelbdl/vectorization_parallel_env",
     "jrd_extensions@git+https://github.com/Raffaelbdl/jrd_extensions",
     "shaberax[all] @ git+https://github.com/Raffaelbdl/shaberax.git",
-    "dx_tabulate@git+https://github.com/Raffaelbdl/distrax_flax
+    "dx_tabulate@git+https://github.com/Raffaelbdl/distrax_flax",
 ]
 dynamic = ["version", "readme"]
 
