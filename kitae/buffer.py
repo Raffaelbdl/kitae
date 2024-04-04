@@ -53,11 +53,11 @@ def batchify(data: tuple[jax.Array, ...], batch_size: int) -> tuple[jax.Array, .
                 ...
 
     Args:
-        data: A tuple of Array of shape [T, ...]
-        batch_size: A int that represents the length of each batches
+        data (tuple[jax.Array, ...]): A tuple of Array of shape [T, ...]
+        batch_size (int): A int that represents the length of each batches
 
     Returns:
-        batches: A tuple of Array of shape [T // batch_size, batch_size, ...]
+        A tuple of Array of shape [T // batch_size, batch_size, ...]
 
     Raises:
         AssertionError: if the batch_size is strictly greater than the number of elements
@@ -86,12 +86,12 @@ def batchify_and_randomize(
                 ...
 
     Args:
-        key: An Array for randomness
-        data: A tuple of Array of shape [T, ...]
-        batch_size: A int that represents the length of each batches
+        key (jax.Array): An Array for randomness
+        data (tuple[jax.Array, ...]): A tuple of Array of shape [T, ...]
+        batch_size (int): A int that represents the length of each batches
 
     Returns:
-        batches: A tuple of Array of shape [T // batch_size, batch_size, ...]
+        A tuple of Array of shape [T // batch_size, batch_size, ...]
 
     Raises:
         AssertionError: if the batch_size is strictly greater than the number of elements
@@ -106,9 +106,9 @@ class Buffer(IBuffer):
     """Base Buffer class.
 
     Attributes:
-        rng: a numpy random number generator.
-        max_buffer_size: the maximum size of the buffer.
-        buffer: a list or deque that contains the transitions.
+        rng (np.random.Generator): A numpy random number generator.
+        max_buffer_size (int): The maximum size of the buffer.
+        buffer (list | deque): A list or deque that contains the transitions.
     """
 
     def __init__(self, seed: int, max_buffer_size: int = 0) -> None:
@@ -142,7 +142,7 @@ class OffPolicyBuffer(Buffer):
         """Samples from the OffPolicy buffer.
 
         Args:
-            batch_size: the number of elements to sample.
+            batch_size (int): the number of elements to sample.
 
         Returns:
             A list of transitions as tuples.
@@ -174,9 +174,12 @@ def buffer_factory(seed: int, algo_type: AlgoType, max_buffer_size: int) -> Buff
     """Generates a buffer based on the AlgoType.
 
     Args:
-        seed: an int for reproducibility.
-        algo_type: an AlgoType.
-        max_buffer_size: the maximum size of the buffer.
+        seed (int): An int for reproducibility.
+        algo_type (AlgoType)
+        max_buffer_size (int): The maximum size of the buffer.
+
+    Returns:
+        An empty instance of the corresponding buffer.
     """
     if algo_type == AlgoType.ON_POLICY:
         return OnPolicyBuffer(seed, max_buffer_size)
