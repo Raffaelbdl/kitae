@@ -3,3 +3,4 @@ docutils>=0.19
 sphinx-book-theme
 sphinx-design
 myst-parser
+kitae@git+https://github.com/Raffaelbdl/kitae

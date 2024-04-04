@@ -11,10 +11,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build HTML
       uses: ammaraskar/sphinx-action@master
-      # with:
-      #   pre-build-command: "python -m pip install --upgrade pip & pip install -e . & sphinx-apidoc -f -o docs/source/modules/ kitae/"
       with:
-        build-command: "pip install -e . & sphinx-apidoc -f -o docs/source/modules/ kitae/ & make html"
+        pre-build-command: "sphinx-apidoc -f -o docs/source/modules/ kitae/"
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
