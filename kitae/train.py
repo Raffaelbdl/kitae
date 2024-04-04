@@ -1,6 +1,5 @@
 import time
 
-from absl import logging
 import numpy as np
 from tensorboardX import SummaryWriter
 
@@ -13,6 +12,15 @@ from kitae.types import EnvLike
 
 
 def check_env(env: EnvLike) -> EnvLike:
+    """Checks if environment can be used for training.
+
+    Args:
+        env (EnvLike): An environment.
+
+    Returns:
+        The original environment or a compatible one.
+    """
+
     def not_vec_fallback(env: EnvLike) -> EnvLike:
         if hasattr(env, "agents"):
             return wrap_single_parallel_env(env)
@@ -31,7 +39,18 @@ def process_termination(
     next_observations: np.ndarray,
     infos: dict,
     writer: SummaryWriter | None,
-):
+) -> np.ndarray:
+    """Processes the termination part of the loop.
+
+    Args:
+        global_step (int): The current environment step.
+        next_observations (Array): The observations resulting from the last actions.
+        infos (dict): The info resulting from the last actions.
+        writer (SummaryWriter): A writer to log metrics.
+
+    Returns:
+        The next observations to store in the buffer.
+    """
     if "final_info" in infos:
         real_next_observations = next_observations.copy()
 
@@ -71,7 +90,21 @@ def vectorized_train(
     *,
     start_step: int = 1,
     saver: Saver = None,
-):
+) -> None:
+    """Trains an agent in a vectorized environment.
+
+    Important:
+        `env.close()` will be called at the end of the training.
+
+    Args:
+        seed (int): An int for reproducibility.
+        agent (IAgent): An agent to train.
+        env (EnvLike): An environment to train in.
+        n_env_steps (int): The number of steps to do in the environment.
+        algo_type (AlgoType): The type of algorithm.
+        start_step (int): The starting step in the environment.
+        saver (Saver): A saver instance.
+    """
     writer = saver.writer
     env = check_env(env)
     start_time = time.time()
