@@ -1,0 +1,526 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Quick Start &#8212; Kitae 0.0.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=7676fc3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=98dd19df"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'guides/quick_start';</script>
+    <link rel="icon" href="../_static/sword.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Custom Agents" href="custom_agents.html" />
+    <link rel="prev" title="Kitae" href="../index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/sword.png" class="logo__image only-light" alt="Kitae 0.0.2 documentation - Home"/>
+    <script>document.write(`<img src="../_static/sword.png" class="logo__image only-dark" alt="Kitae 0.0.2 documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_agents.html">Custom Agents</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+<a href="https://github.com/raffaelbdl/kitae" target="_blank"
+   class="btn btn-sm btn-source-repository-button"
+   title="Source repository"
+   data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+
+</a>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/guides/quick_start.md" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.md</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Quick Start</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">1. Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-environment">2. Create an environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-algoconfig">3. Create an AlgoConfig</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#instantiate-and-train-an-agent">4. Instantiate and train an agent</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">#</a></h1>
+<p>This guide will show you how to use existing agents. To implement custom agents, please see <a class="reference internal" href="custom_agents.html"><span class="std std-doc">Custom Agents</span></a>.</p>
+<section id="installation">
+<h2>1. Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<p>This package requires Python 3.10 or later and a working <a class="reference external" href="https://github.com/google/jax">JAX</a> installation.
+To install JAX, refer to <a class="reference external" href="https://github.com/google/jax#installation">the instructions</a>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>git+https://github.com/Raffaelbdl/flax_rl
+</pre></div>
+</div>
+</section>
+<section id="create-an-environment">
+<h2>2. Create an environment<a class="headerlink" href="#create-an-environment" title="Permalink to this heading">#</a></h2>
+<p><strong>Kitae</strong> training loop uses vectorized environments. You can simply load one using <strong>Kitae</strong>’s <code class="docutils literal notranslate"><span class="pre">make</span></code> functions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kitae.envs.make</span> <span class="kn">import</span> <span class="n">make_vec_env</span>
+
+<span class="n">SEED</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">ENV_ID</span> <span class="o">=</span> <span class="s2">&quot;CartPole-v1&quot;</span>
+<span class="n">N_ENVS</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">env</span> <span class="o">=</span> <span class="n">make_vec_env</span><span class="p">(</span>
+    <span class="n">env_id</span><span class="o">=</span><span class="n">ENV_ID</span><span class="p">,</span> 
+    <span class="n">n_envs</span><span class="o">=</span><span class="n">N_ENVS</span><span class="p">,</span> 
+    <span class="n">capture_video</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">run_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we create a CartPole environment, vectorized on 16 processes.
+If you only need 1 environment, you can either set <code class="docutils literal notranslate"><span class="pre">n_envs=1</span></code>, or use the <code class="docutils literal notranslate"><span class="pre">make_single_env</span></code> function.</p>
+</section>
+<section id="create-an-algoconfig">
+<h2>3. Create an AlgoConfig<a class="headerlink" href="#create-an-algoconfig" title="Permalink to this heading">#</a></h2>
+<p>All parameters are encapsulated into an <code class="docutils literal notranslate"><span class="pre">AlgoConfig</span></code>.</p>
+<p>An <code class="docutils literal notranslate"><span class="pre">AlgoConfig</span></code> is composed of 4 subconfigs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AlgoParams</span></code>: the algorithm specific parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UpdateConfig</span></code>: the update specific parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrainConfig</span></code>: the training specific parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EnvConfig</span></code>: the environment specific parameters</p></li>
+</ul>
+<p>In this guide, we will use a ppo instance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kitae</span> <span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">cfg</span>
+<span class="kn">from</span> <span class="nn">kitae.algos.collections</span> <span class="kn">import</span> <span class="n">ppo</span>
+
+<span class="n">env_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">EnvConfig</span><span class="p">(</span>
+    <span class="n">task_name</span><span class="o">=</span><span class="n">ENV_ID</span><span class="p">,</span>
+    <span class="n">observation_space</span><span class="o">=</span><span class="n">env</span><span class="o">.</span><span class="n">single_observation_space</span><span class="p">,</span>
+    <span class="n">action_space</span><span class="o">=</span><span class="n">env</span><span class="o">.</span><span class="n">single_action_space</span><span class="p">,</span>
+    <span class="n">n_envs</span><span class="o">=</span><span class="n">N_ENVS</span><span class="p">,</span>
+    <span class="n">n_agents</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+
+<span class="n">algo_params</span> <span class="o">=</span> <span class="n">ppo</span><span class="o">.</span><span class="n">PPOParams</span><span class="p">(</span>
+    <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+    <span class="n">_lambda</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+    <span class="n">clip_eps</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">entropy_coef</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">value_coef</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">update_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">UpdateConfig</span><span class="p">(</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.0003</span><span class="p">,</span>
+    <span class="n">learning_rate_annealing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">max_grad_norm</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">max_buffer_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+    <span class="n">n_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">shared_encoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">train_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">TrainConfig</span><span class="p">(</span><span class="n">n_env_steps</span><span class="o">=</span><span class="mi">5</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="mi">5</span><span class="p">,</span> <span class="n">save_frequency</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">algo_config</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">AlgoConfig</span><span class="p">(</span>
+    <span class="n">seed</span><span class="o">=</span><span class="n">SEED</span><span class="p">,</span>
+    <span class="n">algo_params</span><span class="o">=</span><span class="n">algo_params</span><span class="p">,</span>
+    <span class="n">update_cfg</span><span class="o">=</span><span class="n">update_cfg</span><span class="p">,</span>
+    <span class="n">train_cfg</span><span class="o">=</span><span class="n">train_cfg</span><span class="p">,</span>
+    <span class="n">env_cfg</span><span class="o">=</span><span class="n">env_cfg</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="instantiate-and-train-an-agent">
+<h2>4. Instantiate and train an agent<a class="headerlink" href="#instantiate-and-train-an-agent" title="Permalink to this heading">#</a></h2>
+<p>Finally, let’s instantiate a PPO agent.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">agent</span> <span class="o">=</span> <span class="n">ppo</span><span class="o">.</span><span class="n">PPO</span><span class="p">(</span><span class="n">run_name</span><span class="o">=</span><span class="s2">&quot;example-ppo&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">algo_config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Once a config has been defined, instantiating an agent is as simple as that! Training it is no more complex.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">agent</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">n_env_steps</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Kitae</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="custom_agents.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Custom Agents</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">1. Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-environment">2. Create an environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-algoconfig">3. Create an AlgoConfig</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#instantiate-and-train-an-agent">4. Instantiate and train an agent</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By RaffaelBDL
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024, RaffaelBDL.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
