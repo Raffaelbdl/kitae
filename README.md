@@ -61,8 +61,8 @@ env_cfg = cfg.EnvConfig(
 agent = ppo.PPO(
     "example-ppo",
     cfg.AlgoConfig(
-        SEED,
-        ppo.PPOParams(
+        seed=SEED,
+        algo_params=ppo.PPOParams(
             gamma=0.99,
             _lambda=0.95,
             clip_eps=0.2,
@@ -70,7 +70,7 @@ agent = ppo.PPO(
             value_coef=0.5,
             normalize=True,
         ),
-        cfg.UpdateConfig(
+        update_cfg=cfg.UpdateConfig(
             learning_rate=0.0003,
             learning_rate_annealing=True,
             max_grad_norm=0.5,
@@ -79,13 +79,13 @@ agent = ppo.PPO(
             n_epochs=1,
             shared_encoder=True,
         ),
-        cfg.TrainConfig(n_env_steps=5*10**5, save_frequency=-1),
-        env_config,
+        train_cfg=cfg.TrainConfig(n_env_steps=5*10**5, save_frequency=-1),
+        env_cfg=env_config,
     ),
     tabulate=True,
 )
 
-algo.train(env, algo.config.train_cfg.n_env_steps, callbacks=[])
+algo.train(env, algo.config.train_cfg.n_env_steps)
 ```
 
 <!-- ## Roadmap
