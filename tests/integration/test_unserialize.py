@@ -1,6 +1,5 @@
 from typing import Callable
 from kitae.base import BaseAgent
-from kitae.buffer import Experience
 from kitae.config import AlgoConfig
 from kitae.interface import IBuffer
 

@@ -48,7 +48,7 @@ In this guide, we will use a ppo instance.
 
 ```python
 from kitae import config as cfg
-from kitae.algos import ppo
+from kitae.algos.collections import ppo
 
 env_cfg = cfg.EnvConfig(
     task_name=ENV_ID,
