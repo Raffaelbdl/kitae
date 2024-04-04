@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build HTML
-      uses: ammaraskar/sphinx-action@master
+      uses: raffaelbdl/sphinx-action@master
       with:
         pre-build-command: "sphinx-apidoc -f -o docs/source/modules/ ../kitae/"
     - name: Upload artifacts
