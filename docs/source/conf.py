@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "RL_TOOLS"
+project = "Kitae"
 copyright = "2024, RaffaelBDL"
 author = "RaffaelBDL"
 release = "0.0.1"
@@ -14,10 +14,18 @@ release = "0.0.1"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx_design",
+    "myst_parser",
+]
 
 templates_path = ["_templates"]
 exclude_patterns = []
+
+source_suffix = [".rst", ".md"]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -25,8 +33,16 @@ exclude_patterns = []
 
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
+html_css_files = ["css/theme.css"]
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.autosummary", "sphinx.ext.napoleon"]
+html_logo = "_static/images/sword.png"
+html_favicon = "_static/images/sword.png"
+
+html_theme_options = {
+    "repository_url": "https://github.com/raffaelbdl/kitae",
+    "use_repository_button": True,  # add a 'link to repository' button
+}
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here.
