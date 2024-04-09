@@ -1,14 +1,12 @@
 from contextlib import AbstractContextManager
 from pathlib import Path
 import time
-from types import TracebackType
 from typing import Any
 
 import cloudpickle
 from flax.training import orbax_utils, train_state
-import orbax.checkpoint
+import orbax.checkpoint as ocp
 from tensorboardX import SummaryWriter
-import yaml
 
 from kitae.interface import IAgent
 from kitae.config import dump_algo_config
@@ -36,14 +34,12 @@ class Saver:
             dir: A string or path-like path to the saving directory.
             agent: The parent agent.
         """
-        self.dir = dir = Path(dir)
+        self.dir = dir = Path(dir).absolute()
 
-        self.ckptr = orbax.checkpoint.PyTreeCheckpointer()
-        self.options = orbax.checkpoint.CheckpointManagerOptions(
-            max_to_keep=None, create=True
-        )
-        self.ckpt_manager = orbax.checkpoint.CheckpointManager(
-            dir, self.ckptr, self.options
+        self.ckpt_manager = ocp.CheckpointManager(
+            self.dir,
+            ocp.Checkpointer(ocp.PyTreeCheckpointHandler()),
+            options=ocp.CheckpointManagerOptions(max_to_keep=None, create=True),
         )
 
         self.save_base_data(dir, agent)
@@ -74,8 +70,11 @@ class Saver:
             step (int): The current step of the environment.
             ckpt (dict): A checkpoint to save.
         """
-        save_args = orbax_utils.save_args_from_target(ckpt)
-        self.ckpt_manager.save(step, ckpt, save_kwargs={"save_args": save_args})
+        self.ckpt_manager.save(
+            step,
+            ckpt,
+            save_kwargs={"save_args": orbax_utils.save_args_from_target(ckpt)},
+        )
 
     def restore_latest_step(
         self, base_state_dict: dict[str, Any]
@@ -89,10 +88,16 @@ class Saver:
             The latest step as an int and the restored state of the agent.
         """
         step = self.ckpt_manager.latest_step()
-        return (
+        state = self.ckpt_manager.restore(
             step,
-            self.ckpt_manager.restore(step, items=base_state_dict),
+            items=base_state_dict,
+            restore_kwargs={
+                "restore_args": orbax_utils.restore_args_from_target(
+                    base_state_dict, mesh=None
+                )
+            },
         )
+        return step, state
 
 
 class SaverContext(AbstractContextManager):
