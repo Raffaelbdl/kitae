@@ -117,7 +117,7 @@ class BaseAgent(IAgent, Seeded):
         )
 
     def resume(self, env, n_env_steps):
-        step, self.state = self.saver.restore_latest_step()
+        step, self.state = self.saver.restore_latest_step(self.state)
         return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
