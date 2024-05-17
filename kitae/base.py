@@ -1,5 +1,6 @@
 """Contains the self classes for reinforcement learning."""
 
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -15,14 +16,17 @@ from kitae.algos.factory import ExperienceTransform
 from kitae.algos.factory import explore_general_factory
 from kitae.algos.factory import process_experience_pipeline_factory
 from kitae.buffer import Experience, numpy_stack_experiences
-from kitae.config import AlgoConfig, load_algo_config
+from kitae.config import AlgoConfig
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.saving import Saver
 from kitae.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
+from save.serializable import Serializable
+
 
 class BaseAgent(IAgent, Seeded):
+
     def __init__(
         self,
         run_name: str,
@@ -134,7 +138,7 @@ class BaseAgent(IAgent, Seeded):
         return self.nextkey()
 
     @classmethod
-    def unserialize(cls, data_dir: str | Path):
+    def unserialize(cls, path: str | Path):
         """Creates a new instance of the agent given the save directory.
 
         Args:
@@ -142,14 +146,33 @@ class BaseAgent(IAgent, Seeded):
         Returns:
             An instance of the chosen agent.
         """
-        config_dir = Path(data_dir).joinpath("config")
-        config = load_algo_config(config_dir)
+        return AgentSerializable.unserialize(cls, path)
 
-        extra_path = config_dir.joinpath("extra")
-        with open(extra_path, "rb") as f:
-            extra = cloudpickle.load(f)
 
-        return cls(config=config, **extra)
+from kitae.config import ConfigSerializable
+from save.serializable import CloudPickleSerializable
+
+
+class AgentSerializable(Serializable):
+    @staticmethod
+    def serialize(agent: BaseAgent, path: Path):
+        # path : runs/env_id/env_id__timems/config
+        config_path = Path(path).resolve().joinpath("config")
+        os.makedirs(config_path, exist_ok=True)
+
+        ConfigSerializable.serialize(agent.config, config_path)
+        extra_info = {"run_name": agent.run_name, "preprocess_fn": agent.preprocess_fn}
+        CloudPickleSerializable.serialize(extra_info, config_path.joinpath("extra"))
+
+    @staticmethod
+    def unserialize(cls, path: Path) -> BaseAgent:
+        # path : runs/env_id/env_id__timems/config
+        config_path = Path(path).resolve().joinpath("config")
+
+        config = ConfigSerializable.unserialize(config_path)
+        extra_info = CloudPickleSerializable.unserialize(config_path.joinpath("extra"))
+
+        return cls(config=config, **extra_info)
 
 
 def create_saver(self: BaseAgent, run_name: str) -> Saver:
