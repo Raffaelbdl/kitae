@@ -15,15 +15,20 @@ from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
 from kitae.buffer import Experience
-from kitae.loss import loss_mean_squared_error
 from kitae.timesteps import compute_td_targets
 
 from kitae.modules.modules import init_params
 from kitae.modules.train_state import TrainState
 from kitae.modules.qvalue import qvalue_factory
 
+from kitae.pytree import AgentPyTree
+
 DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
 NO_EXPLORATION = 0.0
+
+
+class DQNState(AgentPyTree):
+    qvalue: TrainState
 
 
 @dataclass
@@ -49,17 +54,19 @@ def train_state_dqn_factory(
     *,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> TrainState:
+) -> DQNState:
     observation_shape = config.env_cfg.observation_space.shape
 
     qvalue = qvalue_factory(
         config.env_cfg.observation_space, config.env_cfg.action_space
     )()
-    return TrainState.create(
-        apply_fn=jax.jit(qvalue.apply),
-        params=init_params(key, qvalue, [observation_shape], tabulate),
-        target_params=init_params(key, qvalue, [observation_shape], False),
-        tx=optax.adam(config.update_cfg.learning_rate),
+    return DQNState(
+        TrainState.create(
+            apply_fn=jax.jit(qvalue.apply),
+            params=init_params(key, qvalue, [observation_shape], tabulate),
+            target_params=init_params(key, qvalue, [observation_shape], False),
+            tx=optax.adam(config.update_cfg.learning_rate),
+        )
     )
 
 
@@ -86,13 +93,13 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def process_experience_fn(
-        dqn_state: TrainState,
+        dqn_state: DQNState,
         key: jax.Array,
         experience: Experience,
     ) -> tuple[jax.Array, ...]:
 
-        all_next_qvalues = dqn_state.apply_fn(
-            dqn_state.params, experience.next_observation
+        all_next_qvalues = dqn_state.qvalue.apply_fn(
+            dqn_state.qvalue.params, experience.next_observation
         )
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
@@ -115,7 +122,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         def loss_fn(params: Params):
             all_qvalues = qvalue_state.apply_fn(params, batch.observation)
             qvalues = jnp.take_along_axis(all_qvalues, batch.action, axis=-1)
-            loss = loss_mean_squared_error(qvalues, batch.return_)
+            loss = jnp.mean(optax.l2_loss(qvalues, batch.return_))
             return loss, {"loss_qvalue": loss}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
@@ -127,12 +134,13 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_step_fn(
-        state: TrainState,
+        state: DQNState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ) -> tuple[TrainState, dict]:
         batch = DQN_tuple(*experiences)
-        return update_qvalue_fn(state, batch)
+        state.qvalue, info = update_qvalue_fn(state.qvalue, batch)
+        return state, info
 
     return update_step_fn
 
@@ -169,7 +177,7 @@ class DQN(OffPolicyAgent):
         keys = self.interact_keys(observation)
 
         action, zeros = self.explore_fn(
-            self.state, keys, observation, exploration=NO_EXPLORATION
+            self.state.qvalue, keys, observation, exploration=NO_EXPLORATION
         )
         return action, zeros
 
@@ -177,7 +185,7 @@ class DQN(OffPolicyAgent):
         keys = self.interact_keys(observation)
 
         action, zeros = self.explore_fn(
-            self.state,
+            self.state.qvalue,
             keys,
             observation,
             exploration=self.algo_params.exploration,

@@ -1,28 +1,63 @@
 """Contains the self classes for reinforcement learning."""
 
+from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Callable
 
-import cloudpickle
 import jax
 import numpy as np
+from tensorboardX import SummaryWriter
 
 from shaberax.logger import GeneralLogger
 from jrd_extensions import Seeded
-
 
 from kitae.algos.factory import ExperienceTransform
 from kitae.algos.factory import explore_general_factory
 from kitae.algos.factory import process_experience_pipeline_factory
 from kitae.buffer import Experience, numpy_stack_experiences
-from kitae.config import AlgoConfig, load_algo_config
+from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
-from kitae.save import Saver
 from kitae.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
+from save.checkpoint import PyTreeNodeTrainStateFlaxCheckpointer
+from save.serializable import Serializable, SerializableDict, SerializableObject
+from save.serializable import save_file, CloudPickleSerializable
 
-class BaseAgent(IAgent, Seeded):
+
+@dataclass
+class AgentInfo:
+    config: AlgoConfig
+    extra_info: dict
+
+
+class AgentSerializable(Serializable):
+    @staticmethod
+    def serialize(agent_info: AgentInfo, path: Path):
+        # path : runs/env_id/env_id__timems/config
+        config_path = Path(path).resolve().joinpath("config")
+        os.makedirs(config_path, exist_ok=True)
+
+        ConfigSerializable.serialize(agent_info.config, config_path)
+        CloudPickleSerializable.serialize(
+            agent_info.extra_info, config_path.joinpath("extra")
+        )
+
+    @staticmethod
+    def unserialize(path: Path) -> AgentInfo:
+        # path : runs/env_id/env_id__timems/config
+        config_path = Path(path).resolve().joinpath("config")
+
+        config = ConfigSerializable.unserialize(config_path)
+        extra_info = CloudPickleSerializable.unserialize(config_path.joinpath("extra"))
+
+        return AgentInfo(config=config, extra_info=extra_info)
+
+
+class BaseAgent(IAgent, SerializableObject, Seeded):
+    serializable_dict = SerializableDict({"run_config": AgentSerializable})
+
     def __init__(
         self,
         run_name: str,
@@ -65,7 +100,15 @@ class BaseAgent(IAgent, Seeded):
 
         self.update_step_fn = update_step_factory(config)
 
-        self.saver = create_saver(self, run_name)
+        path = Path(run_name).resolve()
+        self.run_config = AgentInfo(
+            self.config, {"run_name": run_name, "preprocess_fn": preprocess_fn}
+        )
+        save_file(self, path)
+        self.checkpointer = PyTreeNodeTrainStateFlaxCheckpointer(
+            path.joinpath("checkpoints")
+        )
+        self.writer = SummaryWriter(path.joinpath("logs"))
 
         GeneralLogger.debug("Finished initialization.")
 
@@ -100,7 +143,7 @@ class BaseAgent(IAgent, Seeded):
     def restore(self, step: int = -1) -> int:
         """Restores the agent's states from the given step."""
         if step < 0:
-            latest_step, self.state = self.saver.restore_latest_step(self.state)
+            latest_step, self.state = self.checkpointer.restore_last(self.state)
             return latest_step
 
         # TODO Handle specific steps
@@ -113,18 +156,20 @@ class BaseAgent(IAgent, Seeded):
             env,
             n_env_steps,
             self.algo_type,
-            saver=self.saver,
+            checkpointer=self.checkpointer,
+            writer=self.writer,
         )
 
     def resume(self, env, n_env_steps):
-        step, self.state = self.saver.restore_latest_step(self.state)
+        step, self.state = self.checkpointer.restore_last(self.state)
         return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
             self.algo_type,
-            saver=self.saver,
+            checkpointer=self.checkpointer,
+            writer=self.writer,
             start_step=step,
         )
 
@@ -134,7 +179,7 @@ class BaseAgent(IAgent, Seeded):
         return self.nextkey()
 
     @classmethod
-    def unserialize(cls, data_dir: str | Path):
+    def unserialize(cls, path: str | Path):
         """Creates a new instance of the agent given the save directory.
 
         Args:
@@ -142,18 +187,9 @@ class BaseAgent(IAgent, Seeded):
         Returns:
             An instance of the chosen agent.
         """
-        config_dir = Path(data_dir).joinpath("config")
-        config = load_algo_config(config_dir)
-
-        extra_path = config_dir.joinpath("extra")
-        with open(extra_path, "rb") as f:
-            extra = cloudpickle.load(f)
-
-        return cls(config=config, **extra)
-
-
-def create_saver(self: BaseAgent, run_name: str) -> Saver:
-    return Saver(Path("./results").joinpath(run_name).absolute(), self)
+        path = Path(path).resolve()
+        agent_info = AgentSerializable.unserialize(path.joinpath("run_config"))
+        return cls(config=agent_info.config, **agent_info.extra_info)
 
 
 class OffPolicyAgent(BaseAgent):
