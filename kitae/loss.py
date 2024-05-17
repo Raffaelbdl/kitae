@@ -2,7 +2,6 @@ import chex
 import distrax as dx
 import jax
 import jax.numpy as jnp
-import optax
 
 
 def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef):
@@ -67,8 +66,8 @@ def loss_value_clip(
     values_clip = jnp.clip(values - values_old, -clip_eps, clip_eps)
     values_clip += values_old
 
-    loss_value_unclip = optax.l2_loss(values, targets)
-    loss_value_clip = optax.l2_loss(values_clip, targets)
+    loss_value_unclip = jnp.square(values - targets)
+    loss_value_clip = jnp.square(values_clip - targets)
     loss_value = jnp.mean(jnp.fmax(loss_value_unclip, loss_value_clip))
 
     infos = {"loss_value": loss_value}
