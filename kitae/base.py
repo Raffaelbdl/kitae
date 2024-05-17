@@ -1,5 +1,6 @@
 """Contains the self classes for reinforcement learning."""
 
+from dataclasses import dataclass
 import os
 from pathlib import Path
 from typing import Callable
@@ -15,27 +16,20 @@ from kitae.algos.factory import ExperienceTransform
 from kitae.algos.factory import explore_general_factory
 from kitae.algos.factory import process_experience_pipeline_factory
 from kitae.buffer import Experience, numpy_stack_experiences
-from kitae.config import AlgoConfig
+from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
 from save.checkpoint import PyTreeNodeTrainStateFlaxCheckpointer
 from save.serializable import Serializable, SerializableDict, SerializableObject
-from save.serializable import save_file
-
-
-from dataclasses import dataclass
+from save.serializable import save_file, CloudPickleSerializable
 
 
 @dataclass
 class AgentInfo:
     config: AlgoConfig
     extra_info: dict
-
-
-from kitae.config import ConfigSerializable
-from save.serializable import CloudPickleSerializable
 
 
 class AgentSerializable(Serializable):
