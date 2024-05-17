@@ -17,7 +17,7 @@ from kitae.algos.factory import process_experience_pipeline_factory
 from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, load_algo_config
 from kitae.interface import IAgent, IBuffer, AlgoType
-from kitae.save import Saver
+from kitae.saving import Saver
 from kitae.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
@@ -117,7 +117,7 @@ class BaseAgent(IAgent, Seeded):
         )
 
     def resume(self, env, n_env_steps):
-        step, self.state = self.saver.restore_latest_step(self.state)
+        step, self.state = self.saver.restore_latest_step()
         return vectorized_train(
             int(np.asarray(self.nextkey())[0]),
             self,

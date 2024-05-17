@@ -11,6 +11,8 @@ from tensorboardX import SummaryWriter
 from kitae.interface import IAgent
 from kitae.config import dump_algo_config
 
+from save.checkpoint import FlaxCheckpointer
+
 
 def default_run_name(env_id: str) -> str:
     """Generates a default name for a run."""
@@ -35,12 +37,7 @@ class Saver:
             agent: The parent agent.
         """
         self.dir = dir = Path(dir).absolute()
-
-        self.ckpt_manager = ocp.CheckpointManager(
-            self.dir,
-            ocp.Checkpointer(ocp.PyTreeCheckpointHandler()),
-            options=ocp.CheckpointManagerOptions(max_to_keep=None, create=True),
-        )
+        self.ckptr = FlaxCheckpointer(self.dir.joinpath("checkpoints"))
 
         self.save_base_data(dir, agent)
 
@@ -70,15 +67,9 @@ class Saver:
             step (int): The current step of the environment.
             ckpt (dict): A checkpoint to save.
         """
-        self.ckpt_manager.save(
-            step,
-            ckpt,
-            save_kwargs={"save_args": orbax_utils.save_args_from_target(ckpt)},
-        )
+        self.ckptr.save(ckpt, step)
 
-    def restore_latest_step(
-        self, base_state_dict: dict[str, Any]
-    ) -> tuple[int, dict[str, Any]]:
+    def restore_latest_step(self) -> tuple[int, dict[str, Any]]:
         """Restores the state of an agent from the latest step.
 
         Args:
@@ -87,17 +78,7 @@ class Saver:
         Returns:
             The latest step as an int and the restored state of the agent.
         """
-        step = self.ckpt_manager.latest_step()
-        state = self.ckpt_manager.restore(
-            step,
-            items=base_state_dict,
-            restore_kwargs={
-                "restore_args": orbax_utils.restore_args_from_target(
-                    base_state_dict, mesh=None
-                )
-            },
-        )
-        return step, state
+        return self.ckptr.restore_last()
 
 
 class SaverContext(AbstractContextManager):

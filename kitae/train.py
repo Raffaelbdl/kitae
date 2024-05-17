@@ -5,7 +5,7 @@ from tensorboardX import SummaryWriter
 
 from kitae.interface import IAgent, AlgoType
 from kitae.buffer import Experience, buffer_factory
-from kitae.save import Saver, SaverContext
+from kitae.saving import Saver, SaverContext
 
 from kitae.envs.make import wrap_single_env, wrap_single_parallel_env
 from kitae.types import EnvLike
