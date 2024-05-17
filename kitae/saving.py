@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter
 from kitae.interface import IAgent
 from kitae.config import dump_algo_config
 
-from save.checkpoint import FlaxCheckpointer
+from save.checkpoint import PyTreeNodeTrainStateFlaxCheckpointer
 
 
 def default_run_name(env_id: str) -> str:
@@ -37,7 +37,9 @@ class Saver:
             agent: The parent agent.
         """
         self.dir = dir = Path(dir).absolute()
-        self.ckptr = FlaxCheckpointer(self.dir.joinpath("checkpoints"))
+        self.ckptr = PyTreeNodeTrainStateFlaxCheckpointer(
+            self.dir.joinpath("checkpoints")
+        )
 
         self.save_base_data(dir, agent)
 
@@ -69,7 +71,7 @@ class Saver:
         """
         self.ckptr.save(ckpt, step)
 
-    def restore_latest_step(self) -> tuple[int, dict[str, Any]]:
+    def restore_latest_step(self, state) -> tuple[int, dict[str, Any]]:
         """Restores the state of an agent from the latest step.
 
         Args:
@@ -78,7 +80,7 @@ class Saver:
         Returns:
             The latest step as an int and the restored state of the agent.
         """
-        return self.ckptr.restore_last()
+        return self.ckptr.restore_last(state)
 
 
 class SaverContext(AbstractContextManager):
@@ -127,7 +129,7 @@ class SaverContext(AbstractContextManager):
         if step % self.save_frequency != 0:
             return
 
-        self.saver.save(step, state)
+        self.saver.save(step, state.params)
 
     def __exit__(self, *args, **kwargs) -> bool | None:
         """Saves the agent's state when the context is exited."""
