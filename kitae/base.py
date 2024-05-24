@@ -133,7 +133,7 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         GeneralLogger.debug("Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):
-            self.state, info = jax.jit(self.update_step_fn)(
+            self.state, info = self.update_step_fn(
                 self.state, self.nextkey(), experiences
             )
         GeneralLogger.debug("Updated")
