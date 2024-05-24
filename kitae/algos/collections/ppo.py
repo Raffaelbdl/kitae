@@ -31,6 +31,8 @@ from kitae.modules.policy import (
 from kitae.modules.train_state import PolicyValueTrainState, TrainState
 from kitae.modules.value import ValueOutput
 
+from kitae.loops import update_epoch
+
 PPO_tuple = namedtuple(
     "PPO_tuple",
     [
@@ -206,9 +208,9 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
-    @jax.jit
     def update_policy_value_fn(
         ppo_state: PolicyValueTrainState,
+        key: jax.Array,
         batch: PPO_tuple,
     ) -> tuple[PolicyValueTrainState, dict]:
         def loss_fn(params):
@@ -261,20 +263,22 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         return ppo_state, info
 
-    @jax.jit
     def update_step_fn(
         ppo_state: PolicyValueTrainState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
     ) -> tuple[PolicyValueTrainState, dict]:
-        batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
+        return update_epoch(
+            key,
+            ppo_state,
+            experiences,
+            batchify_and_randomize,
+            update_policy_value_fn,
+            experience_type=PPO_tuple,
+            batch_size=config.update_cfg.batch_size,
+        )
 
-        for batch in zip(*batches):
-            ppo_state, info = update_policy_value_fn(ppo_state, PPO_tuple(*batch))
-
-        return ppo_state, info
-
-    return update_step_fn
+    return jax.jit(update_step_fn)
 
 
 class PPO(OnPolicyAgent):
