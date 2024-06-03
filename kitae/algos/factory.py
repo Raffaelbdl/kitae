@@ -5,9 +5,6 @@ import jax
 import jax.numpy as jnp
 
 
-Factory = Callable[..., Callable]
-
-
 def fn_parallel(fn: Callable) -> Callable:
     """Parallelizes a function for mutliple agents.
 
