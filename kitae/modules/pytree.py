@@ -5,6 +5,11 @@ from flax.training import train_state
 
 @dataclass_transform(field_specifiers=(field,))
 class AgentPyTree:
+    """Default Agent State class.
+
+    Contrary to Flax's PyTreeNode, an AgentPyTree is mutable.
+    """
+
     def __init_subclass__(cls):
         dataclass(cls, frozen=False)
 
