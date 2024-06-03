@@ -1,4 +1,5 @@
 """Timesteps operations useful for reinforcement learning"""
+
 import chex
 import jax
 import jax.numpy as jnp
@@ -52,6 +53,15 @@ def calculate_gaes_targets(
 def compute_td_targets(
     rewards: jax.Array, discounts: jax.Array, next_values: jax.Array
 ):
+    """Calculates TD targets
+
+    Args:
+        rewards: An Array of shape (T, 1)
+        discounts: An Array of shape (T, 1)
+        next_values: An Array of shape (T, 1)
+    Returns:
+        targets: An array of shape (T, 1)
+    """
     chex.assert_equal_shape([rewards, discounts, next_values])
     chex.assert_rank([rewards, discounts, next_values], 2)
     return rewards + discounts * next_values
