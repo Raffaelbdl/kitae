@@ -1,10 +1,14 @@
-from kitae.config import AlgoConfig, AlgoParams, UpdateConfig, TrainConfig, EnvConfig
-from kitae.config import dump_algo_config, load_algo_config
+import os
+from pathlib import Path
 
-import time
+from kitae.config import AlgoConfig, AlgoParams, UpdateConfig, TrainConfig, EnvConfig
+from kitae.config import ConfigSerializable
 
 
 def test_dump_load():
+    path = Path("./tmp_cfg_test/")
+    os.makedirs(path, exist_ok=True)
+
     import shutil
     import gymnasium as gym
 
@@ -24,14 +28,17 @@ def test_dump_load():
     algo_config = AlgoConfig(
         seed=0, algo_params=ap, update_cfg=uc, train_cfg=tc, env_cfg=ec
     )
-    dump_algo_config(algo_config, "./tmp_cfg_test/")
-    new_config = load_algo_config("./tmp_cfg_test/")
+    ConfigSerializable.serialize(algo_config, path)
+    new_config = ConfigSerializable.unserialize(path)
 
     assert algo_config == new_config
-    shutil.rmtree("./tmp_cfg_test/")
+    shutil.rmtree(path)
 
 
 def test_dump_load_custom_params():
+    path = Path("./tmp_cfg_test/")
+    os.makedirs(path, exist_ok=True)
+
     from dataclasses import dataclass
     import shutil
     import gymnasium as gym
@@ -57,8 +64,8 @@ def test_dump_load_custom_params():
     algo_config = AlgoConfig(
         seed=0, algo_params=ap, update_cfg=uc, train_cfg=tc, env_cfg=ec
     )
-    dump_algo_config(algo_config, "./tmp_cfg_test/")
-    new_config = load_algo_config("./tmp_cfg_test/")
+    ConfigSerializable.serialize(algo_config, path)
+    new_config = ConfigSerializable.unserialize(path)
 
     assert algo_config == new_config
-    shutil.rmtree("./tmp_cfg_test/")
+    shutil.rmtree(path)
