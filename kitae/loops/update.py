@@ -1,34 +1,50 @@
 from typing import Callable, NamedTuple
 
-from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 
+from kitae.modules.pytree import AgentPyTree
 from kitae.types import ExperienceTuple, LossDict, PRNGKeyArray
 
 
 BatchifyFn = Callable[[NamedTuple], NamedTuple]
 UpdateStepFn = Callable[
-    [TrainState, PRNGKeyArray, ExperienceTuple],
-    tuple[TrainState, LossDict],
+    [AgentPyTree, PRNGKeyArray, ExperienceTuple],
+    tuple[AgentPyTree, LossDict],
 ]
 
 
 def update_epoch(
-    key: jax.Array,
-    state: TrainState,
+    key: PRNGKeyArray,
+    state: AgentPyTree,
     experience: ExperienceTuple,
     batchify_fn: Callable,
     update_batch_fn: UpdateStepFn,
     *,
     experience_type: type[ExperienceTuple],
     batch_size: int,
-) -> tuple[TrainState, dict]:
+) -> tuple[AgentPyTree, dict]:
+    """Updates a state in a single epoch.
+
+    This function uses `jax.lax.scan` which can reduce compilation time.
+
+    Args:
+        key: A PRNGKeyArray for reproducibility.
+        state: A AgentPyTree containing the agent's state.
+        experience: An ExperienceTuple containing processed trajectories.
+        batchify_fn: A Callable that processes the experience into batches.
+        update_batch_fn: An UpdateStepFn that updates the agent's state.
+        experience_type: A custom experience type.
+        batch_size: An int that determines the size of a batch.
+
+    Returns:
+        An updated agent's state and the corresponding loss dictionary.
+    """
     key, _key = jax.random.split(key)
     batches = batchify_fn(_key, experience, batch_size)
 
     def _update_batch(
-        carry: tuple[PRNGKeyArray, TrainState], batch: tuple[jax.Array, ...]
+        carry: tuple[PRNGKeyArray, AgentPyTree], batch: tuple[jax.Array, ...]
     ):
         key, state = carry
         batch = experience_type(*batch)
