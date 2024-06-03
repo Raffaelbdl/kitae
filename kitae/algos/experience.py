@@ -4,13 +4,12 @@ from typing import Callable, NamedTuple, Sequence
 import chex
 import jax
 import jax.numpy as jnp
-from jax.random import PRNGKeyArray
 
 from jrd_extensions import PRNGSequence
 
 from kitae.pytree import AgentPyTree
 
-
+PRNGKeyArray = jax.Array
 ExperienceTransform = Callable[[AgentPyTree, PRNGKeyArray, NamedTuple], NamedTuple]
 
 
