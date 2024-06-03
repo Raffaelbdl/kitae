@@ -140,8 +140,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
             latest_step, self.state = self.checkpointer.restore_last(self.state)
             return latest_step
 
-        # TODO Handle specific steps
-        raise NotImplementedError("Saving a specific step is not yet implemented.")
+        # can raise FileNotFoundError
+        self.state = self.checkpointer.restore(self.state, step)
+        return step
 
     def train(self, env, n_env_steps):
         return vectorized_train(
