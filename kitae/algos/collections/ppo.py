@@ -31,7 +31,7 @@ from kitae.modules.policy import (
 from kitae.modules.value import ValueOutput
 from kitae.modules.pytree import AgentPyTree, TrainState
 
-from kitae.loops import update_epoch
+from kitae.loops.update import update_epoch
 
 PPO_tuple = namedtuple(
     "PPO_tuple",
