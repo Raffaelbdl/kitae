@@ -49,6 +49,8 @@ from save.serializable import Serializable
 
 
 class ConfigSerializable(Serializable):
+    """Static Serializable class for AlgoConfig."""
+
     @staticmethod
     def serialize(config: AlgoConfig, path: Path):
         env_cfg = config.env_cfg
@@ -59,7 +61,7 @@ class ConfigSerializable(Serializable):
             cloudpickle.dump(algo_params_type, f)
 
         algo_config_dict = asdict(config)
-        algo_config_dict.pop("env_cfg")  # rm because cannot be yaml-dumped
+        algo_config_dict.pop("env_cfg")  # pop because cannot be yaml-dumped
 
         with path.joinpath("algo_config.yaml").open("w") as f:
             yaml.dump(algo_config_dict, f)
