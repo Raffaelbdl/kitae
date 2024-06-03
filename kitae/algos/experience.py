@@ -54,7 +54,6 @@ def tuple_to_dict(experience: NamedTuple) -> dict[str, NamedTuple]:
         `Foo(a={"a": Array_a, "b": Array_b})` becomes:
         `{"a": Foo(a=Array_a), "b": Foo(b=Array_b)}`
     """
-
     _cls = experience.__class__
 
     output = {}
@@ -65,8 +64,13 @@ def tuple_to_dict(experience: NamedTuple) -> dict[str, NamedTuple]:
 
 
 def dict_to_tuple(experience: dict[str, NamedTuple]) -> NamedTuple:
-    # {"a": Experience(a=Array_a), "b": Experience(b=Array_b)}
-    # => Experience(a={"a": Array_a, "b": Array_b})
+    """Converts a NamedTuple of dictionaries to a dictionary of NamedTuple.
+
+    Eg:
+        `{"a": Foo(a=Array_a), "b": Foo(b=Array_b)}` becomes:
+        `Foo(a={"a": Array_a, "b": Array_b})`
+
+    """
     first_named_tuple = next(iter(experience.values()))
     _cls = first_named_tuple.__class__
 
