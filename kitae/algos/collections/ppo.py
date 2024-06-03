@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from kitae.base import OnPolicyAgent
+from kitae.agent import OnPolicyAgent
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.buffer import Experience, batchify_and_randomize
