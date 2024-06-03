@@ -14,7 +14,7 @@ from jrd_extensions import Seeded
 from kitae.algos.factory import explore_general_factory
 from kitae.algos.experience import ExperiencePipeline
 from kitae.buffer import Experience, numpy_stack_experiences
-from kitae.config import AlgoConfig, load_algo_config
+from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
 from kitae.save import Saver
@@ -140,7 +140,7 @@ class BaseAgent(IAgent, Seeded):
             An instance of the chosen agent.
         """
         config_dir = Path(data_dir).joinpath("config")
-        config = load_algo_config(config_dir)
+        config = ConfigSerializable.unserialize(config_dir)
 
         extra_path = config_dir.joinpath("extra")
         with open(extra_path, "rb") as f:

@@ -1,17 +1,16 @@
 from contextlib import AbstractContextManager
+import os
 from pathlib import Path
 import time
-from types import TracebackType
 from typing import Any
 
 import cloudpickle
 from flax.training import orbax_utils, train_state
 import orbax.checkpoint
 from tensorboardX import SummaryWriter
-import yaml
 
 from kitae.interface import IAgent
-from kitae.config import dump_algo_config
+from kitae.config import ConfigSerializable
 
 
 def default_run_name(env_id: str) -> str:
@@ -58,7 +57,8 @@ class Saver:
             agent (IAgent): The agent whose information must be saved.
         """
         config_dir = dir_path.joinpath("config")
-        dump_algo_config(agent.config, config_dir)
+        os.makedirs(config_dir, exist_ok=True)
+        ConfigSerializable.serialize(agent.config, config_dir)
 
         extra_info = {
             "run_name": agent.run_name,
