@@ -161,8 +161,8 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         def loss_fn(params: Params):
             q1, q2 = qvalue_state.apply_fn(params, batch.observation, batch.action)
-            loss_q1 = jnp.mean(optax.l2_loss(q1, batch.target))
-            loss_q2 = jnp.mean(optax.l2_loss(q2, batch.target))
+            loss_q1 = loss_mean_squared_error(q1, batch.target)
+            loss_q2 = loss_mean_squared_error(q2, batch.target)
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
