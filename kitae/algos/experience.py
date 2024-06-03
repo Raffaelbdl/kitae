@@ -48,9 +48,13 @@ def stack_and_merge_n_first_dims(arrays: Sequence[jax.Array], n: int = 2) -> jax
 
 
 def tuple_to_dict(experience: NamedTuple) -> dict[str, NamedTuple]:
-    # Experience(a={"a": Array_a, "b": Array_b})
-    # => {"a": Experience(a=Array_a), "b": Experience(b=Array_b)}
-    # allows simpler tree_mapping
+    """Converts a NamedTuple of dictionaries to a dictionary of NamedTuple.
+
+    Eg:
+        `Foo(a={"a": Array_a, "b": Array_b})` becomes:
+        `{"a": Foo(a=Array_a), "b": Foo(b=Array_b)}`
+    """
+
     _cls = experience.__class__
 
     output = {}
