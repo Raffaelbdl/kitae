@@ -8,8 +8,8 @@ import jax.numpy as jnp
 from jrd_extensions import PRNGSequence
 
 from kitae.modules.pytree import AgentPyTree
+from kitae.types import PRNGKeyArray
 
-PRNGKeyArray = jax.Array
 ExperienceTransform = Callable[[AgentPyTree, PRNGKeyArray, NamedTuple], NamedTuple]
 
 
