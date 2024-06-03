@@ -1,14 +1,26 @@
+"""Collection of loss functions for reinforcement learning."""
+
 import chex
 import distrax as dx
 import jax
 import jax.numpy as jnp
 import optax
 
+from kitae.types import LossDict
 
-def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef):
-    """PPO Policy loss function
+
+def loss_policy_ppo(
+    dist: dx.Distribution,
+    log_probs: jax.Array,
+    log_probs_old: jax.Array,
+    gaes: jax.Array,
+    clip_eps: float,
+    entropy_coef: float,
+) -> tuple[float, LossDict]:
+    """Proximal Policy Optimization's policy loss function.
 
     Args:
+        dist: A dx.Distribution to compute the entropy
         logits: An Array of shape (..., N_actions)
         log_probs: An Array of shape (..., 1)
         log_probs_old: An Array of shape (..., 1)
@@ -17,11 +29,8 @@ def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
         entropy_coef: A float
 
     Returns:
-        policy_loss: A float
-        infos: A dictionary containing information computed
-            loss_policy: A float
-            entropy: A Array of shape (..., N_actions)
-            kl_divergence: A float
+        A float corresponding to the loss value.
+        A LossDict with the following keys: `["loss_policy", "entropy", "kl_divergence"]`
     """
     chex.assert_equal_shape([log_probs, log_probs_old, gaes])
 
@@ -35,21 +44,24 @@ def loss_policy_ppo(dist, log_probs, log_probs_old, gaes, clip_eps, entropy_coef
     loss_entropy = -jnp.mean(entropy)
 
     kl_divergence = jax.lax.stop_gradient(jnp.mean((ratios - 1) - log_ratios))
-    infos = {
+    info = {
         "loss_policy": loss_policy,
         "mean_entropy": jnp.mean(entropy),
         "kl_divergence": kl_divergence,
     }
 
-    return loss_policy + entropy_coef * loss_entropy, infos
+    return loss_policy + entropy_coef * loss_entropy, info
 
 
 def loss_value_clip(
-    values: jax.Array, targets: jax.Array, values_old: jax.Array, clip_eps: float
-) -> tuple[float, dict[str, jax.Array]]:
+    values: jax.Array,
+    targets: jax.Array,
+    values_old: jax.Array,
+    clip_eps: float,
+) -> tuple[float, LossDict]:
     """Clipped value loss function
 
-    A clipped value loss ensures smaller updates of the ValueModule.
+    A clipped value loss ensures smaller updates of the value.
 
     Args:
         values: An Array of shape (..., 1)
@@ -58,9 +70,8 @@ def loss_value_clip(
         clip_eps: A float
 
     Returns:
-        value_loss: A float
-        infos: A dictionary containing information computed
-            loss_value: A float
+        A float corresponding to the loss value.
+        A LossDict with the following keys: `["loss_value"]`
     """
     chex.assert_equal_shape([values, values_old, targets])
 
@@ -95,8 +106,3 @@ def loss_shannon_jensen_divergence(
     """
     chex.assert_equal_rank([average_logits, average_entropy])
     return -jnp.mean(dx.Categorical(logits=average_logits).entropy() - average_entropy)
-
-
-def loss_mean_squared_error(x: jax.Array, y: jax.Array) -> float:
-    chex.assert_equal_shape([x, y])
-    return jnp.mean(jnp.square(x - y))

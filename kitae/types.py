@@ -23,3 +23,4 @@ DictArray = dict[Any, jax.Array]
 ActionType = TypeVar("ActionType")
 ObsType = TypeVar("ObsType")
 Params = flax.core.FrozenDict
+LossDict = dict[str, jax.Array]
