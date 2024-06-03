@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import optax
 
 
-from kitae.base import OffPolicyAgent
+from kitae.agent import OffPolicyAgent
 from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
