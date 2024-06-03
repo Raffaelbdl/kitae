@@ -12,9 +12,8 @@ from tensorboardX import SummaryWriter
 from shaberax.logger import GeneralLogger
 from jrd_extensions import Seeded
 
-from kitae.algos.factory import ExperienceTransform
 from kitae.algos.factory import explore_general_factory
-from kitae.algos.factory import process_experience_pipeline_factory
+from kitae.algos.experience import ExperiencePipeline
 from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
@@ -93,10 +92,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         self.explore_fn = jax.jit(self.explore_fn)
 
         self.process_experience_fn = process_experience_factory(config)
-        self.process_experience_pipeline = process_experience_pipeline_factory(
-            self.vectorized, self.parallel, experience_type
+        self.experience_pipeline = ExperiencePipeline(
+            [self.process_experience_fn], self.vectorized, self.parallel
         )
-        self.process_experience_pipeline = jax.jit(self.process_experience_pipeline)
 
         self.update_step_fn = update_step_factory(config)
 
@@ -123,20 +121,16 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
     def update(self, buffer: IBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
-        GeneralLogger.debug("Sampled")
+        GeneralLogger.debug("Buffer Sampled")
 
-        experiences = self.process_experience_pipeline(
-            [ExperienceTransform(self.process_experience_fn, self.state)],
-            key=self.nextkey(),
-            experiences=sample,
-        )
-        GeneralLogger.debug("Processed")
+        experience = self.experience_pipeline.run(self.state, self.nextkey(), sample)
+        GeneralLogger.debug("Experience Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):
             self.state, info = self.update_step_fn(
-                self.state, self.nextkey(), experiences
+                self.state, self.nextkey(), experience
             )
-        GeneralLogger.debug("Updated")
+        GeneralLogger.debug("State Updated")
 
         return info
 
