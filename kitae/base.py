@@ -17,7 +17,7 @@ from kitae.algos.experience import ExperiencePipeline
 from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
-from kitae.train import vectorized_train
+from kitae.loops.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
 from save.checkpoint import PyTreeNodeTrainStateFlaxCheckpointer
