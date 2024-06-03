@@ -4,6 +4,14 @@ kitae.envs.wrappers package
 Submodules
 ----------
 
+kitae.envs.wrappers.compatibility module
+----------------------------------------
+
+.. automodule:: kitae.envs.wrappers.compatibility
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 kitae.envs.wrappers.record\_episode\_statistics module
 ------------------------------------------------------
 

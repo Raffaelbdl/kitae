@@ -12,6 +12,14 @@ Subpackages
 Submodules
 ----------
 
+kitae.algos.experience module
+-----------------------------
+
+.. automodule:: kitae.algos.experience
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 kitae.algos.factory module
 --------------------------
 

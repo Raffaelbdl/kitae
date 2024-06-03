@@ -9,7 +9,9 @@ Subpackages
 
    kitae.algos
    kitae.envs
+   kitae.loops
    kitae.modules
+   kitae.operations
 
 Submodules
 ----------
@@ -22,10 +24,10 @@ kitae.actor module
    :undoc-members:
    :show-inheritance:
 
-kitae.base module
------------------
+kitae.agent module
+------------------
 
-.. automodule:: kitae.base
+.. automodule:: kitae.agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -54,42 +56,10 @@ kitae.interface module
    :undoc-members:
    :show-inheritance:
 
-kitae.loss module
------------------
-
-.. automodule:: kitae.loss
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 kitae.save module
 -----------------
 
 .. automodule:: kitae.save
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-kitae.timesteps module
-----------------------
-
-.. automodule:: kitae.timesteps
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-kitae.train module
-------------------
-
-.. automodule:: kitae.train
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-kitae.transformation module
----------------------------
-
-.. automodule:: kitae.transformation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -106,14 +76,6 @@ kitae.version module
 --------------------
 
 .. automodule:: kitae.version
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-kitae.wrapper module
---------------------
-
-.. automodule:: kitae.wrapper
    :members:
    :undoc-members:
    :show-inheritance:

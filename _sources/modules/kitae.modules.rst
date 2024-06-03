@@ -36,18 +36,18 @@ kitae.modules.policy module
    :undoc-members:
    :show-inheritance:
 
-kitae.modules.qvalue module
+kitae.modules.pytree module
 ---------------------------
 
-.. automodule:: kitae.modules.qvalue
+.. automodule:: kitae.modules.pytree
    :members:
    :undoc-members:
    :show-inheritance:
 
-kitae.modules.train\_state module
----------------------------------
+kitae.modules.qvalue module
+---------------------------
 
-.. automodule:: kitae.modules.train_state
+.. automodule:: kitae.modules.qvalue
    :members:
    :undoc-members:
    :show-inheritance:
