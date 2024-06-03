@@ -10,25 +10,25 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from kitae.base import OffPolicyAgent
+from kitae.agent import OffPolicyAgent
 from kitae.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
-from kitae.loss import loss_mean_squared_error
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 from kitae.modules.encoder import encoder_factory
 from kitae.modules.modules import init_params, IndependentVariable
 from kitae.modules.policy import make_policy, PolicyTanhNormal
-from kitae.modules.train_state import PolicyQValueTrainState, TrainState
+from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.qvalue import make_double_q_value, qvalue_factory
 
 SAC_tuple = namedtuple("SAC_tuple", ["observation", "action", "target"])
 
 
-@chex.dataclass
-class SACTrainState(PolicyQValueTrainState):
+class SACState(AgentPyTree):
+    policy_state: TrainState
+    qvalue_state: TrainState
     alpha_state: TrainState
 
 
@@ -53,7 +53,7 @@ def train_state_sac_factory(
     *,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> SACTrainState:
+) -> SACState:
 
     key1, key2, key3 = jax.random.split(key, 3)
     observation_shape = config.env_cfg.observation_space.shape
@@ -98,7 +98,7 @@ def train_state_sac_factory(
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    return SACTrainState(
+    return SACState(
         policy_state=policy_state,
         qvalue_state=qvalue_state,
         alpha_state=alpha_state,
@@ -122,7 +122,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def process_experience_fn(
-        sac_state: SACTrainState,
+        sac_state: SACState,
         key: jax.Array,
         experience: Experience,
     ) -> tuple[jax.Array, ...]:
@@ -237,10 +237,10 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def update_step_fn(
-        state: SACTrainState,
+        state: SACState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
-    ) -> tuple[SACTrainState, dict]:
+    ) -> tuple[SACState, dict]:
         batch = SAC_tuple(*experiences)
 
         state.qvalue_state, info_qvalue = update_qvalue_fn(state.qvalue_state, batch)

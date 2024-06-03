@@ -1,4 +1,4 @@
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Sequence
 
 import flax.linen as nn
 import jax
@@ -46,9 +46,10 @@ def conv_layer(
 def init_params(
     key: jax.Array,
     module: nn.Module,
-    input_shapes: tuple[int] | list[tuple[int]],
+    input_shapes: Sequence[tuple[int]],
     tabulate: bool,
 ) -> Params:
+    """Initializes a module parameters."""
     if not isinstance(input_shapes, list):
         input_shapes = [input_shapes]
 

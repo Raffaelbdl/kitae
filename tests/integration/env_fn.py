@@ -2,7 +2,7 @@ import envpool
 import gymnasium as gym
 from gymnasium.wrappers.atari_preprocessing import AtariPreprocessing
 import supersuit as ss
-from kitae.wrapper import EnvpoolCompatibility
+from kitae.envs.wrappers.compatibility import EnvpoolCompatibility
 
 
 def create_atari() -> gym.Env:

@@ -11,14 +11,13 @@ from shaberax.logger import GeneralLogger
 from jrd_extensions import Seeded
 
 
-from kitae.algos.factory import ExperienceTransform
 from kitae.algos.factory import explore_general_factory
-from kitae.algos.factory import process_experience_pipeline_factory
+from kitae.algos.experience import ExperiencePipeline
 from kitae.buffer import Experience, numpy_stack_experiences
-from kitae.config import AlgoConfig, load_algo_config
+from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
+from kitae.loops.train import vectorized_train
 from kitae.save import Saver
-from kitae.train import vectorized_train
 from kitae.types import ActionType, ObsType
 
 
@@ -58,10 +57,9 @@ class BaseAgent(IAgent, Seeded):
         self.explore_fn = jax.jit(self.explore_fn)
 
         self.process_experience_fn = process_experience_factory(config)
-        self.process_experience_pipeline = process_experience_pipeline_factory(
-            self.vectorized, self.parallel, experience_type
+        self.experience_pipeline = ExperiencePipeline(
+            [self.process_experience_fn], self.vectorized, self.parallel
         )
-        self.process_experience_pipeline = jax.jit(self.process_experience_pipeline)
 
         self.update_step_fn = update_step_factory(config)
 
@@ -80,20 +78,18 @@ class BaseAgent(IAgent, Seeded):
     def update(self, buffer: IBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
-        GeneralLogger.debug("Sampled")
+        GeneralLogger.debug("Buffer Sampled")
 
-        experiences = self.process_experience_pipeline(
-            [ExperienceTransform(self.process_experience_fn, self.state)],
-            key=self.nextkey(),
-            experiences=sample,
+        experience = jax.jit(self.experience_pipeline.run)(
+            self.state, self.nextkey(), sample
         )
-        GeneralLogger.debug("Processed")
+        GeneralLogger.debug("Experience Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):
-            self.state, info = jax.jit(self.update_step_fn)(
-                self.state, self.nextkey(), experiences
+            self.state, info = self.update_step_fn(
+                self.state, self.nextkey(), experience
             )
-        GeneralLogger.debug("Updated")
+        GeneralLogger.debug("State Updated")
 
         return info
 
@@ -103,12 +99,13 @@ class BaseAgent(IAgent, Seeded):
             latest_step, self.state = self.saver.restore_latest_step(self.state)
             return latest_step
 
-        # TODO Handle specific steps
-        raise NotImplementedError("Saving a specific step is not yet implemented.")
+        # can raise FileNotFoundError
+        self.state = self.checkpointer.restore(self.state, step)
+        return step
 
     def train(self, env, n_env_steps):
         return vectorized_train(
-            int(np.asarray(self.nextkey())[0]),
+            int(jax.random.key_data(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
@@ -119,7 +116,7 @@ class BaseAgent(IAgent, Seeded):
     def resume(self, env, n_env_steps):
         step, self.state = self.saver.restore_latest_step(self.state)
         return vectorized_train(
-            int(np.asarray(self.nextkey())[0]),
+            int(jax.random.key_data(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
@@ -143,7 +140,7 @@ class BaseAgent(IAgent, Seeded):
             An instance of the chosen agent.
         """
         config_dir = Path(data_dir).joinpath("config")
-        config = load_algo_config(config_dir)
+        config = ConfigSerializable.unserialize(config_dir)
 
         extra_path = config_dir.joinpath("extra")
         with open(extra_path, "rb") as f:

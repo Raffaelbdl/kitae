@@ -15,3 +15,4 @@ git+https://github.com/Raffaelbdl/vectorization_parallel_env
 git+https://github.com/Raffaelbdl/jrd_extensions
 git+https://github.com/Raffaelbdl/shaberax
 git+https://github.com/Raffaelbdl/distrax_flax
+git+https://github.com/Raffaelbdl/save

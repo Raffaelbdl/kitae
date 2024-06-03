@@ -40,7 +40,7 @@ def wrap_single_env(env: gym.Env) -> gym.vector.SyncVectorEnv:
     return gym.wrappers.RecordEpisodeStatistics(env)
 
 
-from kitae.wrapper import SubProcVecParallelEnvCompatibility
+from kitae.envs.wrappers.compatibility import SubProcVecParallelEnvCompatibility
 from kitae.envs.wrappers.vector import SubProcVecParallelEnv
 from kitae.envs.wrappers.record_episode_statistics import (
     ParallelRecordEpisodeStatistics,

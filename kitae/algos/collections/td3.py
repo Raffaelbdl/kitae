@@ -9,23 +9,27 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from kitae.base import OffPolicyAgent, ExperienceTransform
+from kitae.agent import OffPolicyAgent
 from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
-from kitae.buffer import OffPolicyBuffer, Experience
-from kitae.loss import loss_mean_squared_error
+from kitae.buffer import OffPolicyBuffer, Experience, numpy_stack_experiences
 
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 
 from kitae.modules.encoder import encoder_factory
 from kitae.modules.modules import init_params
-from kitae.modules.train_state import PolicyQValueTrainState, TrainState
+from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.policy import PolicyNormalExternalStd
 from kitae.modules.qvalue import make_double_q_value, qvalue_factory
 
 TD3_tuple = namedtuple("TD3_tuple", ["observation", "action", "target"])
+
+
+class TD3State(AgentPyTree):
+    policy_state: TrainState
+    qvalue_state: TrainState
 
 
 @dataclass
@@ -48,7 +52,7 @@ def train_state_ddpg_factory(
     *,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> PolicyQValueTrainState:
+) -> TD3State:
 
     key1, key2 = jax.random.split(key)
     observation_shape = config.env_cfg.observation_space.shape
@@ -91,7 +95,7 @@ def train_state_ddpg_factory(
         tx=optax.adam(config.update_cfg.learning_rate),
     )
 
-    return PolicyQValueTrainState(policy_state=policy_state, qvalue_state=qvalue_state)
+    return TD3State(policy_state=policy_state, qvalue_state=qvalue_state)
 
 
 def explore_factory(config: AlgoConfig) -> Callable:
@@ -115,7 +119,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 
     @jax.jit
     def process_experience_fn(
-        td3_state: PolicyQValueTrainState,
+        td3_state: TD3State,
         key: jax.Array,
         experience: Experience,
     ) -> tuple[jax.Array, ...]:
@@ -156,8 +160,8 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         def loss_fn(params: Params):
             q1, q2 = qvalue_state.apply_fn(params, batch.observation, batch.action)
-            loss_q1 = loss_mean_squared_error(q1, batch.target)
-            loss_q2 = loss_mean_squared_error(q2, batch.target)
+            loss_q1 = jnp.mean(optax.l2_loss(q1, batch.target))
+            loss_q2 = jnp.mean(optax.l2_loss(q2, batch.target))
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
@@ -208,11 +212,11 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         return (policy_state, qvalue_state), info
 
     def update_step_fn(
-        state: PolicyQValueTrainState,
+        state: TD3State,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
         should_update_policy: bool = True,
-    ) -> tuple[PolicyQValueTrainState, dict]:
+    ) -> tuple[TD3State, dict]:
         batch = TD3_tuple(*experiences)
 
         state.qvalue_state, info = update_qvalue_fn(state.qvalue_state, batch)
@@ -279,17 +283,16 @@ class TD3(OffPolicyAgent):
 
     def update(self, buffer: OffPolicyBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
+        sample = numpy_stack_experiences(sample)
 
-        experiences = self.process_experience_pipeline(
-            [ExperienceTransform(self.process_experience_fn, self.state)],
-            key=self.nextkey(),
-            experiences=sample,
+        experience = jax.jit(self.experience_pipeline.run)(
+            self.state, self.nextkey(), sample
         )
-        update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
 
+        update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
         for _ in range(self.config.update_cfg.n_epochs):
             self.state, info = self.update_step_fn(
-                self.state, self.nextkey(), experiences, update_policy
+                self.state, self.nextkey(), experience, update_policy
             )
 
         return info

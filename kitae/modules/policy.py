@@ -91,8 +91,6 @@ class PolicyTanhNormal(PolicyOutput):
         )
         log_scale = jnp.clip(log_scale, self.log_std_min, self.log_std_max)
 
-        # base_dist = dx.MultivariateNormalDiag(loc, jnp.exp(log_scale))
-        # return dx.Transformed(base_dist, dx.Tanh())
         base_dist = dx.Normal(loc, jnp.exp(log_scale))
         return dx.Transformed(base_dist, dx.Tanh())
 

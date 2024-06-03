@@ -11,13 +11,13 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from kitae.base import OnPolicyAgent
+from kitae.agent import OnPolicyAgent
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.buffer import Experience, batchify_and_randomize
 
-from kitae.loss import loss_policy_ppo, loss_value_clip
-from kitae.timesteps import calculate_gaes_targets
+from kitae.operations.loss import loss_policy_ppo, loss_value_clip
+from kitae.operations.timesteps import calculate_gaes_targets
 
 
 from kitae.modules.encoder import encoder_factory
@@ -28,8 +28,10 @@ from kitae.modules.policy import (
     sample_and_log_prob,
     get_log_prob,
 )
-from kitae.modules.train_state import PolicyValueTrainState, TrainState
 from kitae.modules.value import ValueOutput
+from kitae.modules.pytree import AgentPyTree, TrainState
+
+from kitae.loops.update import update_epoch
 
 PPO_tuple = namedtuple(
     "PPO_tuple",
@@ -45,6 +47,12 @@ PPO_tuple = namedtuple(
         "value",
     ],
 )
+
+
+class PPOState(AgentPyTree):
+    policy_state: TrainState
+    value_state: TrainState
+    encoder_state: TrainState
 
 
 @dataclass
@@ -75,7 +83,7 @@ def train_state_ppo_factory(
     *,
     preprocess_fn: Callable,
     tabulate: bool = False,
-) -> PolicyValueTrainState:
+) -> PPOState:
 
     key1, key2, key3 = jax.random.split(key, 3)
     observation_shape = config.env_cfg.observation_space.shape
@@ -136,7 +144,7 @@ def train_state_ppo_factory(
         tx=tx,
     )
 
-    return PolicyValueTrainState(
+    return PPOState(
         policy_state=policy_state, value_state=value_state, encoder_state=encoder_state
     )
 
@@ -144,7 +152,7 @@ def train_state_ppo_factory(
 def explore_factory(config: AlgoConfig) -> Callable:
     @jax.jit
     def explore_fn(
-        ppo_state: PolicyValueTrainState, key: jax.Array, observations: jax.Array
+        ppo_state: PPOState, key: jax.Array, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
         hiddens = ppo_state.encoder_state.apply_fn(
             ppo_state.encoder_state.params, observations
@@ -165,7 +173,7 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
     def process_experience_fn(
-        ppo_state: PolicyValueTrainState,
+        ppo_state: PPOState,
         key: jax.Array,
         experience: Experience,
     ) -> tuple[jax.Array, ...]:
@@ -206,11 +214,11 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
 def update_step_factory(config: AlgoConfig) -> Callable:
     algo_params = config.algo_params
 
-    @jax.jit
     def update_policy_value_fn(
-        ppo_state: PolicyValueTrainState,
+        ppo_state: PPOState,
+        key: jax.Array,
         batch: PPO_tuple,
-    ) -> tuple[PolicyValueTrainState, dict]:
+    ) -> tuple[PPOState, dict]:
         def loss_fn(params):
             hiddens = ppo_state.encoder_state.apply_fn(
                 params["encoder"], batch.observation
@@ -261,20 +269,22 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         return ppo_state, info
 
-    @jax.jit
     def update_step_fn(
-        ppo_state: PolicyValueTrainState,
+        ppo_state: PPOState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
-    ) -> tuple[PolicyValueTrainState, dict]:
-        batches = batchify_and_randomize(key, experiences, config.update_cfg.batch_size)
+    ) -> tuple[PPOState, dict]:
+        return update_epoch(
+            key,
+            ppo_state,
+            experiences,
+            batchify_and_randomize,
+            update_policy_value_fn,
+            experience_type=PPO_tuple,
+            batch_size=config.update_cfg.batch_size,
+        )
 
-        for batch in zip(*batches):
-            ppo_state, info = update_policy_value_fn(ppo_state, PPO_tuple(*batch))
-
-        return ppo_state, info
-
-    return update_step_fn
+    return jax.jit(update_step_fn)
 
 
 class PPO(OnPolicyAgent):

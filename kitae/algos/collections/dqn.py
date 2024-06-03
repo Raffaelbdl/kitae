@@ -10,16 +10,15 @@ import jax.numpy as jnp
 import optax
 
 
-from kitae.base import OffPolicyAgent
+from kitae.agent import OffPolicyAgent
 from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
 from kitae.buffer import Experience
-from kitae.loss import loss_mean_squared_error
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 from kitae.modules.modules import init_params
-from kitae.modules.train_state import TrainState
+from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.qvalue import qvalue_factory
 
 DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
@@ -115,7 +114,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
         def loss_fn(params: Params):
             all_qvalues = qvalue_state.apply_fn(params, batch.observation)
             qvalues = jnp.take_along_axis(all_qvalues, batch.action, axis=-1)
-            loss = loss_mean_squared_error(qvalues, batch.return_)
+            loss = jnp.mean(optax.l2_loss(qvalues, batch.return_))
             return loss, {"loss_qvalue": loss}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
