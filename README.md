@@ -15,15 +15,23 @@
 | [**Example Usage**](#example-usage)
 <!-- | [**Roadmap**](#roadmap) -->
 
-Kitae aims to be a general toolbox to make working with reinforcement learning easier.
-
 > [!IMPORTANT]
 > New reinforcement learning algorithms are frequently added to this project. However, for benchmarking purposes, please refer to the original implementations.
 
 > [!NOTE]
 > The following README is an overview of what the library offers. Please refer to the [documentation](https://raffaelbdl.github.io/kitae/) for more details.
 
+Kitae aims to be a middle ground between 'clear RL' implementations and 'use-only' libraries (SB3, ...).
 
+In Kitae, an Agent is entirely defined by a configuration and 4 factory functions: 
+- `train_state_factory`: creates the Agent's state
+- `explore_factory`: creates the function used to interact in the environment
+- `process_experience_factory`: creates the function to process the data before updating
+- `update_step_factory`: creates the function to update the Agent's state
+
+These functions can be implemented very closely to 'clean RL' implementations, but are ultimately encapsulated into a single class which simplifies the use of multiple environments, saving and loading, etc...
+
+Kitae offers a few tools to simplify writing agents. In particular, self-play in multi-agent settings and vectorized environments are automatically handled by the library.
 
 ## Installation
 This package requires Python 3.10 or later and a working [JAX](https://github.com/google/jax) installation.
@@ -88,13 +96,6 @@ agent = ppo.PPO(
 algo.train(env, algo.config.train_cfg.n_env_steps)
 ```
 
-<!-- ## Roadmap
+## How to write a custom agent with Kitae
 
-This project is still a work in progress. The current version is v0.1.0:
-- [x] Implementation of state-of-the-art algorithms:
-    - [x] PPO 
-    - [x] SAC
-    - [x] TD3
-- [x] Automatic adaptation to multi-agent (self-play) and vectorial environments. 
-- [x] Training loops, callbacks etc..
- -->
+The process of building a custom agent is detailed in this [Google Colab](https://colab.research.google.com/drive/1pm542fVcqnct5LDfeovM9mxDqWjAMscr?usp=sharing).
