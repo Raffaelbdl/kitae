@@ -4,9 +4,8 @@ from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 
-PRNGKeyArray = jax.Array
-ExperienceTuple = NamedTuple
-LossDict = dict
+from kitae.types import ExperienceTuple, LossDict, PRNGKeyArray
+
 
 BatchifyFn = Callable[[NamedTuple], NamedTuple]
 UpdateStepFn = Callable[
