@@ -126,14 +126,17 @@ class ExperiencePipeline:
         return experience
 
     def run(
-        self, state: AgentPyTree, key: PRNGKeyArray, experience: NamedTuple
+        self,
+        state: AgentPyTree,
+        key: PRNGKeyArray,
+        experience: NamedTuple,
     ) -> NamedTuple:
         """Sequentially runs the experience transforms.
 
         Args:
-            state: An AgentPyTree that contains the agent's state
-            key: A PRNGKeyArray for reproducibility
-            experience: A NamedTuple of the same type as the first transform's input
+            state: An AgentPyTree that contains the agent's state.
+            key: A PRNGKeyArray for reproducibility.
+            experience: A NamedTuple of the same type as the first transform's input.
 
         Returns:
             A processed NamedTuple.
@@ -215,10 +218,9 @@ class ExperiencePipeline:
             A processed NamedTuple where the first two dimensions are concatenated.
         """
         _run_single_pipe = lambda k, e: self.run_single_pipe(state, k, e)
-        run_vectorized_pipe = jax.vmap(_run_single_pipe, in_axes=1, out_axes=1)
+        run_vectorized_pipe = jax.vmap(_run_single_pipe, in_axes=(0, 1), out_axes=1)
 
         keys = jax.random.split(key, experience[0].shape[1]).T
-
         processed_experience = run_vectorized_pipe(keys, experience)
 
         return jax.tree_map(lambda x: merge_n_first_dims(x, 2), processed_experience)
@@ -255,7 +257,7 @@ class ExperiencePipeline:
             A processed NamedTuple where keys are the first two dimensions are merged.
         """
         _run_single_pipe = lambda k, e: self.run_single_pipe(state, k, e)
-        run_vectorized_pipe = jax.vmap(_run_single_pipe, in_axes=1, out_axes=1)
+        run_vectorized_pipe = jax.vmap(_run_single_pipe, in_axes=(0, 1), out_axes=1)
 
         keys = {}
         for agent, value in experience[0].items():
