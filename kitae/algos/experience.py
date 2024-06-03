@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, NamedTuple, Sequence
 
+import chex
 import jax
 import jax.numpy as jnp
 from jax.random import PRNGKeyArray
@@ -13,8 +14,20 @@ from kitae.pytree import AgentPyTree
 ExperienceTransform = Callable[[AgentPyTree, PRNGKeyArray, NamedTuple], NamedTuple]
 
 
+# When jitting, n should be specified as a static argument
 def merge_n_first_dims(array: jax.Array, n: int = 2) -> jax.Array:
-    # n==2: (B, E, ...) => (B * E, ...)
+    """Merges the n-first dimensions of an Array.
+
+    Eg:
+        n==1: (B, E, ...) => (B, E, ...)
+        n==2: (B, E, ...) => (B * E, ...)
+        n==3: (B, E, A, ...) => (B * E * A, ...)
+
+    Raises:
+        AssertionError: If n is lower or equal to 0.
+        AssertionError: If n is not specified as static when jitting.
+    """
+    chex.assert_scalar_non_negative(n - 1)
     return jnp.reshape(array, (-1, *array.shape[n:]))
 
 
