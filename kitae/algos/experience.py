@@ -19,9 +19,9 @@ def merge_n_first_dims(array: jax.Array, n: int = 2) -> jax.Array:
     """Merges the n-first dimensions of an Array.
 
     Eg:
-        n==1: (B, E, ...) => (B, E, ...)
-        n==2: (B, E, ...) => (B * E, ...)
-        n==3: (B, E, A, ...) => (B * E * A, ...)
+        n==1: (T, E, ...) => (T, E, ...)
+        n==2: (T, E, ...) => (B * E, ...)
+        n==3: (T, E, A, ...) => (B * E * A, ...)
 
     Raises:
         AssertionError: If n is lower or equal to 0.
@@ -31,10 +31,19 @@ def merge_n_first_dims(array: jax.Array, n: int = 2) -> jax.Array:
     return jnp.reshape(array, (-1, *array.shape[n:]))
 
 
+# When jitting, n should be specified as a static argument
 def stack_and_merge_n_first_dims(arrays: Sequence[jax.Array], n: int = 2) -> jax.Array:
-    # arrays == n_agents * (T,  ...)
-    # stack > (T, n_agents, ...)
-    # merge > (T * n_agents, ...)
+    """Stacks a sequence of Arrays then merges its n-first dimensions.
+
+    Eg:
+        n==1: A * (T, E, ...) => (T, A, E, ...)
+        n==2: A * (T, E, ...) => (B * A, E, ...)
+        n==3: A * (T, E, ...) => (B * A * E, ...)
+
+    Raises:
+        AssertionError: If n is lower or equal to 0.
+        AssertionError: If n is not specified as static when jitting.
+    """
     return merge_n_first_dims(jnp.stack(arrays, axis=1), n)
 
 
