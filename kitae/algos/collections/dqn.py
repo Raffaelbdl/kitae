@@ -15,7 +15,7 @@ from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
 from kitae.buffer import Experience
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 from kitae.modules.modules import init_params
 from kitae.modules.pytree import AgentPyTree, TrainState
