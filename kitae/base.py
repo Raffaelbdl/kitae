@@ -123,7 +123,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         sample = numpy_stack_experiences(sample)
         GeneralLogger.debug("Buffer Sampled")
 
-        experience = self.experience_pipeline.run(self.state, self.nextkey(), sample)
+        experience = jax.jit(self.experience_pipeline.run)(
+            self.state, self.nextkey(), sample
+        )
         GeneralLogger.debug("Experience Processed")
 
         for _ in range(self.config.update_cfg.n_epochs):

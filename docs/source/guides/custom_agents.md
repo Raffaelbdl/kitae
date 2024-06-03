@@ -28,7 +28,7 @@ from kitae.loss import loss_mean_squared_error
 from kitae.timesteps import compute_td_targets
 
 from kitae.modules.modules import init_params
-from kitae.modules.train_state import TrainState
+from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.qvalue import qvalue_factory
 
 DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
@@ -55,13 +55,16 @@ The `train_state_factory` takes a `key` and an `AlgoConfig` as arguments.
 Its output will be stored in the agent as `state` attribute.
 
 ```python
+class DQNState(AgentPyTree):
+    qvalue: TrainState
+
 def train_state_dqn_factory(
     key: jax.Array,
     config: cfg.AlgoConfig,
     *,
     preprocess_fn: Callable = None,
     tabulate: bool = False,
-) -> TrainState:
+) -> DQNState:
     observation_shape = config.env_cfg.observation_space.shape
     n_actions = config.env_cfg.action_space.n   # discrete spaces only
 
@@ -74,15 +77,17 @@ def train_state_dqn_factory(
             return nn.Dense(n_actions)(x)
     
     qvalue = QValue()
-    return TrainState.create(
-        apply_fn=qvalue.apply,
-        params=init_params(key, qvalue, [observation_shape], tabulate),
-        target_params=init_params(key, qvalue, [observation_shape], False),
-        tx=optax.adam(config.update_cfg.learning_rate),
+    return DQNState(
+        TrainState.create(
+            apply_fn=jax.jit(qvalue.apply),
+            params=init_params(key, qvalue, [observation_shape], tabulate),
+            target_params=init_params(key, qvalue, [observation_shape], False),
+            tx=optax.adam(config.update_cfg.learning_rate),
+        )
     )
 ```
 
-Here we use `kitae.modules.train_state.TrainState` which has an additional `target_params` attribute. In this case, a `flax.training.train_state.TrainState` would have been enough.
+Here we use `kitae.modules.pytree.TrainState` which has an additional `target_params` attribute. In this case, a `flax.training.train_state.TrainState` would have been enough.
 
 ## 3. Explore factory
 
@@ -129,19 +134,20 @@ def process_experience_factory(config: cfg.AlgoConfig) -> Callable:
 
     @jax.jit
     def process_experience_fn(
-        dqn_state: TrainState,
+        dqn_state: DQNState,
         key: jax.Array,
         experience: Experience,
     ) -> tuple[jax.Array, ...]:
 
-        all_next_qvalues = dqn_state.apply_fn(
-            dqn_state.params, experience.next_observation
+        all_next_qvalues = dqn_state.qvalue.apply_fn(
+            dqn_state.qvalue.params, experience.next_observation
         )
         next_qvalues = jnp.max(all_next_qvalues, axis=-1, keepdims=True)
 
         discounts = algo_params.gamma * (1.0 - experience.done[..., None])
-        returns = rewards[..., None] + discounts * next_values
-        
+        returns = compute_td_targets(
+            experience.reward[..., None], discounts, next_qvalues
+        )
         actions = experience.action[..., None]
 
         return (experience.observation, actions, returns)
@@ -162,23 +168,24 @@ def update_step_factory(config: cfg.AlgoConfig) -> Callable:
 
     @jax.jit
     def update_step_fn(
-        dqn_state: TrainState,
+        dqn_state: DQNState,
         key: jax.Array,
         experiences: tuple[jax.Array, ...],
-    ) -> tuple[TrainState, dict]:
+    ) -> tuple[DQNState, dict]:
         batch = DQN_tuple(*experiences)
 
         def loss_fn(params: Params):
-            all_qvalues = qvalue_state.apply_fn(params, batch.observation)
+            all_qvalues = dqn_state.qvalue.apply_fn(params, batch.observation)
             qvalues = jnp.take_along_axis(all_qvalues, batch.action, axis=-1)
-            loss = jnp.mean(jnp.sum(jnp.square(qvalues - batch.return_), axis=-1))
+            loss = jnp.mean(optax.l2_loss(qvalues, batch.return_))
             return loss, {"loss_qvalue": loss}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            qvalue_state.params
+            dqn_state.qvalue.params
         )
-        qvalue_state = qvalue_state.apply_gradients(grads=grads)
-        return qvalue_state, info
+        dqn_state.qvalue = dqn_state.qvalue.apply_gradients(grads=grads)
+
+        return dqn_state, info
 
     return update_step_fn
 ```
@@ -223,7 +230,7 @@ class DQN(OffPolicyAgent):
         keys = self.interact_keys(observation)
 
         action, zeros = self.explore_fn(
-            self.state,
+            self.state.qvalue,
             keys,
             observation,
             exploration=self.algo_params.exploration,

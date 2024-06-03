@@ -18,10 +18,10 @@ from kitae.buffer import Experience
 from kitae.timesteps import compute_td_targets
 
 from kitae.modules.modules import init_params
-from kitae.modules.train_state import TrainState
+from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.qvalue import qvalue_factory
 
-from kitae.pytree import AgentPyTree
+from kitae.modules.pytree import AgentPyTree
 
 DQN_tuple = namedtuple("DQN_tuple", ["observation", "action", "return_"])
 NO_EXPLORATION = 0.0
