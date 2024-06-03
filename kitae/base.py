@@ -158,7 +158,7 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
     def resume(self, env, n_env_steps):
         step, self.state = self.checkpointer.restore_last(self.state)
         return vectorized_train(
-            int(np.asarray(self.nextkey())[0]),
+            int(jax.random.key_data(self.nextkey())[0]),
             self,
             env,
             n_env_steps,
