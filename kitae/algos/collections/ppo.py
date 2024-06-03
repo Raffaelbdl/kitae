@@ -16,8 +16,8 @@ from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.buffer import Experience, batchify_and_randomize
 
-from kitae.loss import loss_policy_ppo, loss_value_clip
-from kitae.timesteps import calculate_gaes_targets
+from kitae.operations.loss import loss_policy_ppo, loss_value_clip
+from kitae.operations.timesteps import calculate_gaes_targets
 
 
 from kitae.modules.encoder import encoder_factory

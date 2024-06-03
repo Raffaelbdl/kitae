@@ -15,7 +15,7 @@ from kitae.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 from kitae.modules.encoder import encoder_factory
 from kitae.modules.modules import init_params, IndependentVariable

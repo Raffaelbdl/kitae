@@ -14,9 +14,8 @@ from kitae.config import AlgoConfig, AlgoParams
 from kitae.types import Params
 
 from kitae.buffer import OffPolicyBuffer, Experience, numpy_stack_experiences
-from kitae.loss import loss_mean_squared_error
 
-from kitae.timesteps import compute_td_targets
+from kitae.operations.timesteps import compute_td_targets
 
 
 from kitae.modules.encoder import encoder_factory
