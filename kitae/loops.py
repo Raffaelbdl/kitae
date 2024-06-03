@@ -4,13 +4,13 @@ from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 
-KeyArray = jax.random.PRNGKeyArray
+PRNGKeyArray = jax.Array
 ExperienceTuple = NamedTuple
 LossDict = dict
 
 BatchifyFn = Callable[[NamedTuple], NamedTuple]
 UpdateStepFn = Callable[
-    [TrainState, KeyArray, ExperienceTuple],
+    [TrainState, PRNGKeyArray, ExperienceTuple],
     tuple[TrainState, LossDict],
 ]
 
@@ -28,7 +28,9 @@ def update_epoch(
     key, _key = jax.random.split(key)
     batches = batchify_fn(_key, experience, batch_size)
 
-    def _update_batch(carry: tuple[KeyArray, TrainState], batch: tuple[jax.Array, ...]):
+    def _update_batch(
+        carry: tuple[PRNGKeyArray, TrainState], batch: tuple[jax.Array, ...]
+    ):
         key, state = carry
         batch = experience_type(*batch)
         key, _key = jax.random.split(key)
