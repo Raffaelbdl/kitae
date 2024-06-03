@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 from envpool.python.api import EnvPool
 import gymnasium as gym
@@ -19,8 +19,11 @@ import jax
 
 Array = jax.Array
 DictArray = dict[Any, jax.Array]
+PRNGKeyArray = jax.Array
 
 ActionType = TypeVar("ActionType")
 ObsType = TypeVar("ObsType")
 Params = flax.core.FrozenDict
 LossDict = dict[str, jax.Array]
+
+ExperienceTuple = NamedTuple
