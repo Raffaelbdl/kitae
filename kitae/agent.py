@@ -94,9 +94,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         )
         self.explore_fn = jax.jit(self.explore_fn)
 
-        self.process_experience_fn = process_experience_factory(config)
+        process_experience_fn = process_experience_factory(config)
         self.experience_pipeline = ExperiencePipeline(
-            [self.process_experience_fn], self.vectorized, self.parallel
+            [process_experience_fn], self.vectorized, self.parallel
         )
 
         self.update_step_fn = update_step_factory(config)
