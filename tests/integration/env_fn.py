@@ -30,7 +30,7 @@ def make_discrete_env():
 
 
 class ContinuousEnv(RandomEnv):
-    action_space = Discrete(10)
+    action_space = Box(-1.0, 1.0, (10,))
     observation_space = Box(-1.0, 1.0, (20,))
 
 
