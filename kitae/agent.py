@@ -27,7 +27,6 @@ from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
-from kitae.saving import Saver
 from kitae.types import ActionType, ObsType
 
 
@@ -192,10 +191,6 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         path = Path(path).resolve()
         agent_info = AgentSerializable.unserialize(path.joinpath("run_config"))
         return cls(config=agent_info.config, **agent_info.extra_info)
-
-
-def create_saver(self: BaseAgent, run_name: str) -> Saver:
-    return Saver(Path("./results").joinpath(run_name).absolute(), self)
 
 
 class OffPolicyAgent(BaseAgent):
