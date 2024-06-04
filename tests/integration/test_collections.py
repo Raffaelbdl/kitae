@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 
 from kitae.algos.collections import dqn, ppo, sac, td3
@@ -6,161 +7,76 @@ from kitae.config import EnvConfig, TrainConfig, UpdateConfig, AlgoConfig
 from kitae.envs.make import make_vec_env
 
 
-def test_dqn_loop():
-    if os.path.isdir("./runs/test-dqn"):
-        shutil.rmtree("./runs/test-dqn")
+def get_collections(name: str):
+    if name == "dqn":
+        return dqn.DQN, dqn.DQNParams
+    if name == "ppo":
+        return ppo.PPO, ppo.PPOParams
+    if name == "sac":
+        return sac.SAC, sac.SACParams
+    if name == "td3":
+        return td3.TD3, td3.TD3Params
+    raise ValueError
 
-    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
+
+def collections_loop(name: str, env_id: str):
+    path = Path("./runs").joinpath(name).resolve()
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+
+    env = make_vec_env(env_id, 1, capture_video=False, run_name=None)
     env_cfg = EnvConfig(
-        "CartPole-v1", env.single_observation_space, env.single_action_space, 1, 1
+        env_id, env.single_observation_space, env.single_action_space, 1, 1
     )
 
-    agent = dqn.DQN(
-        "test-dqn",
+    _cls, _params = get_collections(name)
+    agent = _cls(
+        name,
         AlgoConfig(
             seed=0,
-            algo_params=dqn.DQNParams(),
-            update_cfg=UpdateConfig(1e-3, False, 1.0, int(1e5), 64, 1, False),
+            algo_params=_params(),
+            update_cfg=UpdateConfig(1e-3, False, 1.0, 128, 64, 1, False),
             train_cfg=TrainConfig(200, 100),
             env_cfg=env_cfg,
         ),
     )
-    assert os.path.isfile("./runs/test-dqn/agent_info/config/algo_config.yaml")
-    assert os.path.isfile("./runs/test-dqn/agent_info/config/algo_params_type")
-    assert os.path.isfile("./runs/test-dqn/agent_info/config/env_config")
-    assert os.path.isfile("./runs/test-dqn/agent_info/extra")
-    assert os.path.isdir("./runs/test-dqn/checkpoints")
-    assert len(os.listdir("./runs/test-dqn/checkpoints")) == 0
+
+    assert path.joinpath("agent_info", "config", "algo_config.yaml").exists()
+    assert path.joinpath("agent_info", "config", "algo_params_type").exists()
+    assert path.joinpath("agent_info", "config", "env_config").exists()
+    assert path.joinpath("agent_info", "extra").exists()
+    assert path.joinpath("checkpoints").exists()
+    assert len(os.listdir(path.joinpath("checkpoints"))) == 0
 
     agent.train(env, agent.config.train_cfg.n_env_steps)
-    assert os.path.isfile("./runs/test-dqn/checkpoints/100/checkpoint.safetensors")
-    assert os.path.isfile("./runs/test-dqn/checkpoints/200/checkpoint.safetensors")
+    assert path.joinpath("checkpoints", "100", "checkpoint.safetensors").exists()
+    assert path.joinpath("checkpoints", "200", "checkpoint.safetensors").exists()
 
-    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
-    new_agent = dqn.DQN.unserialize("./runs/test-dqn")
+    env = make_vec_env(env_id, 1, capture_video=False, run_name=None)
+    new_agent = _cls.unserialize(path)
+
     new_agent.resume(env, 300)
-    assert os.path.isfile("./runs/test-dqn/checkpoints/300/checkpoint.safetensors")
+    assert path.joinpath("checkpoints", "300", "checkpoint.safetensors").exists()
 
     new_agent.restore(200)
 
-    shutil.rmtree("./runs/test-dqn")
+    shutil.rmtree(path)
+
+    return True
+
+
+def test_dqn_loop():
+    assert collections_loop("dqn", "CartPole-v1")
 
 
 def test_ppo_loop():
-    if os.path.isdir("./runs/test-ppo"):
-        shutil.rmtree("./runs/test-ppo")
-
-    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
-    env_cfg = EnvConfig(
-        "CartPole-v1", env.single_observation_space, env.single_action_space, 1, 1
-    )
-
-    agent = ppo.PPO(
-        "test-ppo",
-        AlgoConfig(
-            seed=0,
-            algo_params=ppo.PPOParams(),
-            update_cfg=UpdateConfig(1e-3, False, 1.0, int(128), 64, 1, False),
-            train_cfg=TrainConfig(200, 100),
-            env_cfg=env_cfg,
-        ),
-    )
-    assert os.path.isfile("./runs/test-ppo/agent_info/config/algo_config.yaml")
-    assert os.path.isfile("./runs/test-ppo/agent_info/config/algo_params_type")
-    assert os.path.isfile("./runs/test-ppo/agent_info/config/env_config")
-    assert os.path.isfile("./runs/test-ppo/agent_info/extra")
-    assert os.path.isdir("./runs/test-ppo/checkpoints")
-    assert len(os.listdir("./runs/test-ppo/checkpoints")) == 0
-
-    agent.train(env, agent.config.train_cfg.n_env_steps)
-    assert os.path.isfile("./runs/test-ppo/checkpoints/100/checkpoint.safetensors")
-    assert os.path.isfile("./runs/test-ppo/checkpoints/200/checkpoint.safetensors")
-
-    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
-    new_agent = ppo.PPO.unserialize("./runs/test-ppo")
-    new_agent.resume(env, 300)
-    assert os.path.isfile("./runs/test-ppo/checkpoints/300/checkpoint.safetensors")
-
-    new_agent.restore(200)
-
-    shutil.rmtree("./runs/test-ppo")
+    assert collections_loop("ppo", "CartPole-v1")
+    assert collections_loop("ppo", "HalfCheetah-v4")
 
 
 def test_sac_loop():
-    if os.path.isdir("./runs/test-sac"):
-        shutil.rmtree("./runs/test-sac")
-
-    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
-    env_cfg = EnvConfig(
-        "HalfCheetah-v4", env.single_observation_space, env.single_action_space, 1, 1
-    )
-
-    agent = sac.SAC(
-        "test-sac",
-        AlgoConfig(
-            seed=0,
-            algo_params=sac.SACParams(),
-            update_cfg=UpdateConfig(1e-3, False, 1.0, int(1e-5), 64, 1, False),
-            train_cfg=TrainConfig(200, 100),
-            env_cfg=env_cfg,
-        ),
-    )
-    assert os.path.isfile("./runs/test-sac/agent_info/config/algo_config.yaml")
-    assert os.path.isfile("./runs/test-sac/agent_info/config/algo_params_type")
-    assert os.path.isfile("./runs/test-sac/agent_info/config/env_config")
-    assert os.path.isfile("./runs/test-sac/agent_info/extra")
-    assert os.path.isdir("./runs/test-sac/checkpoints")
-    assert len(os.listdir("./runs/test-sac/checkpoints")) == 0
-
-    agent.train(env, agent.config.train_cfg.n_env_steps)
-    assert os.path.isfile("./runs/test-sac/checkpoints/100/checkpoint.safetensors")
-    assert os.path.isfile("./runs/test-sac/checkpoints/200/checkpoint.safetensors")
-
-    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
-    new_agent = sac.SAC.unserialize("./runs/test-sac")
-    new_agent.resume(env, 300)
-    assert os.path.isfile("./runs/test-sac/checkpoints/300/checkpoint.safetensors")
-
-    new_agent.restore(200)
-
-    shutil.rmtree("./runs/test-sac")
+    assert collections_loop("sac", "HalfCheetah-v4")
 
 
 def test_td3_loop():
-    if os.path.isdir("./runs/test-td3"):
-        shutil.rmtree("./runs/test-td3")
-
-    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
-    env_cfg = EnvConfig(
-        "HalfCheetah-v4", env.single_observation_space, env.single_action_space, 1, 1
-    )
-
-    agent = td3.TD3(
-        "test-td3",
-        AlgoConfig(
-            seed=0,
-            algo_params=td3.TD3Params(),
-            update_cfg=UpdateConfig(1e-3, False, 1.0, int(1e-5), 64, 1, False),
-            train_cfg=TrainConfig(200, 100),
-            env_cfg=env_cfg,
-        ),
-    )
-    assert os.path.isfile("./runs/test-td3/agent_info/config/algo_config.yaml")
-    assert os.path.isfile("./runs/test-td3/agent_info/config/algo_params_type")
-    assert os.path.isfile("./runs/test-td3/agent_info/config/env_config")
-    assert os.path.isfile("./runs/test-td3/agent_info/extra")
-    assert os.path.isdir("./runs/test-td3/checkpoints")
-    assert len(os.listdir("./runs/test-td3/checkpoints")) == 0
-
-    agent.train(env, agent.config.train_cfg.n_env_steps)
-    assert os.path.isfile("./runs/test-td3/checkpoints/100/checkpoint.safetensors")
-    assert os.path.isfile("./runs/test-td3/checkpoints/200/checkpoint.safetensors")
-
-    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
-    new_agent = td3.TD3.unserialize("./runs/test-td3")
-    new_agent.resume(env, 300)
-    assert os.path.isfile("./runs/test-td3/checkpoints/300/checkpoint.safetensors")
-
-    new_agent.restore(200)
-
-    shutil.rmtree("./runs/test-td3")
+    assert collections_loop("td3", "HalfCheetah-v4")
