@@ -14,6 +14,8 @@ class RandomEnv(gym.Env):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Any, dict[str, Any]]:
+        super().reset(seed=seed, options=options)
+
         obs = self.observation_space.sample()
         return obs, {}
 
