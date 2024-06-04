@@ -1,3 +1,4 @@
+from gymnasium.spaces import Box
 import jax
 import jax.numpy as jnp
 
@@ -18,3 +19,7 @@ def normalize_frames(x: jax.Array) -> jax.Array:
 
 def flatten(x: jax.Array) -> jax.Array:
     return jnp.reshape(x, (-1,))
+
+
+def action_clip(x: jax.Array, action_space: Box) -> jax.Array:
+    return jnp.clip(x, action_space.low, action_space.high)

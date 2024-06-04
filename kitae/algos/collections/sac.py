@@ -4,24 +4,28 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Callable
 
-import chex
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import optax
 
+from jrd_extensions import PRNGSequence
+
 from kitae.agent import OffPolicyAgent
 from kitae.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
-from kitae.types import Params
 
 from kitae.operations.timesteps import compute_td_targets
+from kitae.operations.transformation import action_clip
 
 from kitae.modules.encoder import encoder_factory
 from kitae.modules.modules import init_params, IndependentVariable
 from kitae.modules.policy import make_policy, PolicyTanhNormal
 from kitae.modules.pytree import AgentPyTree, TrainState
 from kitae.modules.qvalue import make_double_q_value, qvalue_factory
+
+from kitae.types import Params, PRNGKeyArray, LossDict
+from kitae.types import ExploreFn, ProcessExperienceFn, UpdateFn
 
 SAC_tuple = namedtuple("SAC_tuple", ["observation", "action", "target"])
 
@@ -34,21 +38,21 @@ class SACState(AgentPyTree):
 
 @dataclass
 class SACParams(AlgoParams):
-    """SAC parameters"""
+    """Soft Actor Critic parameters."""
 
-    gamma: float
-    tau: float
+    gamma: float = 0.99
+    tau: float = 0.005
 
-    log_std_min: float
-    log_std_max: float
+    log_std_min: float = -20
+    log_std_max: float = 5
+    initial_alpha: float = 0.1
 
-    initial_alpha: float  # log
-    start_step: int
-    skip_steps: int
+    skip_steps: int = 1
+    start_step: int = -1
 
 
 def train_state_sac_factory(
-    key: jax.Array,
+    key: PRNGKeyArray,
     config: AlgoConfig,
     *,
     preprocess_fn: Callable,
@@ -105,36 +109,36 @@ def train_state_sac_factory(
     )
 
 
-def explore_factory(config: AlgoConfig) -> Callable:
-    @jax.jit
-    def explore_fn(policy_state: TrainState, key: jax.Array, observations: jax.Array):
-        actions, log_probs = policy_state.apply_fn(
-            policy_state.params, observations
-        ).sample_and_log_prob(seed=key)
-        actions = jnp.clip(actions, -1.0, 1.0)
+def explore_factory(config: AlgoConfig) -> ExploreFn:
+
+    def explore_fn(
+        state: SACState, key: PRNGKeyArray, observations: jax.Array
+    ) -> tuple[jax.Array, jax.Array]:
+
+        dists = state.policy_state.apply_fn(state.policy_state.params, observations)
+        actions, log_probs = dists.sample_and_log_prob(seed=key)
+        actions = action_clip(actions, config.env_cfg.action_space)
+
         return actions, log_probs
 
-    return explore_fn
+    return jax.jit(explore_fn)
 
 
-def process_experience_factory(config: AlgoConfig) -> Callable:
-    algo_params = config.algo_params
+def process_experience_factory(config: AlgoConfig) -> ProcessExperienceFn:
+    algo_params: SACParams = config.algo_params
 
-    @jax.jit
     def process_experience_fn(
-        sac_state: SACState,
-        key: jax.Array,
-        experience: Experience,
-    ) -> tuple[jax.Array, ...]:
+        state: SACState, key: PRNGKeyArray, experience: Experience
+    ) -> SAC_tuple:
 
-        next_dists = sac_state.policy_state.apply_fn(
-            sac_state.policy_state.target_params, experience.next_observation
+        next_dists = state.policy_state.apply_fn(
+            state.policy_state.target_params, experience.next_observation
         )
         next_actions, next_log_probs = next_dists.sample_and_log_prob(seed=key)
         next_log_probs = jnp.sum(next_log_probs, axis=-1, keepdims=True)
 
-        next_q1, next_q2 = sac_state.qvalue_state.apply_fn(
-            sac_state.qvalue_state.target_params,
+        next_q1, next_q2 = state.qvalue_state.apply_fn(
+            state.qvalue_state.target_params,
             experience.next_observation,
             next_actions,
         )
@@ -145,122 +149,135 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
             experience.reward[..., None], discounts, next_q_min
         )
 
-        alpha = jnp.exp(sac_state.alpha_state.apply_fn(sac_state.alpha_state.params))
+        alpha = jnp.exp(state.alpha_state.apply_fn(state.alpha_state.params))
         targets -= discounts * alpha * next_log_probs
 
-        return (experience.observation, experience.action, targets)
+        return SAC_tuple(experience.observation, experience.action, targets)
 
-    return process_experience_fn
+    return jax.jit(process_experience_fn)
 
 
-def update_step_factory(config: AlgoConfig) -> Callable:
-    @jax.jit
+def update_qvalue_factory(config: AlgoConfig) -> UpdateFn:
+
     def update_qvalue_fn(
-        qvalue_state: TrainState, batch: SAC_tuple
-    ) -> tuple[TrainState, dict]:
+        state: SACState, key: PRNGKeyArray, batch: SAC_tuple
+    ) -> tuple[SACState, LossDict]:
 
         def loss_fn(params: Params):
-            q1, q2 = qvalue_state.apply_fn(params, batch.observation, batch.action)
-            loss_q1 = loss_mean_squared_error(q1, batch.target)
-            loss_q2 = loss_mean_squared_error(q2, batch.target)
+            q1, q2 = state.qvalue_state.apply_fn(
+                params, batch.observation, batch.action
+            )
+            loss_q1 = jnp.mean(optax.l2_loss(q1, batch.target))
+            loss_q2 = jnp.mean(optax.l2_loss(q2, batch.target))
 
             return loss_q1 + loss_q2, {"loss_qvalue": loss_q1 + loss_q2}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            qvalue_state.params
+            state.qvalue_state.params
         )
-        qvalue_state = qvalue_state.apply_gradients(grads=grads)
+        state.qvalue_state = state.qvalue_state.apply_gradients(grads=grads)
 
-        return qvalue_state, info
+        return state, info
 
-    @jax.jit
+    return jax.jit(update_qvalue_fn)
+
+
+def update_policy_factory(config: AlgoConfig) -> UpdateFn:
+    algo_params: SACParams = config.algo_params
+
     def update_policy_fn(
-        policy_state: TrainState,
-        qvalue_state: TrainState,
-        alpha_state: TrainState,
-        batch: SAC_tuple,
-    ) -> tuple[TrainState, dict]:
+        state: SACState, key: PRNGKeyArray, batch: SAC_tuple
+    ) -> tuple[SACState, LossDict]:
 
         def loss_fn(params: Params):
-            actions, log_probs = policy_state.apply_fn(
-                params, batch.observation
-            ).sample_and_log_prob(seed=0)
+            dists = state.policy_state.apply_fn(params, batch.observation)
+            actions, log_probs = dists.sample_and_log_prob(seed=key)
             log_probs = jnp.sum(log_probs, axis=-1)
-            qvalues, _ = qvalue_state.apply_fn(
-                qvalue_state.params, batch.observation, actions
+
+            qvalues, _ = state.qvalue_state.apply_fn(
+                state.qvalue_state.params, batch.observation, actions
             )
-            alpha = jnp.exp(alpha_state.apply_fn(alpha_state.params))
+            alpha = jnp.exp(state.alpha_state.apply_fn(state.alpha_state.params))
             loss = jnp.mean(alpha * log_probs - qvalues)
+
             return loss, {"loss_policy": loss, "entropy": -jnp.mean(log_probs)}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
-            policy_state.params
+            state.policy_state.params
         )
-        policy_state = policy_state.apply_gradients(grads=grads)
+        state.policy_state = state.policy_state.apply_gradients(grads=grads)
 
-        policy_state = policy_state.replace(
+        state.policy_state = state.policy_state.replace(
             target_params=optax.incremental_update(
-                policy_state.params,
-                policy_state.target_params,
-                config.algo_params.tau,
+                state.policy_state.params,
+                state.policy_state.target_params,
+                algo_params.tau,
             )
         )
-        qvalue_state = qvalue_state.replace(
+        state.qvalue_state = state.qvalue_state.replace(
             target_params=optax.incremental_update(
-                qvalue_state.params,
-                qvalue_state.target_params,
-                config.algo_params.tau,
+                state.qvalue_state.params,
+                state.qvalue_state.target_params,
+                algo_params.tau,
             )
         )
 
-        return (policy_state, qvalue_state), info
+        return state, info
 
-    @jax.jit
-    def update_alpha_fn(
-        key: jax.Array,
-        policy_state: TrainState,
-        alpha_state: TrainState,
-        batch: SAC_tuple,
-    ) -> tuple[TrainState, dict]:
+    return jax.jit(update_policy_fn)
 
-        dists = policy_state.apply_fn(policy_state.params, batch.observation)
+
+def update_alpha_factory(config: AlgoConfig) -> UpdateFn:
+    algo_params: SACParams = config.algo_params
+
+    def update_apha_fn(
+        state: SACState, key: PRNGKeyArray, batch: SAC_tuple
+    ) -> tuple[SACState, LossDict]:
+
+        dists = state.policy_state.apply_fn(
+            state.policy_state.params, batch.observation
+        )
         _, log_probs = dists.sample_and_log_prob(seed=key)
 
         def loss_fn(params: Params):
-            alpha = jnp.exp(alpha_state.apply_fn(params))
-            loss = alpha * -jnp.mean(log_probs + config.algo_params.target_entropy)
+            alpha = jnp.exp(state.alpha_state.apply_fn(params))
+            loss = alpha * -jnp.mean(log_probs + algo_params.target_entropy)
             return loss, {"loss_alpha": loss, "alpha": alpha}
 
-        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(alpha_state.params)
-        alpha_state = alpha_state.apply_gradients(grads=grads)
-        return alpha_state, info
+        (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+            state.alpha_state.params
+        )
+        state.alpha_state = state.alpha_state.apply_gradients(grads=grads)
+        return state, info
 
-    @jax.jit
+    return jax.jit(update_apha_fn)
+
+
+def update_step_factory(config: AlgoConfig) -> UpdateFn:
+
+    update_qvalue_fn = update_qvalue_factory(config)
+    update_policy_fn = update_policy_factory(config)
+    update_alpha_fn = update_alpha_factory(config)
+
     def update_step_fn(
-        state: SACState,
-        key: jax.Array,
-        experiences: tuple[jax.Array, ...],
-    ) -> tuple[SACState, dict]:
-        batch = SAC_tuple(*experiences)
+        state: SACState, key: PRNGKeyArray, batch: SAC_tuple
+    ) -> tuple[SACState, LossDict]:
+        rng = PRNGSequence(key)
 
-        state.qvalue_state, info_qvalue = update_qvalue_fn(state.qvalue_state, batch)
-
-        (state.policy_state, state.qvalue_state), info_policy = update_policy_fn(
-            state.policy_state, state.qvalue_state, state.alpha_state, batch
-        )
-
-        state.alpha_state, info_alpha = update_alpha_fn(
-            key, state.policy_state, state.alpha_state, batch
-        )
+        state, info_qvalue = update_qvalue_fn(state, next(rng), batch)
+        state, info_policy = update_policy_fn(state, next(rng), batch)
+        state, info_alpha = update_alpha_fn(state, next(rng), batch)
 
         info = info_qvalue | info_policy | info_alpha
         return state, info
 
-    return update_step_fn
+    return jax.jit(update_step_fn)
 
 
 class SAC(OffPolicyAgent):
-    """Soft Actor Crtic (SAC)"""
+    """Soft Actor Crtic (SAC)
+    Paper: https://arxiv.org/abs/1812.05905
+    """
 
     def __init__(
         self,
@@ -270,6 +287,9 @@ class SAC(OffPolicyAgent):
         preprocess_fn: Callable = None,
         tabulate: bool = False,
     ):
+        config.algo_params.target_entropy = -config.env_cfg.action_space.shape[-1] / 2
+        self.algo_params: SACParams = config.algo_params
+
         super().__init__(
             run_name,
             config,
@@ -282,24 +302,22 @@ class SAC(OffPolicyAgent):
             experience_type=Experience,
         )
 
-        self.config.algo_params.target_entropy = (
-            -self.config.env_cfg.action_space.shape[-1] / 2
-        )
-        self.algo_params = self.config.algo_params
-
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-
-        action, zeros = self.explore_fn(self.state.policy_state, keys, observation, 0.0)
-        return action, zeros
+        action, log_prob = self.explore_fn(self.state, keys, observation)
+        return action, log_prob
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-        action, log_prob = self.explore_fn(self.state.policy_state, keys, observation)
+        action, log_prob = self.explore_fn(self.state, keys, observation)
 
         if self.step < self.algo_params.start_step:
             action = jax.random.uniform(
-                self.nextkey(), action.shape, minval=-1.0, maxval=1.0
+                self.nextkey(),
+                action.shape,
+                minval=self.config.env_cfg.action_space.low,
+                maxval=self.config.env_cfg.action_space.high,
             )
             log_prob = jnp.zeros_like(action)
+
         return action, log_prob

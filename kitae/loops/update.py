@@ -4,12 +4,12 @@ import jax
 import jax.numpy as jnp
 
 from kitae.modules.pytree import AgentPyTree
-from kitae.types import ExperienceTuple, LossDict, PRNGKeyArray
+from kitae.types import LossDict, PRNGKeyArray, ProcessedExperienceTuple
 
 
 BatchifyFn = Callable[[NamedTuple], NamedTuple]
 UpdateStepFn = Callable[
-    [AgentPyTree, PRNGKeyArray, ExperienceTuple],
+    [AgentPyTree, PRNGKeyArray, ProcessedExperienceTuple],
     tuple[AgentPyTree, LossDict],
 ]
 
@@ -17,13 +17,13 @@ UpdateStepFn = Callable[
 def update_epoch(
     key: PRNGKeyArray,
     state: AgentPyTree,
-    experience: ExperienceTuple,
+    experience: ProcessedExperienceTuple,
     batchify_fn: Callable,
     update_batch_fn: UpdateStepFn,
     *,
-    experience_type: type[ExperienceTuple],
+    experience_type: type[ProcessedExperienceTuple],
     batch_size: int,
-) -> tuple[AgentPyTree, dict]:
+) -> tuple[AgentPyTree, LossDict]:
     """Updates a state in a single epoch.
 
     This function uses `jax.lax.scan` which can reduce compilation time.
