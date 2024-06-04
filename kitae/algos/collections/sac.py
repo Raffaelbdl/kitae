@@ -47,7 +47,7 @@ class SACParams(AlgoParams):
     log_std_max: float = 5
     initial_alpha: float = 0.1
 
-    skip_steps: int = 0
+    skip_steps: int = 1
     start_step: int = -1
 
 
@@ -193,11 +193,13 @@ def update_policy_factory(config: AlgoConfig) -> UpdateFn:
             dists = state.policy_state.apply_fn(params, batch.observation)
             actions, log_probs = dists.sample_and_log_prob(seed=key)
             log_probs = jnp.sum(log_probs, axis=-1)
+
             qvalues, _ = state.qvalue_state.apply_fn(
                 state.qvalue_state.params, batch.observation, actions
             )
             alpha = jnp.exp(state.alpha_state.apply_fn(state.alpha_state.params))
             loss = jnp.mean(alpha * log_probs - qvalues)
+
             return loss, {"loss_policy": loss, "entropy": -jnp.mean(log_probs)}
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
