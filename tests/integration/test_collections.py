@@ -7,6 +7,9 @@ from kitae.envs.make import make_vec_env
 
 
 def test_dqn_loop():
+    if os.path.isdir("./runs/test-dqn"):
+        shutil.rmtree("./runs/test-dqn")
+
     env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
     env_cfg = EnvConfig(
         "CartPole-v1", env.single_observation_space, env.single_action_space, 1, 1
@@ -33,10 +36,20 @@ def test_dqn_loop():
     assert os.path.isfile("./runs/test-dqn/checkpoints/100/checkpoint.safetensors")
     assert os.path.isfile("./runs/test-dqn/checkpoints/200/checkpoint.safetensors")
 
+    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
+    new_agent = dqn.DQN.unserialize("./runs/test-dqn")
+    new_agent.resume(env, 300)
+    assert os.path.isfile("./runs/test-dqn/checkpoints/300/checkpoint.safetensors")
+
+    new_agent.restore(200)
+
     shutil.rmtree("./runs/test-dqn")
 
 
 def test_ppo_loop():
+    if os.path.isdir("./runs/test-ppo"):
+        shutil.rmtree("./runs/test-ppo")
+
     env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
     env_cfg = EnvConfig(
         "CartPole-v1", env.single_observation_space, env.single_action_space, 1, 1
@@ -63,10 +76,20 @@ def test_ppo_loop():
     assert os.path.isfile("./runs/test-ppo/checkpoints/100/checkpoint.safetensors")
     assert os.path.isfile("./runs/test-ppo/checkpoints/200/checkpoint.safetensors")
 
+    env = make_vec_env("CartPole-v1", 1, capture_video=False, run_name=None)
+    new_agent = ppo.PPO.unserialize("./runs/test-ppo")
+    new_agent.resume(env, 300)
+    assert os.path.isfile("./runs/test-ppo/checkpoints/300/checkpoint.safetensors")
+
+    new_agent.restore(200)
+
     shutil.rmtree("./runs/test-ppo")
 
 
 def test_sac_loop():
+    if os.path.isdir("./runs/test-sac"):
+        shutil.rmtree("./runs/test-sac")
+
     env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
     env_cfg = EnvConfig(
         "HalfCheetah-v4", env.single_observation_space, env.single_action_space, 1, 1
@@ -93,10 +116,20 @@ def test_sac_loop():
     assert os.path.isfile("./runs/test-sac/checkpoints/100/checkpoint.safetensors")
     assert os.path.isfile("./runs/test-sac/checkpoints/200/checkpoint.safetensors")
 
+    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
+    new_agent = sac.SAC.unserialize("./runs/test-sac")
+    new_agent.resume(env, 300)
+    assert os.path.isfile("./runs/test-sac/checkpoints/300/checkpoint.safetensors")
+
+    new_agent.restore(200)
+
     shutil.rmtree("./runs/test-sac")
 
 
 def test_td3_loop():
+    if os.path.isdir("./runs/test-td3"):
+        shutil.rmtree("./runs/test-td3")
+
     env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
     env_cfg = EnvConfig(
         "HalfCheetah-v4", env.single_observation_space, env.single_action_space, 1, 1
@@ -122,5 +155,12 @@ def test_td3_loop():
     agent.train(env, agent.config.train_cfg.n_env_steps)
     assert os.path.isfile("./runs/test-td3/checkpoints/100/checkpoint.safetensors")
     assert os.path.isfile("./runs/test-td3/checkpoints/200/checkpoint.safetensors")
+
+    env = make_vec_env("HalfCheetah-v4", 1, capture_video=False, run_name=None)
+    new_agent = td3.TD3.unserialize("./runs/test-td3")
+    new_agent.resume(env, 300)
+    assert os.path.isfile("./runs/test-td3/checkpoints/300/checkpoint.safetensors")
+
+    new_agent.restore(200)
 
     shutil.rmtree("./runs/test-td3")
