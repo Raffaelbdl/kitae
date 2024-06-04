@@ -1,10 +1,12 @@
+import shutil
 from typing import Callable
+
 from kitae.agent import BaseAgent
-from kitae.config import AlgoConfig
+from kitae.config import AlgoConfig, UpdateConfig, TrainConfig, EnvConfig
 from kitae.interface import IBuffer
 
 
-def dummy_config():
+def dummy_config() -> AlgoConfig:
     from dataclasses import dataclass
     import gymnasium as gym
     from kitae.config import (
@@ -16,11 +18,11 @@ def dummy_config():
     )
 
     @dataclass
-    class CustomParams(AlgoParams):
-        A: int
-        B: str
+    class CustomParams:
+        A: int = 0
+        B: str = "foo"
 
-    ap = CustomParams(A=0, B="abc")
+    ap = CustomParams(A=1, B="bar")
     uc = UpdateConfig(
         learning_rate=1e-4,
         learning_rate_annealing=False,
@@ -36,20 +38,12 @@ def dummy_config():
     return AlgoConfig(seed=0, algo_params=ap, update_cfg=uc, train_cfg=tc, env_cfg=ec)
 
 
-def dummy_train_state_factory(*args, **kwargs):
+def dummy_one_output_factory(*args, **kwargs) -> Callable:
     return lambda *args, **kwargs: None
 
 
-def dummy_explore_factory(*args, **kwargs):
+def dummy_two_output_factory(*args, **kwargs) -> Callable:
     return lambda *args, **kwargs: None, None
-
-
-def dummy_process_experience_factory(*args, **kwargs):
-    return lambda *args, **kwargs: None
-
-
-def dummy_update_step_factory(*args, **kwargs):
-    return lambda *args, **kwargs: None
 
 
 class DummyAgent(BaseAgent):
@@ -65,10 +59,10 @@ class DummyAgent(BaseAgent):
         super().__init__(
             run_name,
             config,
-            dummy_train_state_factory,
-            dummy_explore_factory,
-            dummy_process_experience_factory,
-            dummy_update_step_factory,
+            dummy_one_output_factory,
+            dummy_two_output_factory,
+            dummy_one_output_factory,
+            dummy_one_output_factory,
             preprocess_fn=preprocess_fn,
             tabulate=tabulate,
             experience_type=experience_type,
@@ -79,10 +73,12 @@ class DummyAgent(BaseAgent):
 
 
 def test_unserialize():
-    agent = DummyAgent("tmp_run_name", dummy_config())
-    new_agent = DummyAgent.unserialize("./runs/tmp_run_name")
+    agent = DummyAgent("tmp_run_name", dummy_config(), preprocess_fn=lambda x: x + 1)
+    unserialized = DummyAgent.unserialize("./runs/tmp_run_name")
     assert True
 
+    shutil.rmtree("./runs/tmp_run_name")
 
-if __name__ == "__main__":
-    test_unserialize()
+    assert agent.run_name == unserialized.run_name
+    assert agent.config == unserialized.config
+    assert agent.preprocess_fn(10) == unserialized.preprocess_fn(10)
