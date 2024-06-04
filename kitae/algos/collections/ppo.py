@@ -12,13 +12,12 @@ import jax.numpy as jnp
 import optax
 
 from kitae.agent import OnPolicyAgent
-from kitae.config import AlgoConfig, AlgoParams
-
 from kitae.buffer import Experience, batchify_and_randomize
+from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.loss import loss_policy_ppo, loss_value_clip
 from kitae.operations.timesteps import calculate_gaes_targets
-
+from kitae.loops.update import update_epoch
 
 from kitae.modules.encoder import encoder_factory
 from kitae.modules.modules import PassThrough, init_params
@@ -28,57 +27,38 @@ from kitae.modules.policy import (
     sample_and_log_prob,
     get_log_prob,
 )
-from kitae.modules.value import ValueOutput
 from kitae.modules.pytree import AgentPyTree, TrainState
+from kitae.modules.value import ValueOutput
 
-from kitae.loops.update import update_epoch
+from kitae.types import Params, PRNGKeyArray, LossDict
+from kitae.types import ExploreFn, ProcessExperienceFn, UpdateFn
 
 PPO_tuple = namedtuple(
     "PPO_tuple",
-    [
-        "observation",
-        "action",
-        "reward",
-        "done",
-        "next_observation",
-        "log_prob",
-        "gae",
-        "target",
-        "value",
-    ],
+    ["observation", "action", "log_prob", "gae", "target", "value"],
 )
 
 
 class PPOState(AgentPyTree):
+    encoder_state: TrainState
     policy_state: TrainState
     value_state: TrainState
-    encoder_state: TrainState
 
 
 @dataclass
 class PPOParams(AlgoParams):
-    """
-    Proximal Policy Optimization parameters.
+    """Proximal Policy Optimization parameters."""
 
-    Parameters:
-        gamma: The discount factor.
-        _lambda: The factor for Generalized Advantage Estimator.
-        clip_eps: The clipping range for update.
-        entropy_coef: The loss coefficient of the entropy loss.
-        value_coef: The loss coefficient of the value loss.
-        normalize:  If true, advantages are normalized.
-    """
-
-    gamma: float
-    _lambda: float
-    clip_eps: float
-    entropy_coef: float
-    value_coef: float
-    normalize: bool
+    gamma: float = 0.99
+    _lambda: float = 0.95
+    clip_eps: float = 0.2
+    entropy_coef: float = 0.1
+    value_coef: float = 0.5
+    normalize: bool = True
 
 
 def train_state_ppo_factory(
-    key: jax.Array,
+    key: PRNGKeyArray,
     config: AlgoConfig,
     *,
     preprocess_fn: Callable,
@@ -149,46 +129,38 @@ def train_state_ppo_factory(
     )
 
 
-def explore_factory(config: AlgoConfig) -> Callable:
-    @jax.jit
+def explore_factory(config: AlgoConfig) -> ExploreFn:
+
     def explore_fn(
-        ppo_state: PPOState, key: jax.Array, observations: jax.Array
+        state: PPOState, key: PRNGKeyArray, observations: jax.Array
     ) -> tuple[jax.Array, jax.Array]:
-        hiddens = ppo_state.encoder_state.apply_fn(
-            ppo_state.encoder_state.params, observations
-        )
+
+        hiddens = state.encoder_state.apply_fn(state.encoder_state.params, observations)
         if not isinstance(hiddens, tuple):
             hiddens = (hiddens,)
-        dists: dx.Distribution = ppo_state.policy_state.apply_fn(
-            ppo_state.policy_state.params, *hiddens
-        )
-        # return dists.sample_and_log_prob(seed=key)
-        return sample_and_log_prob(dists, key)
+        dists = state.policy_state.apply_fn(state.policy_state.params, *hiddens)
+        actions, log_probs = sample_and_log_prob(dists, key)
 
-    return explore_fn
+        return actions, log_probs
+
+    return jax.jit(explore_fn)
 
 
-def process_experience_factory(config: AlgoConfig) -> Callable:
+def process_experience_factory(config: AlgoConfig) -> ProcessExperienceFn:
     """Process experience PPO-style."""
-    algo_params = config.algo_params
+    algo_params: PPOParams = config.algo_params
 
     def process_experience_fn(
-        ppo_state: PPOState,
-        key: jax.Array,
-        experience: Experience,
-    ) -> tuple[jax.Array, ...]:
+        state: PPOState, key: PRNGKeyArray, experience: Experience
+    ) -> PPOState:
 
         all_obs = jnp.concatenate(
             [experience.observation, experience.next_observation[-1:]], axis=0
         )
-        all_hiddens = ppo_state.encoder_state.apply_fn(
-            ppo_state.encoder_state.params, all_obs
-        )
+        all_hiddens = state.encoder_state.apply_fn(state.encoder_state.params, all_obs)
         if not isinstance(all_hiddens, tuple):
             all_hiddens = (all_hiddens,)
-        all_values = ppo_state.value_state.apply_fn(
-            ppo_state.value_state.params, *all_hiddens
-        )
+        all_values = state.value_state.apply_fn(state.value_state.params, *all_hiddens)
 
         values = all_values[:-1]
         next_values = all_values[1:]
@@ -206,27 +178,31 @@ def process_experience_factory(config: AlgoConfig) -> Callable:
             algo_params.normalize,
         )
 
-        return (*experience, gaes, targets, values)
+        return PPO_tuple(
+            observation=experience.observation,
+            action=experience.action,
+            log_prob=experience.log_prob,
+            gae=gaes,
+            target=targets,
+            value=values,
+        )
 
-    return process_experience_fn
+    return jax.jit(process_experience_fn)
 
 
-def update_step_factory(config: AlgoConfig) -> Callable:
-    algo_params = config.algo_params
+def update_policy_value_factory(config: AlgoConfig) -> UpdateFn:
+    algo_params: PPOParams = config.algo_params
 
     def update_policy_value_fn(
-        ppo_state: PPOState,
-        key: jax.Array,
-        batch: PPO_tuple,
-    ) -> tuple[PPOState, dict]:
+        state: PPOState, key: PRNGKeyArray, batch: PPO_tuple
+    ) -> tuple[PPOState, LossDict]:
+
         def loss_fn(params):
-            hiddens = ppo_state.encoder_state.apply_fn(
-                params["encoder"], batch.observation
-            )
+            hiddens = state.encoder_state.apply_fn(params["encoder"], batch.observation)
             if not isinstance(hiddens, tuple):
                 hiddens = (hiddens,)
 
-            dists = ppo_state.policy_state.apply_fn(params["policy"], *hiddens)
+            dists = state.policy_state.apply_fn(params["policy"], *hiddens)
             log_probs = get_log_prob(dists, batch.action)
 
             loss_policy, info_policy = loss_policy_ppo(
@@ -238,7 +214,7 @@ def update_step_factory(config: AlgoConfig) -> Callable:
                 algo_params.entropy_coef,
             )
 
-            values = ppo_state.value_state.apply_fn(params["value"], *hiddens)
+            values = state.value_state.apply_fn(params["value"], *hiddens)
             loss_value, info_value = loss_value_clip(
                 values, batch.target, batch.value, algo_params.clip_eps
             )
@@ -251,33 +227,35 @@ def update_step_factory(config: AlgoConfig) -> Callable:
 
         (_, info), grads = jax.value_and_grad(loss_fn, has_aux=True)(
             {
-                "policy": ppo_state.policy_state.params,
-                "value": ppo_state.value_state.params,
-                "encoder": ppo_state.encoder_state.params,
+                "policy": state.policy_state.params,
+                "value": state.value_state.params,
+                "encoder": state.encoder_state.params,
             },
         )
 
-        ppo_state.policy_state = ppo_state.policy_state.apply_gradients(
-            grads=grads["policy"]
-        )
-        ppo_state.value_state = ppo_state.value_state.apply_gradients(
-            grads=grads["value"]
-        )
-        ppo_state.encoder_state = ppo_state.encoder_state.apply_gradients(
+        state.policy_state = state.policy_state.apply_gradients(grads=grads["policy"])
+        state.value_state = state.value_state.apply_gradients(grads=grads["value"])
+        state.encoder_state = state.encoder_state.apply_gradients(
             grads=grads["encoder"]
         )
 
-        return ppo_state, info
+        return state, info
+
+    return jax.jit(update_policy_value_fn)
+
+
+def update_step_factory(config: AlgoConfig) -> UpdateFn:
+
+    update_policy_value_fn = update_policy_value_factory(config)
 
     def update_step_fn(
-        ppo_state: PPOState,
-        key: jax.Array,
-        experiences: tuple[jax.Array, ...],
-    ) -> tuple[PPOState, dict]:
+        state: PPOState, key: PRNGKeyArray, experience: PPO_tuple
+    ) -> tuple[PPOState, LossDict]:
+
         return update_epoch(
             key,
-            ppo_state,
-            experiences,
+            state,
+            experience,
             batchify_and_randomize,
             update_policy_value_fn,
             experience_type=PPO_tuple,
