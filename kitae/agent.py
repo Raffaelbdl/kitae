@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import time
 from typing import Callable
 
-import cloudpickle
 import jax
 import numpy as np
 from tensorboardX import SummaryWriter
@@ -117,26 +117,30 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
     def explore(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
         keys = self.interact_keys(observation)
         action, log_prob = self.explore_fn(self.state, keys, observation)
+
         return np.array(action), log_prob
 
     def select_action(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
         return self.explore(observation)
 
     def update(self, buffer: IBuffer) -> dict:
+        _t = time.time()
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
-        GeneralLogger.debug("Buffer Sampled")
+        GeneralLogger.debug(f"Buffer Sampled in {time.time() - _t}s")
 
+        _t = time.time()
         experience = jax.jit(self.experience_pipeline.run)(
             self.state, self.nextkey(), sample
         )
-        GeneralLogger.debug("Experience Processed")
+        GeneralLogger.debug(f"Experience Processed in {time.time() - _t}s")
 
+        _t = time.time()
         for _ in range(self.config.update_cfg.n_epochs):
             self.state, info = self.update_step_fn(
                 self.state, self.nextkey(), experience
             )
-        GeneralLogger.debug("State Updated")
+        GeneralLogger.debug(f"State Updated in {time.time() - _t}s")
 
         return info
 
