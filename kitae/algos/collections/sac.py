@@ -44,7 +44,7 @@ class SACParams(AlgoParams):
     tau: float = 0.005
 
     log_std_min: float = -20
-    log_std_max: float = 6
+    log_std_max: float = 5
     initial_alpha: float = 0.1
 
     skip_steps: int = 0
@@ -128,7 +128,7 @@ def process_experience_factory(config: AlgoConfig) -> ProcessExperienceFn:
     algo_params: SACParams = config.algo_params
 
     def process_experience_fn(
-        state: SACState, key: jax.Array, experience: Experience
+        state: SACState, key: PRNGKeyArray, experience: Experience
     ) -> SAC_tuple:
 
         next_dists = state.policy_state.apply_fn(
