@@ -1,14 +1,15 @@
 import time
-
 import numpy as np
 from tensorboardX import SummaryWriter
 
 from kitae.interface import IAgent, AlgoType
 from kitae.buffer import Experience, buffer_factory
-from kitae.saving import Saver, SaverContext
+from kitae.saving import SaverContext
 
 from kitae.envs.make import wrap_single_env, wrap_single_parallel_env
 from kitae.types import EnvLike
+
+from save.checkpoint import Checkpointer
 
 
 def check_env(env: EnvLike) -> EnvLike:
@@ -89,7 +90,8 @@ def vectorized_train(
     algo_type: AlgoType,
     *,
     start_step: int = 1,
-    saver: Saver = None,
+    checkpointer: Checkpointer = None,
+    writer: SummaryWriter = None,
 ) -> None:
     """Trains an agent in a vectorized environment.
 
@@ -105,7 +107,6 @@ def vectorized_train(
         start_step (int): The starting step in the environment.
         saver (Saver): A saver instance.
     """
-    writer = saver.writer
     env = check_env(env)
     start_time = time.time()
 
@@ -113,7 +114,7 @@ def vectorized_train(
 
     buffer = buffer_factory(seed, algo_type, agent.config.update_cfg.max_buffer_size)
 
-    with SaverContext(saver, agent.config.train_cfg.save_frequency) as s:
+    with SaverContext(checkpointer, agent.config.train_cfg.save_frequency) as s:
         for step in range(start_step, n_env_steps + 1):
             global_step = step * agent.config.env_cfg.n_envs
             actions, log_probs = agent.explore(observations)
