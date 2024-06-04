@@ -40,7 +40,7 @@ class SaverContext(AbstractContextManager):
         self.cur_step = 0
         self.cur_state = None
 
-    def update(self, step: int, state: Any) -> None:
+    def update(self, state: Any, step: int) -> None:
         """Informs the Saver of a new state, and saves it when necessary.
 
         Args:
@@ -56,11 +56,11 @@ class SaverContext(AbstractContextManager):
         if step % self.save_frequency != 0:
             return
 
-        self.checkpointer.save(step, state)
+        self.checkpointer.save(state, step)
 
     def __exit__(self, *args, **kwargs) -> bool | None:
         """Saves the agent's state when the context is exited."""
         if self.cur_state is None:
             return
 
-        self.checkpointer.save(self.cur_step, self.cur_state)
+        self.checkpointer.save(self.cur_state, self.cur_step)

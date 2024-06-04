@@ -41,21 +41,21 @@ class AgentSerializable(Serializable):
     @staticmethod
     def serialize(agent_info: AgentInfo, path: Path):
         # path : runs/env_id/env_id__timems/config
-        config_path = Path(path).resolve().joinpath("config")
+        path = Path(path).resolve()
+        config_path = path.joinpath("config")
         os.makedirs(config_path, exist_ok=True)
 
         ConfigSerializable.serialize(agent_info.config, config_path)
-        CloudPickleSerializable.serialize(
-            agent_info.extra, config_path.joinpath("extra")
-        )
+        CloudPickleSerializable.serialize(agent_info.extra, path.joinpath("extra"))
 
     @staticmethod
     def unserialize(path: Path) -> AgentInfo:
         # path : runs/env_id/env_id__timems/config
-        config_path = Path(path).resolve().joinpath("config")
+        path = Path(path).resolve()
+        config_path = path.joinpath("config")
 
         config = ConfigSerializable.unserialize(config_path)
-        extra = CloudPickleSerializable.unserialize(config_path.joinpath("extra"))
+        extra = CloudPickleSerializable.unserialize(path.joinpath("extra"))
 
         return AgentInfo(config=config, extra=extra)
 
