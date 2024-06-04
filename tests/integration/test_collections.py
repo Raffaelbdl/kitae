@@ -2,9 +2,11 @@ import os
 from pathlib import Path
 import shutil
 
+import gymnasium as gym
 from kitae.algos.collections import dqn, ppo, sac, td3
 from kitae.config import EnvConfig, TrainConfig, UpdateConfig, AlgoConfig
-from kitae.envs.make import make_vec_env
+
+from tests.integration.env_fn import make_discrete_env, make_continuous_env
 
 
 def get_collections(name: str):
@@ -19,12 +21,18 @@ def get_collections(name: str):
     raise ValueError
 
 
-def collections_loop(name: str, env_id: str):
+def get_env(discrete: bool) -> tuple[gym.vector.AsyncVectorEnv, str]:
+    if discrete:
+        return make_discrete_env(), "discrete"
+    return make_continuous_env(), "continuous"
+
+
+def collections_loop(name: str, discrete: bool):
     path = Path("./runs").joinpath(name).resolve()
     if os.path.isdir(path):
         shutil.rmtree(path)
 
-    env = make_vec_env(env_id, 1, capture_video=False, run_name=None)
+    env, env_id = get_env(discrete)
     env_cfg = EnvConfig(
         env_id, env.single_observation_space, env.single_action_space, 1, 1
     )
@@ -52,9 +60,9 @@ def collections_loop(name: str, env_id: str):
     assert path.joinpath("checkpoints", "100", "checkpoint.safetensors").exists()
     assert path.joinpath("checkpoints", "200", "checkpoint.safetensors").exists()
 
-    env = make_vec_env(env_id, 1, capture_video=False, run_name=None)
     new_agent = _cls.unserialize(path)
 
+    env, env_id = get_env(discrete)
     new_agent.resume(env, 300)
     assert path.joinpath("checkpoints", "300", "checkpoint.safetensors").exists()
 
@@ -66,17 +74,17 @@ def collections_loop(name: str, env_id: str):
 
 
 def test_dqn_loop():
-    assert collections_loop("dqn", "CartPole-v1")
+    assert collections_loop("dqn", True)
 
 
 def test_ppo_loop():
-    assert collections_loop("ppo", "CartPole-v1")
-    assert collections_loop("ppo", "HalfCheetah-v4")
+    assert collections_loop("ppo", True)
+    assert collections_loop("ppo", False)
 
 
 def test_sac_loop():
-    assert collections_loop("sac", "HalfCheetah-v4")
+    assert collections_loop("sac", False)
 
 
 def test_td3_loop():
-    assert collections_loop("td3", "HalfCheetah-v4")
+    assert collections_loop("td3", False)
