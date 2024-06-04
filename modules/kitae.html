@@ -349,12 +349,23 @@ document.write(`
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.agent">kitae.agent module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo"><code class="docutils literal notranslate"><span class="pre">AgentInfo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo.config"><code class="docutils literal notranslate"><span class="pre">AgentInfo.config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo.extra"><code class="docutils literal notranslate"><span class="pre">AgentInfo.extra</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable"><code class="docutils literal notranslate"><span class="pre">AgentSerializable</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable.serialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.serialize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable.unserialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.unserialize()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent"><code class="docutils literal notranslate"><span class="pre">BaseAgent</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.explore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.explore()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.interact_keys"><code class="docutils literal notranslate"><span class="pre">BaseAgent.interact_keys()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.restore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.restore()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.resume"><code class="docutils literal notranslate"><span class="pre">BaseAgent.resume()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.select_action"><code class="docutils literal notranslate"><span class="pre">BaseAgent.select_action()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.serializable_dict"><code class="docutils literal notranslate"><span class="pre">BaseAgent.serializable_dict</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.train"><code class="docutils literal notranslate"><span class="pre">BaseAgent.train()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.unserialize"><code class="docutils literal notranslate"><span class="pre">BaseAgent.unserialize()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.update"><code class="docutils literal notranslate"><span class="pre">BaseAgent.update()</span></code></a></li>
@@ -371,7 +382,6 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.OnPolicyAgent.should_update"><code class="docutils literal notranslate"><span class="pre">OnPolicyAgent.should_update()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.create_saver"><code class="docutils literal notranslate"><span class="pre">create_saver()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.buffer">kitae.buffer module</a><ul class="nav section-nav flex-column">
@@ -471,19 +481,13 @@ document.write(`
 </li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.save">kitae.save module</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver"><code class="docutils literal notranslate"><span class="pre">Saver</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.restore_latest_step"><code class="docutils literal notranslate"><span class="pre">Saver.restore_latest_step()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.save"><code class="docutils literal notranslate"><span class="pre">Saver.save()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.save_base_data"><code class="docutils literal notranslate"><span class="pre">Saver.save_base_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.saving">kitae.saving module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.types">kitae.types module</a></li>
@@ -751,6 +755,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kitae.operations.html#module-kitae.operations.transformation">kitae.operations.transformation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kitae.operations.html#kitae.operations.transformation.action_clip"><code class="docutils literal notranslate"><span class="pre">action_clip()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.operations.html#kitae.operations.transformation.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.operations.html#kitae.operations.transformation.inverse_linear_interpolation"><code class="docutils literal notranslate"><span class="pre">inverse_linear_interpolation()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.operations.html#kitae.operations.transformation.linear_interpolation"><code class="docutils literal notranslate"><span class="pre">linear_interpolation()</span></code></a></li>
@@ -794,9 +799,41 @@ document.write(`
 <span id="kitae-agent-module"></span><h2>kitae.agent module<a class="headerlink" href="#module-kitae.agent" title="Link to this heading">#</a></h2>
 <p>Contains the self classes for reinforcement learning.</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="kitae.agent.AgentInfo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.agent.</span></span><span class="sig-name descname"><span class="pre">AgentInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">kitae.config.AlgoConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.AgentInfo" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.agent.AgentInfo.config">
+<span class="sig-name descname"><span class="pre">config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#kitae.config.AlgoConfig" title="kitae.config.AlgoConfig"><span class="pre">AlgoConfig</span></a></em><a class="headerlink" href="#kitae.agent.AgentInfo.config" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.agent.AgentInfo.extra">
+<span class="sig-name descname"><span class="pre">extra</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#kitae.agent.AgentInfo.extra" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kitae.agent.AgentSerializable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.agent.</span></span><span class="sig-name descname"><span class="pre">AgentSerializable</span></span><a class="headerlink" href="#kitae.agent.AgentSerializable" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Serializable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.agent.AgentSerializable.serialize">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.agent.AgentInfo" title="kitae.agent.AgentInfo"><span class="pre">AgentInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.AgentSerializable.serialize" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kitae.agent.AgentSerializable.unserialize">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#kitae.agent.AgentInfo" title="kitae.agent.AgentInfo"><span class="pre">AgentInfo</span></a></span></span><a class="headerlink" href="#kitae.agent.AgentSerializable.unserialize" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="kitae.agent.BaseAgent">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.agent.</span></span><span class="sig-name descname"><span class="pre">BaseAgent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config:</span> <span class="pre">~kitae.config.AlgoConfig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_state_factory:</span> <span class="pre">~typing.Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explore_factory:</span> <span class="pre">~typing.Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_experience_factory:</span> <span class="pre">~typing.Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_step_factory:</span> <span class="pre">~typing.Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_fn:</span> <span class="pre">~typing.Callable</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabulate:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experience_type:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'kitae.buffer.Experience'&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.BaseAgent" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#kitae.interface.IAgent" title="kitae.interface.IAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">IAgent</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Seeded</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#kitae.interface.IAgent" title="kitae.interface.IAgent"><code class="xref py py-class docutils literal notranslate"><span class="pre">IAgent</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">SerializableObject</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Seeded</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="kitae.agent.BaseAgent.explore">
 <span class="sig-name descname"><span class="pre">explore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ObsType</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ActionType</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.agent.BaseAgent.explore" title="Link to this definition">#</a></dt>
@@ -850,6 +887,11 @@ document.write(`
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="kitae.agent.BaseAgent.serializable_dict">
+<span class="sig-name descname"><span class="pre">serializable_dict</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'agent_info':</span> <span class="pre">&lt;class</span> <span class="pre">'kitae.agent.AgentSerializable'&gt;}</span></em><a class="headerlink" href="#kitae.agent.BaseAgent.serializable_dict" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="kitae.agent.BaseAgent.train">
 <span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_env_steps</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.BaseAgent.train" title="Link to this definition">#</a></dt>
@@ -866,11 +908,11 @@ document.write(`
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kitae.agent.BaseAgent.unserialize">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.BaseAgent.unserialize" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.agent.BaseAgent.unserialize" title="Link to this definition">#</a></dt>
 <dd><p>Creates a new instance of the agent given the save directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>data_dir</strong> – A string or Path to the save directory.</p>
+<dd class="field-odd"><p><strong>path</strong> – A string or Path to the save directory.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>An instance of the chosen agent.</p>
@@ -945,11 +987,6 @@ document.write(`
 </dd></dl>
 
 </dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kitae.agent.create_saver">
-<span class="sig-prename descclassname"><span class="pre">kitae.agent.</span></span><span class="sig-name descname"><span class="pre">create_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.agent.BaseAgent" title="kitae.agent.BaseAgent"><span class="pre">BaseAgent</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#kitae.save.Saver" title="kitae.save.Saver"><span class="pre">Saver</span></a></span></span><a class="headerlink" href="#kitae.agent.create_saver" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
 
 </section>
 <section id="module-kitae.buffer">
@@ -1470,69 +1507,11 @@ document.write(`
 </dd></dl>
 
 </section>
-<section id="module-kitae.save">
-<span id="kitae-save-module"></span><h2>kitae.save module<a class="headerlink" href="#module-kitae.save" title="Link to this heading">#</a></h2>
+<section id="module-kitae.saving">
+<span id="kitae-saving-module"></span><h2>kitae.saving module<a class="headerlink" href="#module-kitae.saving" title="Link to this heading">#</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="kitae.save.Saver">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.save.</span></span><span class="sig-name descname"><span class="pre">Saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.interface.IAgent" title="kitae.interface.IAgent"><span class="pre">IAgent</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.save.Saver" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Saver class for agents.</p>
-<p>Handles saving during training and restoring from checkpoints.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dir</strong> (<em>Path</em>) – The path where the agent is saved.</p></li>
-<li><p><strong>writer</strong> (<em>SummaryWriter</em>) – A SummaryWriter to log metrics.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="kitae.save.Saver.restore_latest_step">
-<span class="sig-name descname"><span class="pre">restore_latest_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#kitae.save.Saver.restore_latest_step" title="Link to this definition">#</a></dt>
-<dd><p>Restores the state of an agent from the latest step.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>base_state_dict</strong> (<em>dict</em>) – The state of the agent before restoring it.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The latest step as an int and the restored state of the agent.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kitae.save.Saver.save">
-<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#kitae.save.Saver.save" title="Link to this definition">#</a></dt>
-<dd><p>Saves a checkpoint.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>step</strong> (<em>int</em>) – The current step of the environment.</p></li>
-<li><p><strong>ckpt</strong> (<em>dict</em>) – A checkpoint to save.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kitae.save.Saver.save_base_data">
-<span class="sig-name descname"><span class="pre">save_base_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.interface.IAgent" title="kitae.interface.IAgent"><span class="pre">IAgent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#kitae.save.Saver.save_base_data" title="Link to this definition">#</a></dt>
-<dd><p>Saves the original information.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dir_path</strong> (<em>Path</em>) – The path where the agent must be saved.</p></li>
-<li><p><strong>agent</strong> (<a class="reference internal" href="#kitae.interface.IAgent" title="kitae.interface.IAgent"><em>IAgent</em></a>) – The agent whose information must be saved.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="kitae.save.SaverContext">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.save.</span></span><span class="sig-name descname"><span class="pre">SaverContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#kitae.save.Saver" title="kitae.save.Saver"><span class="pre">Saver</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.save.SaverContext" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="kitae.saving.SaverContext">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kitae.saving.</span></span><span class="sig-name descname"><span class="pre">SaverContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpointer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Checkpointer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_frequency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#kitae.saving.SaverContext" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></p>
 <p>A context to ensures that the agent state is saved when the training is interrupted.</p>
 <div class="admonition tip">
@@ -1547,25 +1526,25 @@ document.write(`
 </div>
 </div>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="kitae.save.SaverContext.saver">
-<span class="sig-name descname"><span class="pre">saver</span></span><a class="headerlink" href="#kitae.save.SaverContext.saver" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="kitae.saving.SaverContext.saver">
+<span class="sig-name descname"><span class="pre">saver</span></span><a class="headerlink" href="#kitae.saving.SaverContext.saver" title="Link to this definition">#</a></dt>
 <dd><p>A saver instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#kitae.save.Saver" title="kitae.save.Saver">Saver</a></p>
+<dd class="field-odd"><p>Saver</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="kitae.save.SaverContext.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TrainState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#kitae.save.SaverContext.update" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="kitae.saving.SaverContext.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#kitae.saving.SaverContext.update" title="Link to this definition">#</a></dt>
 <dd><p>Informs the Saver of a new state, and saves it when necessary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>step</strong> (<em>int</em>) – The current step of the environment.</p></li>
-<li><p><strong>state</strong> (<a class="reference internal" href="kitae.modules.html#kitae.modules.pytree.TrainState" title="kitae.modules.pytree.TrainState"><em>TrainState</em></a>) – The state of the agent.</p></li>
+<li><p><strong>state</strong> (<em>Any</em>) – The state of the agent.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1574,8 +1553,8 @@ document.write(`
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="kitae.save.default_run_name">
-<span class="sig-prename descclassname"><span class="pre">kitae.save.</span></span><span class="sig-name descname"><span class="pre">default_run_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#kitae.save.default_run_name" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="kitae.saving.default_run_name">
+<span class="sig-prename descclassname"><span class="pre">kitae.saving.</span></span><span class="sig-name descname"><span class="pre">default_run_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#kitae.saving.default_run_name" title="Link to this definition">#</a></dt>
 <dd><p>Generates a default name for a run.</p>
 </dd></dl>
 
@@ -1646,12 +1625,23 @@ document.write(`
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.agent">kitae.agent module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo"><code class="docutils literal notranslate"><span class="pre">AgentInfo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo.config"><code class="docutils literal notranslate"><span class="pre">AgentInfo.config</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentInfo.extra"><code class="docutils literal notranslate"><span class="pre">AgentInfo.extra</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable"><code class="docutils literal notranslate"><span class="pre">AgentSerializable</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable.serialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.serialize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.AgentSerializable.unserialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.unserialize()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent"><code class="docutils literal notranslate"><span class="pre">BaseAgent</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.explore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.explore()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.interact_keys"><code class="docutils literal notranslate"><span class="pre">BaseAgent.interact_keys()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.restore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.restore()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.resume"><code class="docutils literal notranslate"><span class="pre">BaseAgent.resume()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.select_action"><code class="docutils literal notranslate"><span class="pre">BaseAgent.select_action()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.serializable_dict"><code class="docutils literal notranslate"><span class="pre">BaseAgent.serializable_dict</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.train"><code class="docutils literal notranslate"><span class="pre">BaseAgent.train()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.unserialize"><code class="docutils literal notranslate"><span class="pre">BaseAgent.unserialize()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.BaseAgent.update"><code class="docutils literal notranslate"><span class="pre">BaseAgent.update()</span></code></a></li>
@@ -1668,7 +1658,6 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.OnPolicyAgent.should_update"><code class="docutils literal notranslate"><span class="pre">OnPolicyAgent.should_update()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.agent.create_saver"><code class="docutils literal notranslate"><span class="pre">create_saver()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.buffer">kitae.buffer module</a><ul class="nav section-nav flex-column">
@@ -1768,19 +1757,13 @@ document.write(`
 </li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.save">kitae.save module</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver"><code class="docutils literal notranslate"><span class="pre">Saver</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.restore_latest_step"><code class="docutils literal notranslate"><span class="pre">Saver.restore_latest_step()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.save"><code class="docutils literal notranslate"><span class="pre">Saver.save()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.Saver.save_base_data"><code class="docutils literal notranslate"><span class="pre">Saver.save_base_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.saving">kitae.saving module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
-</ul>
-</li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.save.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#kitae.saving.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-kitae.types">kitae.types module</a></li>

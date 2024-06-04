@@ -400,12 +400,23 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kitae.html#module-kitae.agent">kitae.agent module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.agent.AgentInfo"><code class="docutils literal notranslate"><span class="pre">AgentInfo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.AgentInfo.config"><code class="docutils literal notranslate"><span class="pre">AgentInfo.config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.AgentInfo.extra"><code class="docutils literal notranslate"><span class="pre">AgentInfo.extra</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.agent.AgentSerializable"><code class="docutils literal notranslate"><span class="pre">AgentSerializable</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.AgentSerializable.serialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.serialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.AgentSerializable.unserialize"><code class="docutils literal notranslate"><span class="pre">AgentSerializable.unserialize()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent"><code class="docutils literal notranslate"><span class="pre">BaseAgent</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.explore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.explore()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.interact_keys"><code class="docutils literal notranslate"><span class="pre">BaseAgent.interact_keys()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.restore"><code class="docutils literal notranslate"><span class="pre">BaseAgent.restore()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.resume"><code class="docutils literal notranslate"><span class="pre">BaseAgent.resume()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.select_action"><code class="docutils literal notranslate"><span class="pre">BaseAgent.select_action()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.serializable_dict"><code class="docutils literal notranslate"><span class="pre">BaseAgent.serializable_dict</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.train"><code class="docutils literal notranslate"><span class="pre">BaseAgent.train()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.unserialize"><code class="docutils literal notranslate"><span class="pre">BaseAgent.unserialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.BaseAgent.update"><code class="docutils literal notranslate"><span class="pre">BaseAgent.update()</span></code></a></li>
@@ -422,7 +433,6 @@ document.write(`
 <li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.agent.OnPolicyAgent.should_update"><code class="docutils literal notranslate"><span class="pre">OnPolicyAgent.should_update()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.agent.create_saver"><code class="docutils literal notranslate"><span class="pre">create_saver()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kitae.html#module-kitae.buffer">kitae.buffer module</a><ul>
@@ -522,19 +532,13 @@ document.write(`
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="kitae.html#module-kitae.save">kitae.save module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.save.Saver"><code class="docutils literal notranslate"><span class="pre">Saver</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.save.Saver.restore_latest_step"><code class="docutils literal notranslate"><span class="pre">Saver.restore_latest_step()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.save.Saver.save"><code class="docutils literal notranslate"><span class="pre">Saver.save()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.save.Saver.save_base_data"><code class="docutils literal notranslate"><span class="pre">Saver.save_base_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="kitae.html#module-kitae.saving">kitae.saving module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.saving.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.saving.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.saving.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.save.SaverContext"><code class="docutils literal notranslate"><span class="pre">SaverContext</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.save.SaverContext.saver"><code class="docutils literal notranslate"><span class="pre">SaverContext.saver</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.html#kitae.save.SaverContext.update"><code class="docutils literal notranslate"><span class="pre">SaverContext.update()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.save.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.html#kitae.saving.default_run_name"><code class="docutils literal notranslate"><span class="pre">default_run_name()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kitae.html#module-kitae.types">kitae.types module</a></li>

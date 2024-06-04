@@ -400,6 +400,11 @@ document.write(`
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQNParams.start_step"><code class="docutils literal notranslate"><span class="pre">DQNParams.start_step</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState"><code class="docutils literal notranslate"><span class="pre">DQNState</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState.qvalue_state"><code class="docutils literal notranslate"><span class="pre">DQNState.qvalue_state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState.replace"><code class="docutils literal notranslate"><span class="pre">DQNState.replace()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQN_tuple"><code class="docutils literal notranslate"><span class="pre">DQN_tuple</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQN_tuple.action"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.action</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.DQN_tuple.observation"><code class="docutils literal notranslate"><span class="pre">DQN_tuple.observation</span></code></a></li>
@@ -409,6 +414,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.train_state_dqn_factory"><code class="docutils literal notranslate"><span class="pre">train_state_dqn_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.update_qvalue_factory"><code class="docutils literal notranslate"><span class="pre">update_qvalue_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.dqn.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
 </ul>
 </li>
@@ -431,12 +437,9 @@ document.write(`
 </li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple"><code class="docutils literal notranslate"><span class="pre">PPO_tuple</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.action"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.action</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.done"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.done</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.gae"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.gae</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.log_prob"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.log_prob</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.next_observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.next_observation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.observation"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.observation</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.reward"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.reward</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.target"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.value"><code class="docutils literal notranslate"><span class="pre">PPO_tuple.value</span></code></a></li>
 </ul>
@@ -444,6 +447,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.train_state_ppo_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ppo_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.update_policy_value_factory"><code class="docutils literal notranslate"><span class="pre">update_policy_value_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.ppo.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
 </ul>
 </li>
@@ -479,6 +483,9 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.train_state_sac_factory"><code class="docutils literal notranslate"><span class="pre">train_state_sac_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.update_alpha_factory"><code class="docutils literal notranslate"><span class="pre">update_alpha_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.update_policy_factory"><code class="docutils literal notranslate"><span class="pre">update_policy_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.update_qvalue_factory"><code class="docutils literal notranslate"><span class="pre">update_qvalue_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.sac.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
 </ul>
 </li>
@@ -515,6 +522,8 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.explore_factory"><code class="docutils literal notranslate"><span class="pre">explore_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.process_experience_factory"><code class="docutils literal notranslate"><span class="pre">process_experience_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.train_state_ddpg_factory"><code class="docutils literal notranslate"><span class="pre">train_state_ddpg_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.update_policy_factory"><code class="docutils literal notranslate"><span class="pre">update_policy_factory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.update_qvalue_factory"><code class="docutils literal notranslate"><span class="pre">update_qvalue_factory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="kitae.algos.collections.html#kitae.algos.collections.td3.update_step_factory"><code class="docutils literal notranslate"><span class="pre">update_step_factory()</span></code></a></li>
 </ul>
 </li>

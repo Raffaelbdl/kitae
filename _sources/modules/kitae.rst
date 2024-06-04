@@ -56,10 +56,10 @@ kitae.interface module
    :undoc-members:
    :show-inheritance:
 
-kitae.save module
------------------
+kitae.saving module
+-------------------
 
-.. automodule:: kitae.save
+.. automodule:: kitae.saving
    :members:
    :undoc-members:
    :show-inheritance:

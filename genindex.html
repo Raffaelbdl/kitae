@@ -337,6 +337,8 @@ document.write(`
       </ul></li>
       <li><a href="modules/kitae.modules.html#kitae.modules.policy.PolicyNormalExternalStd.action_bias">action_bias (kitae.modules.policy.PolicyNormalExternalStd attribute)</a>
 </li>
+      <li><a href="modules/kitae.operations.html#kitae.operations.transformation.action_clip">action_clip() (in module kitae.operations.transformation)</a>
+</li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.TD3Params.action_noise">action_noise (kitae.algos.collections.td3.TD3Params attribute)</a>
 </li>
       <li><a href="modules/kitae.modules.html#kitae.modules.policy.PolicyNormalExternalStd.action_scale">action_scale (kitae.modules.policy.PolicyNormalExternalStd attribute)</a>
@@ -353,7 +355,11 @@ document.write(`
         <li><a href="modules/kitae.html#kitae.interface.IBuffer.add">(kitae.interface.IBuffer method)</a>
 </li>
       </ul></li>
+      <li><a href="modules/kitae.html#kitae.agent.AgentInfo">AgentInfo (class in kitae.agent)</a>
+</li>
       <li><a href="modules/kitae.modules.html#kitae.modules.pytree.AgentPyTree">AgentPyTree (class in kitae.modules.pytree)</a>
+</li>
+      <li><a href="modules/kitae.html#kitae.agent.AgentSerializable">AgentSerializable (class in kitae.agent)</a>
 </li>
       <li><a href="modules/kitae.html#kitae.config.AlgoConfig.algo_params">algo_params (kitae.config.AlgoConfig attribute)</a>
 </li>
@@ -419,11 +425,11 @@ document.write(`
 </li>
       <li><a href="modules/kitae.operations.html#kitae.operations.timesteps.compute_td_targets">compute_td_targets() (in module kitae.operations.timesteps)</a>
 </li>
+      <li><a href="modules/kitae.html#kitae.agent.AgentInfo.config">config (kitae.agent.AgentInfo attribute)</a>
+</li>
       <li><a href="modules/kitae.html#kitae.config.ConfigSerializable">ConfigSerializable (class in kitae.config)</a>
 </li>
       <li><a href="modules/kitae.modules.html#kitae.modules.modules.conv_layer">conv_layer() (in module kitae.modules.modules)</a>
-</li>
-      <li><a href="modules/kitae.html#kitae.agent.create_saver">create_saver() (in module kitae.agent)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -431,25 +437,23 @@ document.write(`
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="modules/kitae.html#kitae.save.default_run_name">default_run_name() (in module kitae.save)</a>
+      <li><a href="modules/kitae.html#kitae.saving.default_run_name">default_run_name() (in module kitae.saving)</a>
 </li>
       <li><a href="modules/kitae.algos.html#kitae.algos.experience.dict_to_tuple">dict_to_tuple() (in module kitae.algos.experience)</a>
 </li>
-      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.done">done (kitae.algos.collections.ppo.PPO_tuple attribute)</a>
-
-      <ul>
-        <li><a href="modules/kitae.html#kitae.buffer.Experience.done">(kitae.buffer.Experience attribute)</a>
+      <li><a href="modules/kitae.html#kitae.buffer.Experience.done">done (kitae.buffer.Experience attribute)</a>
 </li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.modules.html#kitae.modules.qvalue.DoubleQValueContinuousOutput">DoubleQValueContinuousOutput (class in kitae.modules.qvalue)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQN">DQN (class in kitae.algos.collections.dqn)</a>
 </li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQN_tuple">DQN_tuple (class in kitae.algos.collections.dqn)</a>
 </li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQNParams">DQNParams (class in kitae.algos.collections.dqn)</a>
+</li>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState">DQNState (class in kitae.algos.collections.dqn)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -475,8 +479,6 @@ document.write(`
 </li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQNParams.exploration">exploration (kitae.algos.collections.dqn.DQNParams attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.html#kitae.agent.BaseAgent.explore">explore() (kitae.agent.BaseAgent method)</a>
 
       <ul>
@@ -489,6 +491,8 @@ document.write(`
         <li><a href="modules/kitae.html#kitae.interface.IAgent.explore">(kitae.interface.IAgent method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.explore_factory">explore_factory() (in module kitae.algos.collections.dqn)</a>
 
       <ul>
@@ -500,6 +504,8 @@ document.write(`
 </li>
       </ul></li>
       <li><a href="modules/kitae.algos.html#kitae.algos.factory.explore_general_factory">explore_general_factory() (in module kitae.algos.factory)</a>
+</li>
+      <li><a href="modules/kitae.html#kitae.agent.AgentInfo.extra">extra (kitae.agent.AgentInfo attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -829,10 +835,10 @@ document.write(`
 </li>
       </ul></li>
       <li>
-    kitae.save
+    kitae.saving
 
       <ul>
-        <li><a href="modules/kitae.html#module-kitae.save">module</a>
+        <li><a href="modules/kitae.html#module-kitae.saving">module</a>
 </li>
       </ul></li>
       <li>
@@ -995,7 +1001,7 @@ document.write(`
 </li>
         <li><a href="modules/kitae.operations.html#module-kitae.operations.transformation">kitae.operations.transformation</a>
 </li>
-        <li><a href="modules/kitae.html#module-kitae.save">kitae.save</a>
+        <li><a href="modules/kitae.html#module-kitae.saving">kitae.saving</a>
 </li>
         <li><a href="modules/kitae.html#module-kitae.types">kitae.types</a>
 </li>
@@ -1048,12 +1054,8 @@ document.write(`
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.next_observation">next_observation (kitae.algos.collections.ppo.PPO_tuple attribute)</a>
-
-      <ul>
-        <li><a href="modules/kitae.html#kitae.buffer.Experience.next_observation">(kitae.buffer.Experience attribute)</a>
+      <li><a href="modules/kitae.html#kitae.buffer.Experience.next_observation">next_observation (kitae.buffer.Experience attribute)</a>
 </li>
-      </ul></li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPOParams.normalize">normalize (kitae.algos.collections.ppo.PPOParams attribute)</a>
 </li>
       <li><a href="modules/kitae.operations.html#kitae.operations.transformation.normalize_frames">normalize_frames() (in module kitae.operations.transformation)</a>
@@ -1212,9 +1214,11 @@ document.write(`
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.modules.html#kitae.modules.qvalue.qvalue_factory">qvalue_factory() (in module kitae.modules.qvalue)</a>
 </li>
-      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.SACState.qvalue_state">qvalue_state (kitae.algos.collections.sac.SACState attribute)</a>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState.qvalue_state">qvalue_state (kitae.algos.collections.dqn.DQNState attribute)</a>
 
       <ul>
+        <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.SACState.qvalue_state">(kitae.algos.collections.sac.SACState attribute)</a>
+</li>
         <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.TD3State.qvalue_state">(kitae.algos.collections.td3.TD3State attribute)</a>
 </li>
       </ul></li>
@@ -1234,9 +1238,11 @@ document.write(`
 </li>
       <li><a href="modules/kitae.envs.wrappers.html#kitae.envs.wrappers.vector.VecParallelEnv.render">render() (kitae.envs.wrappers.vector.VecParallelEnv method)</a>
 </li>
-      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPOState.replace">replace() (kitae.algos.collections.ppo.PPOState method)</a>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.DQNState.replace">replace() (kitae.algos.collections.dqn.DQNState method)</a>
 
       <ul>
+        <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPOState.replace">(kitae.algos.collections.ppo.PPOState method)</a>
+</li>
         <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.SACState.replace">(kitae.algos.collections.sac.SACState method)</a>
 </li>
         <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.TD3State.replace">(kitae.algos.collections.td3.TD3State method)</a>
@@ -1256,11 +1262,9 @@ document.write(`
         <li><a href="modules/kitae.envs.wrappers.html#kitae.envs.wrappers.vector.VecParallelEnv.reset">(kitae.envs.wrappers.vector.VecParallelEnv method)</a>
 </li>
       </ul></li>
-      <li><a href="modules/kitae.html#kitae.agent.BaseAgent.restore">restore() (kitae.agent.BaseAgent method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="modules/kitae.html#kitae.save.Saver.restore_latest_step">restore_latest_step() (kitae.save.Saver method)</a>
+      <li><a href="modules/kitae.html#kitae.agent.BaseAgent.restore">restore() (kitae.agent.BaseAgent method)</a>
 </li>
       <li><a href="modules/kitae.html#kitae.agent.BaseAgent.resume">resume() (kitae.agent.BaseAgent method)</a>
 
@@ -1272,12 +1276,8 @@ document.write(`
 </li>
       <li><a href="modules/kitae.envs.wrappers.html#kitae.envs.wrappers.record_episode_statistics.ParallelRecordEpisodeStatistics.return_queue">return_queue (kitae.envs.wrappers.record_episode_statistics.ParallelRecordEpisodeStatistics attribute)</a>
 </li>
-      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.PPO_tuple.reward">reward (kitae.algos.collections.ppo.PPO_tuple attribute)</a>
-
-      <ul>
-        <li><a href="modules/kitae.html#kitae.buffer.Experience.reward">(kitae.buffer.Experience attribute)</a>
+      <li><a href="modules/kitae.html#kitae.buffer.Experience.reward">reward (kitae.buffer.Experience attribute)</a>
 </li>
-      </ul></li>
       <li><a href="modules/kitae.html#kitae.buffer.Buffer.rng">rng (kitae.buffer.Buffer attribute)</a>
 </li>
       <li><a href="modules/kitae.algos.html#kitae.algos.experience.ExperiencePipeline.run">run() (kitae.algos.experience.ExperiencePipeline method)</a>
@@ -1314,17 +1314,11 @@ document.write(`
       </ul></li>
       <li><a href="modules/kitae.modules.html#kitae.modules.policy.sample_and_log_prob">sample_and_log_prob() (in module kitae.modules.policy)</a>
 </li>
-      <li><a href="modules/kitae.html#kitae.save.Saver.save">save() (kitae.save.Saver method)</a>
-</li>
-      <li><a href="modules/kitae.html#kitae.save.Saver.save_base_data">save_base_data() (kitae.save.Saver method)</a>
-</li>
       <li><a href="modules/kitae.html#kitae.config.TrainConfig.save_frequency">save_frequency (kitae.config.TrainConfig attribute)</a>
 </li>
-      <li><a href="modules/kitae.html#kitae.save.Saver">Saver (class in kitae.save)</a>
+      <li><a href="modules/kitae.html#kitae.saving.SaverContext.saver">saver (kitae.saving.SaverContext attribute)</a>
 </li>
-      <li><a href="modules/kitae.html#kitae.save.SaverContext.saver">saver (kitae.save.SaverContext attribute)</a>
-</li>
-      <li><a href="modules/kitae.html#kitae.save.SaverContext">SaverContext (class in kitae.save)</a>
+      <li><a href="modules/kitae.html#kitae.saving.SaverContext">SaverContext (class in kitae.saving)</a>
 </li>
       <li><a href="modules/kitae.modules.html#kitae.modules.encoder.VectorEncoder.scope">scope (kitae.modules.encoder.VectorEncoder attribute)</a>
 
@@ -1376,8 +1370,14 @@ document.write(`
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="modules/kitae.html#kitae.config.ConfigSerializable.serialize">serialize() (kitae.config.ConfigSerializable static method)</a>
+      <li><a href="modules/kitae.html#kitae.agent.BaseAgent.serializable_dict">serializable_dict (kitae.agent.BaseAgent attribute)</a>
 </li>
+      <li><a href="modules/kitae.html#kitae.agent.AgentSerializable.serialize">serialize() (kitae.agent.AgentSerializable static method)</a>
+
+      <ul>
+        <li><a href="modules/kitae.html#kitae.config.ConfigSerializable.serialize">(kitae.config.ConfigSerializable static method)</a>
+</li>
+      </ul></li>
       <li><a href="modules/kitae.modules.html#kitae.modules.policy.PolicyNormal.setup">setup() (kitae.modules.policy.PolicyNormal method)</a>
 
       <ul>
@@ -1512,9 +1512,11 @@ document.write(`
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="modules/kitae.html#kitae.agent.BaseAgent.unserialize">unserialize() (kitae.agent.BaseAgent class method)</a>
+      <li><a href="modules/kitae.html#kitae.agent.AgentSerializable.unserialize">unserialize() (kitae.agent.AgentSerializable static method)</a>
 
       <ul>
+        <li><a href="modules/kitae.html#kitae.agent.BaseAgent.unserialize">(kitae.agent.BaseAgent class method)</a>
+</li>
         <li><a href="modules/kitae.html#kitae.config.ConfigSerializable.unserialize">(kitae.config.ConfigSerializable static method)</a>
 </li>
       </ul></li>
@@ -1523,15 +1525,33 @@ document.write(`
       <ul>
         <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.TD3.update">(kitae.algos.collections.td3.TD3 method)</a>
 </li>
-        <li><a href="modules/kitae.html#kitae.save.SaverContext.update">(kitae.save.SaverContext method)</a>
+        <li><a href="modules/kitae.html#kitae.saving.SaverContext.update">(kitae.saving.SaverContext method)</a>
 </li>
       </ul></li>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.update_alpha_factory">update_alpha_factory() (in module kitae.algos.collections.sac)</a>
+</li>
       <li><a href="modules/kitae.html#kitae.config.AlgoConfig.update_cfg">update_cfg (kitae.config.AlgoConfig attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="modules/kitae.loops.html#kitae.loops.update.update_epoch">update_epoch() (in module kitae.loops.update)</a>
 </li>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.update_policy_factory">update_policy_factory() (in module kitae.algos.collections.sac)</a>
+
+      <ul>
+        <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.update_policy_factory">(in module kitae.algos.collections.td3)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.ppo.update_policy_value_factory">update_policy_value_factory() (in module kitae.algos.collections.ppo)</a>
+</li>
+      <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.update_qvalue_factory">update_qvalue_factory() (in module kitae.algos.collections.dqn)</a>
+
+      <ul>
+        <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.sac.update_qvalue_factory">(in module kitae.algos.collections.sac)</a>
+</li>
+        <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.td3.update_qvalue_factory">(in module kitae.algos.collections.td3)</a>
+</li>
+      </ul></li>
       <li><a href="modules/kitae.algos.collections.html#kitae.algos.collections.dqn.update_step_factory">update_step_factory() (in module kitae.algos.collections.dqn)</a>
 
       <ul>
