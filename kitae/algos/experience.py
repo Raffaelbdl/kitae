@@ -125,10 +125,7 @@ class ExperiencePipeline:
         return experience
 
     def run(
-        self,
-        state: AgentPyTree,
-        key: PRNGKeyArray,
-        experience: NamedTuple,
+        self, state: AgentPyTree, key: PRNGKeyArray, experience: NamedTuple
     ) -> NamedTuple:
         """Sequentially runs the experience transforms.
 
