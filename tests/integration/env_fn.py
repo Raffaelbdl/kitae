@@ -11,6 +11,12 @@ class RandomEnv(gym.Env):
         obs = self.observation_space.sample()
         return obs, 1.0, False, False, {}
 
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[Any, dict[str, Any]]:
+        obs = self.observation_space.sample()
+        return obs, {}
+
 
 class DiscreteEnv(RandomEnv):
     action_space = Discrete(10)
