@@ -275,7 +275,9 @@ def update_step_factory(config: AlgoConfig) -> UpdateFn:
 
 
 class SAC(OffPolicyAgent):
-    """Soft Actor Crtic (SAC)"""
+    """Soft Actor Crtic (SAC)
+    Paper: https://arxiv.org/abs/1812.05905
+    """
 
     def __init__(
         self,
