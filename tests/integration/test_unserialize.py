@@ -80,7 +80,7 @@ class DummyAgent(BaseAgent):
 
 def test_unserialize():
     agent = DummyAgent("tmp_run_name", dummy_config())
-    new_agent = DummyAgent.unserialize("./results/tmp_run_name/")
+    new_agent = DummyAgent.unserialize("./runs/tmp_run_name")
     assert True
 
 

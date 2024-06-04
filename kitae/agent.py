@@ -14,6 +14,7 @@ from shaberax.logger import GeneralLogger
 from jrd_extensions import Seeded
 from save.serializable import (
     Serializable,
+    SerializableDict,
     CloudPickleSerializable,
     SerializableObject,
     save_file,
@@ -60,6 +61,8 @@ class AgentSerializable(Serializable):
 
 
 class BaseAgent(IAgent, SerializableObject, Seeded):
+    serializable_dict = SerializableDict({"agent_info": AgentSerializable})
+
     def __init__(
         self,
         run_name: str,
@@ -103,7 +106,7 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
 
         # Saving
         path = Path("./runs/").joinpath(run_name).resolve()
-        self.run_config = AgentInfo(
+        self.agent_info = AgentInfo(
             self.config, {"run_name": run_name, "preprocess_fn": preprocess_fn}
         )
         save_file(self, path)
@@ -193,8 +196,8 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
             An instance of the chosen agent.
         """
         path = Path(path).resolve()
-        agent_info = AgentSerializable.unserialize(path.joinpath("run_config"))
-        return cls(config=agent_info.config, **agent_info.extra_info)
+        agent_info = AgentSerializable.unserialize(path.joinpath("agent_info"))
+        return cls(config=agent_info.config, **agent_info.extra)
 
 
 class OffPolicyAgent(BaseAgent):
