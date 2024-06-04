@@ -45,7 +45,7 @@ class AgentSerializable(Serializable):
 
         ConfigSerializable.serialize(agent_info.config, config_path)
         CloudPickleSerializable.serialize(
-            agent_info.extra_info, config_path.joinpath("extra")
+            agent_info.extra, config_path.joinpath("extra")
         )
 
     @staticmethod
@@ -54,9 +54,9 @@ class AgentSerializable(Serializable):
         config_path = Path(path).resolve().joinpath("config")
 
         config = ConfigSerializable.unserialize(config_path)
-        extra_info = CloudPickleSerializable.unserialize(config_path.joinpath("extra"))
+        extra = CloudPickleSerializable.unserialize(config_path.joinpath("extra"))
 
-        return AgentInfo(config=config, extra_info=extra_info)
+        return AgentInfo(config=config, extra=extra)
 
 
 class BaseAgent(IAgent, SerializableObject, Seeded):
