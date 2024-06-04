@@ -27,7 +27,7 @@ from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
-from kitae.save import Saver
+from kitae.saving import Saver
 from kitae.types import ActionType, ObsType
 
 
