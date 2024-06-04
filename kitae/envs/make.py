@@ -13,8 +13,8 @@ def make_env(
             env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
         else:
             env = gym.make(env_id, **env_kwargs)
-        max_episode_steps = env_kwargs.pop("max_episode_steps", 0)
-        if max_episode_steps:
+        max_episode_steps = env_kwargs.get("max_episode_steps", 0)
+        if max_episode_steps > 0:
             env = gym.wrappers.TimeLimit(env, max_episode_steps)
 
         return env

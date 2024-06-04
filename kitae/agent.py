@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import time
 from typing import Callable
 
-import cloudpickle
 import jax
 import numpy as np
 from tensorboardX import SummaryWriter
@@ -27,7 +27,6 @@ from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
-from kitae.saving import Saver
 from kitae.types import ActionType, ObsType
 
 
@@ -95,9 +94,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         )
         self.explore_fn = jax.jit(self.explore_fn)
 
-        self.process_experience_fn = process_experience_factory(config)
+        process_experience_fn = process_experience_factory(config)
         self.experience_pipeline = ExperiencePipeline(
-            [self.process_experience_fn], self.vectorized, self.parallel
+            [process_experience_fn], self.vectorized, self.parallel
         )
 
         self.update_step_fn = update_step_factory(config)
@@ -118,26 +117,30 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
     def explore(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
         keys = self.interact_keys(observation)
         action, log_prob = self.explore_fn(self.state, keys, observation)
+
         return np.array(action), log_prob
 
     def select_action(self, observation: ObsType) -> tuple[ActionType, np.ndarray]:
         return self.explore(observation)
 
     def update(self, buffer: IBuffer) -> dict:
+        _t = time.time()
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
-        GeneralLogger.debug("Buffer Sampled")
+        GeneralLogger.debug(f"Buffer Sampled in {time.time() - _t}s")
 
+        _t = time.time()
         experience = jax.jit(self.experience_pipeline.run)(
             self.state, self.nextkey(), sample
         )
-        GeneralLogger.debug("Experience Processed")
+        GeneralLogger.debug(f"Experience Processed in {time.time() - _t}s")
 
+        _t = time.time()
         for _ in range(self.config.update_cfg.n_epochs):
             self.state, info = self.update_step_fn(
                 self.state, self.nextkey(), experience
             )
-        GeneralLogger.debug("State Updated")
+        GeneralLogger.debug(f"State Updated in {time.time() - _t}s")
 
         return info
 
@@ -163,7 +166,7 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         )
 
     def resume(self, env, n_env_steps):
-        step, self.state = self.saver.restore_latest_step(self.state)
+        step, self.state = self.checkpointer.restore_last(self.state)
         return vectorized_train(
             int(jax.random.key_data(self.nextkey())[0]),
             self,
@@ -192,10 +195,6 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         path = Path(path).resolve()
         agent_info = AgentSerializable.unserialize(path.joinpath("run_config"))
         return cls(config=agent_info.config, **agent_info.extra_info)
-
-
-def create_saver(self: BaseAgent, run_name: str) -> Saver:
-    return Saver(Path("./results").joinpath(run_name).absolute(), self)
 
 
 class OffPolicyAgent(BaseAgent):
