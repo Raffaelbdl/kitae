@@ -17,9 +17,7 @@ def normalize_frames(x: jax.Array) -> jax.Array:
     return linear_interpolation(x / 255.0, -1.0, 1.0)
 
 
-def flatten(x: jax.Array) -> jax.Array:
-    return jnp.reshape(x, (-1,))
-
-
 def action_clip(x: jax.Array, action_space: Box) -> jax.Array:
+    if not isinstance(action_space, Box):
+        raise TypeError("action_space should be a Box.")
     return jnp.clip(x, action_space.low, action_space.high)

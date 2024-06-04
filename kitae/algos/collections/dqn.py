@@ -35,7 +35,7 @@ class DQNParams(AlgoParams):
 
     exploration: float = 0.1
     gamma: float = 0.99
-    skip_steps: int = 0
+    skip_steps: int = 1  # > 0
     start_step: int = -1
 
 
