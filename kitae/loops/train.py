@@ -154,7 +154,7 @@ def vectorized_train(
                         global_step,
                     )
 
-            s.update(step, agent.state)
+            s.update(agent.state, step)
 
             observations = next_observations
 
