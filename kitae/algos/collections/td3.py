@@ -12,6 +12,7 @@ import optax
 from jrd_extensions import PRNGSequence
 
 from kitae.agent import OffPolicyAgent
+from kitae.algos.experience import ExperiencePipeline
 from kitae.buffer import OffPolicyBuffer, Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, AlgoParams
 
@@ -255,6 +256,34 @@ def update_step_factory(config: AlgoConfig) -> UpdateFn:
     return jax.jit(update_step_fn, static_argnames=("should_update_policy"))
 
 
+def process_and_update_factory(
+    config: AlgoConfig,
+    update_step_factory: Callable,
+    experience_pipeline: ExperiencePipeline,
+) -> Callable:
+    update_step_fn = update_step_factory(config)
+
+    def process_and_update(
+        state: AgentPyTree,
+        key: PRNGKeyArray,
+        sample: Experience,
+        *,
+        should_update_policy: bool,
+    ) -> tuple[AgentPyTree, dict]:
+        rng = PRNGSequence(key)
+
+        experience = experience_pipeline.run(state, next(rng), sample)
+
+        for _ in range(config.update_cfg.n_epochs):
+            state, info = update_step_fn(
+                state, next(rng), experience, should_update_policy=should_update_policy
+            )
+
+        return state, info
+
+    return jax.jit(process_and_update, static_argnames=("should_update_policy"))
+
+
 class TD3(OffPolicyAgent):
     """
     Deep Deterministic Policy Gradient (TD3)
@@ -283,6 +312,10 @@ class TD3(OffPolicyAgent):
             experience_type=Experience,
         )
 
+        self.process_and_update_fn = process_and_update_factory(
+            self.config, update_step_factory, self.experience_pipeline
+        )
+
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
         action, log_prob = self.explore_fn(self.state, keys, observation)
@@ -308,12 +341,16 @@ class TD3(OffPolicyAgent):
     def update(self, buffer: OffPolicyBuffer) -> dict:
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
+        update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
+        self.state, info = self.process_and_update_fn(
+            self.state, self.nextkey(), sample, should_update_policy=update_policy
+        )
+        return info
 
         experience = jax.jit(self.experience_pipeline.run)(
             self.state, self.nextkey(), sample
         )
 
-        update_policy = self.step % self.config.algo_params.policy_update_frequency == 0
         for _ in range(self.config.update_cfg.n_epochs):
             self.state, info = self.update_step_fn(
                 self.state,
