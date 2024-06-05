@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
-import time
 from typing import Callable
 
 import jax
@@ -11,7 +10,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 
 from shaberax.logger import GeneralLogger
-from jrd_extensions import Seeded
+from jrd_extensions import Seeded, PRNGSequence
 from save.serializable import (
     Serializable,
     SerializableDict,
@@ -28,7 +27,8 @@ from kitae.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
-from kitae.types import ActionType, ObsType
+from kitae.modules.pytree import AgentPyTree
+from kitae.types import ActionType, ObsType, PRNGKeyArray
 
 
 @dataclass
@@ -58,6 +58,28 @@ class AgentSerializable(Serializable):
         extra = CloudPickleSerializable.unserialize(path.joinpath("extra"))
 
         return AgentInfo(config=config, extra=extra)
+
+
+def process_and_update_factory(
+    config: AlgoConfig,
+    update_step_factory: Callable,
+    experience_pipeline: ExperiencePipeline,
+) -> Callable:
+    update_step_fn = jax.jit(update_step_factory(config))
+
+    def process_and_update(
+        state: AgentPyTree, key: PRNGKeyArray, sample: Experience
+    ) -> tuple[AgentPyTree, dict]:
+        rng = PRNGSequence(key)
+
+        experience = experience_pipeline.run(state, next(rng), sample)
+
+        for _ in range(config.update_cfg.n_epochs):
+            state, info = update_step_fn(state, next(rng), experience)
+
+        return state, info
+
+    return jax.jit(process_and_update)
 
 
 class BaseAgent(IAgent, SerializableObject, Seeded):
@@ -103,6 +125,9 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         )
 
         self.update_step_fn = update_step_factory(config)
+        self.process_and_update_fn = process_and_update_factory(
+            config, update_step_factory, self.experience_pipeline
+        )
 
         # Saving
         path = Path("./runs/").joinpath(run_name).resolve()
@@ -127,23 +152,12 @@ class BaseAgent(IAgent, SerializableObject, Seeded):
         return self.explore(observation)
 
     def update(self, buffer: IBuffer) -> dict:
-        _t = time.time()
+
         sample = buffer.sample(self.config.update_cfg.batch_size)
         sample = numpy_stack_experiences(sample)
-        GeneralLogger.debug(f"Buffer Sampled in {time.time() - _t}s")
-
-        _t = time.time()
-        experience = jax.jit(self.experience_pipeline.run)(
+        self.state, info = self.process_and_update_fn(
             self.state, self.nextkey(), sample
         )
-        GeneralLogger.debug(f"Experience Processed in {time.time() - _t}s")
-
-        _t = time.time()
-        for _ in range(self.config.update_cfg.n_epochs):
-            self.state, info = self.update_step_fn(
-                self.state, self.nextkey(), experience
-            )
-        GeneralLogger.debug(f"State Updated in {time.time() - _t}s")
 
         return info
 

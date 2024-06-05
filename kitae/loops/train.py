@@ -145,6 +145,7 @@ def vectorized_train(
 
             if agent.should_update(step, buffer):
                 update_dict = agent.update(buffer)
+
                 if writer:
                     for key, value in update_dict.items():
                         writer.add_scalar(f"losses/{key}", value, global_step)
