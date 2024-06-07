@@ -89,7 +89,7 @@ def make_update(j_agent: jAgent, j_buffer: jBuffer) -> Callable:
         if j_agent.algo_type == AlgoType.ON_POLICY:
             return buffer_state.index >= j_buffer.max_buffer_size
         if j_agent.algo_type == AlgoType.OFF_POLICY:
-            return buffer_state.index >= j_buffer.sample_size or buffer_state.full
+            return buffer_state.length >= j_buffer.sample_size
         return False
 
     def update_fn(
