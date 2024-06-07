@@ -76,7 +76,7 @@ def explore_factory(config: AlgoConfig) -> ExploreFn:
         dists = dx.EpsilonGreedy(all_qvalues, exploration)
         actions, log_probs = dists.sample_and_log_prob(seed=key)
 
-        return actions, log_probs
+        return actions, log_probs[..., None]
 
     return jax.jit(explore_fn)
 
