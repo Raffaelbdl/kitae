@@ -15,6 +15,7 @@ from kitae.types import PRNGKeyArray
 class BufferState(NamedTuple):
     buffer: Experience
     index: int
+    full: bool
 
 
 class jBuffer(ABC):
@@ -32,16 +33,18 @@ class jBuffer(ABC):
             for v in experience
         ]
         buffer = experience.__class__(*default_values)
-        return BufferState(buffer, jnp.zeros((), dtype=jnp.int32))
+        return BufferState(buffer, jnp.zeros((), dtype=jnp.int32), False)
 
     def add(self, buffer_state: BufferState, experience: Experience) -> BufferState:
-        buffer, i = buffer_state
+        buffer, i, _ = buffer_state
 
         # update index (only used in offpolicy buffer)
-        i = jax.lax.cond(i >= self.max_buffer_size, lambda i: 0, lambda i: i, i)
+        i, full = jax.lax.cond(
+            i >= self.max_buffer_size, lambda i: (0, True), lambda i: (i, False), i
+        )
 
         buffer = jax.tree_map(lambda x, y: x.at[i].set(y), buffer, experience)
-        return BufferState(buffer, i + 1)
+        return BufferState(buffer, i + 1, full)
 
     @abstractmethod
     def sample(
@@ -56,7 +59,10 @@ class OnPolicyBuffer(jBuffer):
         self, buffer_state: BufferState, key: PRNGKeyArray
     ) -> tuple[BufferState, Experience]:
         sample = buffer_state.buffer
-        return BufferState(buffer_state.buffer, jnp.zeros((), dtype=jnp.int32)), sample
+        buffer_state = BufferState(
+            buffer_state.buffer, jnp.zeros((), dtype=jnp.int32), False
+        )
+        return buffer_state, sample
 
 
 class OffPolicyBuffer(jBuffer):
