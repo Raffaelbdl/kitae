@@ -3,7 +3,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 
 from kitae.interface import IAgent, AlgoType
-from kitae.buffer import Experience, buffer_factory
+from kitae.buffers.buffer import Experience, buffer_factory
 from kitae.saving import SaverContext
 
 from kitae.envs.make import wrap_single_env, wrap_single_parallel_env

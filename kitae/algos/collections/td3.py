@@ -13,7 +13,7 @@ from jrd_extensions import PRNGSequence
 
 from kitae.agent import OffPolicyAgent
 from kitae.algos.experience import ExperiencePipeline
-from kitae.buffer import OffPolicyBuffer, Experience, numpy_stack_experiences
+from kitae.buffers.buffer import OffPolicyBuffer, Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.timesteps import compute_td_targets

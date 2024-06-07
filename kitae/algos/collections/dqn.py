@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import optax
 
 from kitae.agent import OffPolicyAgent
-from kitae.buffer import Experience
+from kitae.buffers.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.timesteps import compute_td_targets

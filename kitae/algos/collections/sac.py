@@ -12,7 +12,7 @@ import optax
 from jrd_extensions import PRNGSequence
 
 from kitae.agent import OffPolicyAgent
-from kitae.buffer import Experience
+from kitae.buffers.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.timesteps import compute_td_targets
