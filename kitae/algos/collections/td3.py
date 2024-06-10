@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 from dataclasses import dataclass
+from functools import partial
 from typing import Callable
 
 import flax.linen as nn
@@ -117,6 +118,7 @@ def explore_factory(config: AlgoConfig) -> ExploreFn:
             state.policy_state.params, observations, action_noise
         )
         actions, log_probs = dists.sample_and_log_prob(seed=key)
+        log_probs = jnp.sum(log_probs, axis=-1, keepdims=True)
         actions = action_clip(actions, config.env_cfg.action_space)
 
         return actions, log_probs
@@ -316,6 +318,10 @@ class TD3(OffPolicyAgent):
             self.config, update_step_factory, self.experience_pipeline
         )
 
+        self.explore_fn = partial(
+            self.explore_fn, action_noise=self.algo_params.action_noise
+        )
+
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
         action, log_prob = self.explore_fn(self.state, keys, observation)
@@ -323,9 +329,7 @@ class TD3(OffPolicyAgent):
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-        action, log_prob = self.explore_fn(
-            self.state, keys, observation, action_noise=self.algo_params.action_noise
-        )
+        action, log_prob = self.explore_fn(self.state, keys, observation)
 
         if self.step < self.algo_params.start_step:
             action = jax.random.uniform(
