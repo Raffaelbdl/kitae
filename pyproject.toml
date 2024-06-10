@@ -17,6 +17,7 @@ dependencies = [
     "flatdict",
     "flax",
     "gymnasium",
+    "gymnax",
     "numpy",
     "optax",
     "orbax_checkpoint",
