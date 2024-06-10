@@ -66,14 +66,12 @@ def explore_factory(config: AlgoConfig) -> ExploreFn:
         state: DQNState,
         key: PRNGKeyArray,
         observations: jax.Array,
-        *,
-        exploration: float,
     ) -> tuple[jax.Array, jax.Array]:
 
         all_qvalues = state.qvalue_state.apply_fn(
             state.qvalue_state.params, observations
         )
-        dists = dx.EpsilonGreedy(all_qvalues, exploration)
+        dists = dx.EpsilonGreedy(all_qvalues, config.algo_params.exploration)
         actions, log_probs = dists.sample_and_log_prob(seed=key)
 
         return actions, log_probs[..., None]
@@ -169,15 +167,13 @@ class DQN(OffPolicyAgent):
 
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-        action, zeros = self.explore_fn(self.state, keys, observation, exploration=0.0)
+        action, zeros = self.explore_fn(self.state, keys, observation)
 
         return action, zeros
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
 
-        action, zeros = self.explore_fn(
-            self.state, keys, observation, exploration=self.algo_params.exploration
-        )
+        action, zeros = self.explore_fn(self.state, keys, observation)
 
         return action, zeros
