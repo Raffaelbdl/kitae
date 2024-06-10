@@ -3,10 +3,14 @@ from pathlib import Path
 import shutil
 
 import gymnasium as gym
+from gymnax.environments.environment import Environment
+from gymnax.wrappers import LogWrapper
 from kitae.algos.collections import dqn, ppo, sac, td3
 from kitae.config import EnvConfig, TrainConfig, UpdateConfig, AlgoConfig
+from kitae.loops.jit_train import gymnax_to_gym, make_j_agent, make_train, jEnv
 
 from tests.integration.env_fn import make_discrete_env, make_continuous_env
+from tests.integration.env_fn import make_j_discrete_env, make_j_continuous_env
 
 
 def get_collections(name: str):
@@ -25,6 +29,12 @@ def get_env(discrete: bool) -> tuple[gym.vector.AsyncVectorEnv, str]:
     if discrete:
         return make_discrete_env(), "discrete"
     return make_continuous_env(), "continuous"
+
+
+def get_j_env(discrete: bool) -> tuple[Environment, str]:
+    if discrete:
+        return make_j_discrete_env(), "discrete"
+    return make_j_continuous_env(), "continuous"
 
 
 def collections_loop(name: str, discrete: bool):
@@ -73,18 +83,76 @@ def collections_loop(name: str, discrete: bool):
     return True
 
 
+def collections_j_loop(name: str, discrete: bool):
+    path = Path("./runs").joinpath(name).resolve()
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+
+    env, env_id = get_j_env(discrete)
+    env = LogWrapper(env)
+    env_params = env.default_params
+    env_cfg = EnvConfig(
+        env_id,
+        gymnax_to_gym(env.observation_space(env_params)),
+        gymnax_to_gym(env.action_space(env_params)),
+        10,
+        1,
+    )
+
+    _cls, _params = get_collections(name)
+    agent = _cls(
+        name,
+        AlgoConfig(
+            seed=0,
+            algo_params=_params(),
+            update_cfg=UpdateConfig(1e-3, False, 1.0, 128, 64, 1, False),
+            train_cfg=TrainConfig(200, 100),
+            env_cfg=env_cfg,
+        ),
+    )
+
+    assert path.joinpath("agent_info", "config", "algo_config.yaml").exists()
+    assert path.joinpath("agent_info", "config", "algo_params_type").exists()
+    assert path.joinpath("agent_info", "config", "env_config").exists()
+    assert path.joinpath("agent_info", "extra").exists()
+    assert path.joinpath("checkpoints").exists()
+    assert len(os.listdir(path.joinpath("checkpoints"))) == 0
+
+    j_agent = make_j_agent(agent)
+    j_env = jEnv(env, env_params, env_cfg.n_envs, env_cfg.n_agents)
+
+    train_fn = make_train(
+        j_env,
+        j_agent,
+        agent.config.update_cfg.max_buffer_size,
+        -1,
+        agent.config.train_cfg.n_env_steps,
+        True,
+    )
+    agent.state = train_fn(agent.state, agent.nextkey())
+
+    shutil.rmtree(path)
+
+    return True
+
+
 def test_dqn_loop():
     assert collections_loop("dqn", True)
+    assert collections_j_loop("dqn", True)
 
 
 def test_ppo_loop():
     assert collections_loop("ppo", True)
     assert collections_loop("ppo", False)
+    assert collections_j_loop("ppo", True)
+    assert collections_j_loop("ppo", False)
 
 
 def test_sac_loop():
     assert collections_loop("sac", False)
+    assert collections_j_loop("sac", False)
 
 
 def test_td3_loop():
     assert collections_loop("td3", False)
+    assert collections_j_loop("td3", False)

@@ -12,7 +12,7 @@ import jax.numpy as jnp
 import optax
 
 from kitae.agent import OnPolicyAgent
-from kitae.buffer import Experience, batchify_and_randomize
+from kitae.buffers.buffer import Experience, batchify_and_randomize
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.loss import loss_policy_ppo, loss_value_clip

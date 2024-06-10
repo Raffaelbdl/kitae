@@ -1,4 +1,5 @@
-from collections import namedtuple, deque
+from collections import deque
+from typing import NamedTuple
 
 import chex
 import jax
@@ -7,10 +8,14 @@ import numpy as np
 
 from kitae.interface import AlgoType, IBuffer
 
-Experience = namedtuple(
-    "Experience",
-    ["observation", "action", "reward", "done", "next_observation", "log_prob"],
-)
+
+class Experience(NamedTuple):
+    observation: np.ndarray
+    action: np.ndarray
+    reward: np.ndarray
+    done: np.ndarray
+    next_observation: np.ndarray
+    log_prob: np.ndarray
 
 
 def jax_stack_experiences(experiences: list[Experience]) -> Experience:

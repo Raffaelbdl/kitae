@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 from dataclasses import dataclass
+from functools import partial
 from typing import Callable
 
 import distrax as dx
@@ -10,7 +11,7 @@ import jax.numpy as jnp
 import optax
 
 from kitae.agent import OffPolicyAgent
-from kitae.buffer import Experience
+from kitae.buffers.buffer import Experience
 from kitae.config import AlgoConfig, AlgoParams
 
 from kitae.operations.timesteps import compute_td_targets
@@ -76,7 +77,7 @@ def explore_factory(config: AlgoConfig) -> ExploreFn:
         dists = dx.EpsilonGreedy(all_qvalues, exploration)
         actions, log_probs = dists.sample_and_log_prob(seed=key)
 
-        return actions, log_probs
+        return actions, log_probs[..., None]
 
     return jax.jit(explore_fn)
 
@@ -167,17 +168,19 @@ class DQN(OffPolicyAgent):
             experience_type=Experience,
         )
 
+        self.select_action_fn = partial(self.explore_fn, exploration=0.0)
+        self.explore_fn = partial(
+            self.explore_fn, exploration=self.algo_params.exploration
+        )
+
     def select_action(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-        action, zeros = self.explore_fn(self.state, keys, observation, exploration=0.0)
+        action, zeros = self.select_action(self.state, keys, observation)
 
         return action, zeros
 
     def explore(self, observation: jax.Array) -> tuple[jax.Array, jax.Array]:
         keys = self.interact_keys(observation)
-
-        action, zeros = self.explore_fn(
-            self.state, keys, observation, exploration=self.algo_params.exploration
-        )
+        action, zeros = self.explore_fn(self.state, keys, observation)
 
         return action, zeros

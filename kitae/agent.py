@@ -23,7 +23,7 @@ from save.checkpoint import PyTreeNodeTrainStateFlaxCheckpointer
 
 from kitae.algos.factory import explore_general_factory
 from kitae.algos.experience import ExperiencePipeline
-from kitae.buffer import Experience, numpy_stack_experiences
+from kitae.buffers.buffer import Experience, numpy_stack_experiences
 from kitae.config import AlgoConfig, ConfigSerializable
 from kitae.interface import IAgent, IBuffer, AlgoType
 from kitae.loops.train import vectorized_train
