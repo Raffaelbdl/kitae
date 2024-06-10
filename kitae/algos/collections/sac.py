@@ -117,6 +117,7 @@ def explore_factory(config: AlgoConfig) -> ExploreFn:
 
         dists = state.policy_state.apply_fn(state.policy_state.params, observations)
         actions, log_probs = dists.sample_and_log_prob(seed=key)
+        log_probs = jnp.sum(log_probs, axis=-1, keepdims=True)
         actions = action_clip(actions, config.env_cfg.action_space)
 
         return actions, log_probs
