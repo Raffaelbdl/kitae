@@ -1,8 +1,10 @@
 import logging
 from typing import Callable, NamedTuple
 
+from gymnasium.spaces import Space, Box, Discrete
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from jrd_extensions import PRNGSequence
 
@@ -16,6 +18,11 @@ from kitae.types import PRNGKeyArray
 
 try:
     from gymnax.environments.environment import Environment, EnvParams, EnvState
+    from gymnax.environments.spaces import (
+        Discrete as jDiscrete,
+        Box as jBox,
+        Space as jSpace,
+    )
 except ImportError:
     logging.error("Module 'gymnax' is not installed. Run `pip install kitae[gymnax]`")
     raise ImportError
@@ -193,7 +200,7 @@ def make_train(
                 reward=reward,
                 done=done,
                 next_observation=next_obs,
-                log_prob=jnp.zeros(action.shape + (1,), dtype=jnp.float32),
+                log_prob=jnp.zeros((1,), dtype=jnp.float32),
             ),
         )
 
@@ -212,3 +219,12 @@ def make_train(
         return running_state.agent_state
 
     return train
+
+
+def gymnax_to_gym(space: jSpace) -> Space:
+    if isinstance(space, jBox):
+        return Box(np.array(space.low), np.array(space.high), space.shape, space.dtype)
+    if isinstance(space, jDiscrete):
+        return Discrete(space.n)
+
+    raise TypeError
