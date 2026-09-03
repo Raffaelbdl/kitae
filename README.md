@@ -4,9 +4,6 @@
 
 # Kitae: Yet another RL library built with FLAX modules
 
-![Tests](https://github.com/Raffaelbdl/rl_tools/actions/workflows/pytest.yml/badge.svg)
-![Status](https://img.shields.io/badge/Status-Work_In_Progress-orange)
-
 ![Python Version](https://img.shields.io/badge/Python->=3.10-blue)
 ![Code Style](https://img.shields.io/badge/Code_Style-black-black)
 
